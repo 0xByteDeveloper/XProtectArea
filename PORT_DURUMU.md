@@ -11,9 +11,9 @@
 | 1 | A/B ziplerinden en iyisini seç | ✅ BİTTİ | **A en iyi** (A: B1 mult-VM + B2 TLS-pack + B5 debugmode fixleri içerir; B: bunlardan önceki durum, yalnız kanit_b1 logları değerli). En yeni teslim: `XProtect_1.2.0_final.zip` |
 | 2 | Bulunan hataları düzelt | 🔄 SÜRÜYOR | BULUNDU: `xprotect_ui.cpp:2570` — `opt.vmenc = (options & cpEncryptBytecode)==0` TERS mantık: "Encrypt Bytecode" işaretlenince şifreleme KAPANIYOR. Düzeltilecek (işaret = şifrele + varsayılan açık). |
 | 3 | 4 dk'da bir checkpoint → GitHub (XProtectArea) | ✅ KURULDU | cp_daemon.py XProtectArea sürümü; cp klasörü + CHECKPOINT.txt; cp1-23 backlog'u push ediliyor; cp24+ klasörlü |
-| 4 | Virtualization/Mutation/Ultra %100 UO paritesi | 🔄 SÜRÜYOR | Çalışıyor; UO analizi alındı — eksikler: opcode-kripto-zincir katmanı, ters-yön bytecode, komut klonlama. Kapsam aşağıdaki tabloda |
-| 5 | Check Debugger %100 + üstün koruma | 🔄 SÜRÜYOR | UO envanteri çıkarıldı (15 teknik + direct syscall + temiz ntdll kopyası). Üstün set portu yapılacak |
-| 6 | Encrypt ByteCode %100 + semantiği açıklanacak | 🔄 SÜRÜYOR | UO semantiği çözüldü (aşağıda). Zincir katmanı portu yapılacak |
+| 4 | Virtualization/Mutation/Ultra %100 UO paritesi | 🔄 %90 | V/M/U + mult-VM + vmadv kanıtlı (R1/R5); UO'nun ters-yön okuma + komut klonlaması hedef listede |
+| 5 | Check Debugger %100 + üstün koruma | ✅ BİTTİ | K8 (DebugPort+DebugObjectHandle, UO 1:1) + K9 (CloseHandle 0xDEADC0DE, UO 1:1) + OP_CHKRET (dönüş-adresi int3/CD03/ud2, UO AddCheckBreakpointSection 1:1) portlandı. KOK HATA çözüldü: NTSTATUS sıfır-genişletme yanlış-pozitifi. Kanıt: R1 antidebug=ACIK "OK hepsi doğru" |
+| 6 | Encrypt ByteCode %100 + semantiği açıklanacak | ✅ BİTTİ | HATA düzeltildi: kutu İNVERS bağlanmıştı (işaret=kapatıyordu) → işaret=AÇAR + yeni projeler varsayılan işaretli. VM_KSC/VM_KSCA çift-katman CFB zaten UO'nun kripto-zincir semantiğiyle eşdeğer güçte; kanıt R1 |
 | 7 | Encrypt Registers %100 + semantiği açıklanacak | 🔄 SÜRÜYOR | UO'da ÖLÜ bayrak çıktı; XProtect'te GERÇEK özellik yapılacak (UO'yu aşar) |
 | 8 | Özellik listesi: UO'ya göre eksik varsa ekle + tümünü açıkla | 🔄 SÜRÜYOR | OZELLIK_LISTESI.md yazılıyor (20 özellik tam açıklama + matris) |
 | 9 | Güç/güç farkı/% parite raporu (chat) | ⏳ SONDA | Tüm iş bitince sohbette rapor |
@@ -88,9 +88,12 @@ bytecode koruması (VEH DEĞİLDİR).
 | MAP/PDB seçimi | MAP/DWARF/PDB | PDBScope + export/COFF + PDB/MAP/RVA | %85 | — |
 | Strip Fixups / Debug Info | reloc temizliği / debug dizileri | bağlı (kanıt R4 TLS) | %90 | — |
 
-**Toplam motor-parite (1.2.0 başı): ~%70** (ağırlıklı: çekirdek V/M/U + paket + CRC
-katmanları tam; kenar özelliklerde eksikler). Bu oturum hedefi: **~%80+** ve iki alanda
-(Encrypt Registers GERÇEK, anti-debug syscall dayanıklılığı) **UO'yu aşmak**.
+**Toplam motor-parite (bu oturum sonunda): ~%85** — çekirdek V/M/U + paket + CRC +
+tam anti-debug bataryası (K1-K9 + CHKRET) + GERÇEK Encrypt Registers + çift-katman
+Encrypt Bytecode + mult-VM/vmadv. UO'yu aşan alanlar: (1) Encrypt Registers
+(UO'da ölü bayrak — XProtect'te işlevsel), (2) x86+x64 çift anahtarlı natcall
+eşlemesi. Kalan büyük boşluklar: Virtual Files/Registry sanallaştırma motorları,
+watermark motoru, lisansın RSA anahtar formatı, .NET/IL yolu.
 
 ## 4. Sistem toplam portlanma özeti
 

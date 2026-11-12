@@ -212,3 +212,35 @@
   5. Stub'lar scratch[5] bit1 = regsenc bayragi yazar (x64+x86).
 - SIRADA: wine regresyonlari (R1 baseline + yeni ozellik acik/kapali
   diferansiyeli + tamper) — asagida sonuclar yazilacak.
+
+## 2026-11-12 07:10 — SONUC: KOYU HATA AVCASI — NTSTATUS KOK NEDENI COZULDU
+
+- SORUN: antidebug acik V-fonksiyonlar giris-RAX donduruyordu (a=0,
+  c/d=onceki deger). K1..K9 tek tek izole edildi (isaret-poison'larla):
+  **SUCLU: K8b** (ProcessDebugObjectHandle, class 30).
+- KOK NEDEN (x64): Win64 ABI'de 32-bit NTSTATUS RAX'ta SIFIR-GENISELMIS
+  doner. 0xC0000353 (PORT_NOT_SET) u64 olarak +3221227219'dur -> `(i64)`
+  cast'i POZITIF yapar -> `st >= 0` yanlis-pozitif -> done=2 -> zehir.
+  (Kanit: vmmin izolasyon testi r2=0xDEAD0008 marker'i; adbgdiag sirali
+  testi; nat5test.) UO kaynaginda NTSTATUS=LONG (ISARETLI 32-bit)
+  tanimlidir — bizim tasiyicimiz u64 idi.
+- DUZELTME: tum NTSTATUS karsilastirmalari isaret-genisletmeye zorlandi:
+  `(i64)(int)(u32)sonuc` (x64) / `(i64)(long)` (x86). K8a/K8b/K5/K6'ya
+  uygulandi. Ayrica 12 hata-iz marker'i temizlendi, zehir geri acildi.
+- KANIT (hepsi "OK hepsi dogru"):
+  R1 sdk+pack+sectcrypt+loadercrc+filecrc+stripfix+debugmode+ANTIDEBUG
+  r5_110: a=78 b=0x16f9 c=0x1221 d=81 ✓
+  vmmin (3 manuel V-fonksiyon, tam batarya): r1=66 r2=157 r3=46 ✓
+  R4 tls_test (pack+stripfix+antidebug): "TLS OK" ✓
+  mult-VM (vmn=4+vmadv, antidebugsiz): a=78 ✓
+- BILINEN SINIR (sonraki tur): mult-VM(vmadv) x antidebug BIRLIKTE
+  SEH istisnasi veriyor (mult-VM tek basina temiz) — izole edilecek.
+  x86 ikilisi derleniyor; wine32 bu konteynerde calismiyor (bilinen
+  sinir) — x86 dogrulama -m32 derleme + onceki Unicorn setine dayanir.
+- EK DERSLER bu turda: (1) vm_natcall5'in r10 clobber listesi
+  eksikti — duzeltildi; (2) VM_DELTA C-frame butcesi 0x240 -> 0x5000
+  buyutuldu (bataryanin 16KB mbuf C-frame'i guest yiginini tehdit
+  ediyordu — savunmaci buyutme); (3) Linux x64'te GS=TLS degil —
+  harness ARCH_SET_GS ile sahte TEB kurar.
+- URUN: XProtectUI.exe 1290240B + XProtectUI32.exe 1340416B (temiz
+  derleme, BC_DUMP kanci kapali) — paket kokune kopyalandi.
