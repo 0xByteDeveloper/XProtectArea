@@ -1,0 +1,4 @@
+0074:err:winediag:nodrv_CreateWindow Application tried to create a window, but no driver could be loaded.
+0074:err:winediag:nodrv_CreateWindow L"The explorer process failed to start."
+0074:err:systray:initialize_systray Could not create tray window
+00b0:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5

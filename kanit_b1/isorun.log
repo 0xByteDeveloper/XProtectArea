@@ -1,0 +1,8 @@
+OK p1 40
+OK p2 20
+OK p3t 48874
+FAIL p3f got=48879 want=111
+OK p4t 48874
+FAIL p4f got=48879 want=222
+HATALI r=40
+RCODE=7

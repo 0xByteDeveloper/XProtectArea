@@ -1,0 +1,4 @@
+OK main a=78 b=0x16f9 c=0x1221 d=81
+OK sdk_print 78
+OK hepsi dogru
+RCODE=42

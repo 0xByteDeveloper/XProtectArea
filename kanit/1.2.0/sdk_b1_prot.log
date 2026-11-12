@@ -1,0 +1,56 @@
+[PE] Z:\home\z\my-project\scripts\a4fpu\sdk_b1.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1750
+  sec .text    RVA=0x001000 VSz=0x028226 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B7BC Raw=0x028800 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005B Raw=0x034000 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034200 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x001794 Raw=0x034400 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035C00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x035E00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x0000126A boyut=0x00000030 tip=V
+[SDK] isaret bulundu: SDK_V_0x000012D4 boyut=0x00000032 tip=V
+[SDK] isaret bulundu: SDK_V_0x00001334 boyut=0x00000022 tip=V
+[MANUEL] SDK_V_0x0000126A @RVA=0x00126A boyut=0x30 tip=V
+[MANUEL] SDK_V_0x000012D4 @RVA=0x0012D4 boyut=0x32 tip=V
+[MANUEL] SDK_V_0x00001334 @RVA=0x001334 boyut=0x22 tip=V
+[LIFT] 3/3 secili fonksiyon | V=3 M=0 U=0 (U-mutdus=0)
+[DEBUGMODE] INT3 dolumu aktif: bolge-kalanlari 0xCC (govde + tramp junk)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x006FD8 | VM blob 27516B | vm_entry RVA=0x0439C0
+[YAMA] SDK_V_0x0000126A @RVA=0x00126A boyut=0x30 | bc=74B key=0x7BE4F03C638B1EB | stubRVA=0x043C80 retimm=4294967295 (trampoline)
+  0000126A: mov rax, [mem] (sz4)
+  00001270: lea rax, [mem]
+  00001277: mov [mem], rax (sz4)
+  0000127D: mov rax, [mem] (sz4)
+  00001283: mov rcx, [mem] (sz4)
+  00001289: alu5 (sz4)
+  0000128E: jcc15 disari -> jccext 0x12a7
+  00001290: alu0 (sz4)
+  00001293: call 0x1370 (ncall)
+  00001298: mov rcx, rax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x000012D4 @RVA=0x0012D4 boyut=0x32 | bc=107B key=0x8AB6B24D943D389D | stubRVA=0x043DA0 retimm=4294967295 (trampoline)
+  000012D4: mov rax, [mem] (sz4)
+  000012DA: xor-imm KAPI-dekompoze (sz4)
+  000012DD: mov [mem], rax (sz4)
+  000012E3: mov rax, [mem] (sz4)
+  000012E9: alu5 (sz4)
+  000012EE: jcc15 disari -> jccext 0x130b
+  000012F0: mov rax, [mem] (sz4)
+  000012F6: mov rcx, [mem] (sz4)
+  000012FC: shift 1
+  000012FE: alu0 (sz4)
+  00001300: mov [mem], rcx (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x00001334 @RVA=0x001334 boyut=0x22 | bc=51B key=0xDF8454AD6CEFB8E5 | stubRVA=0x043EC0 retimm=4294967295 (trampoline)
+  00001334: mov rax, [mem] (sz4)
+  0000133A: alu0 (sz4)
+  0000133D: mov [mem], rax (sz4)
+  00001343: mov rax, [mem] (sz4)
+  00001349: lea rax, [mem]
+  00001350: mov [mem], rax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\home\z\my-project\scripts\a4fpu\sdk_b1_p.exe (249856 bayt)
+[OZET] tipler: V=3 M=0 U=0 | vmn=1 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

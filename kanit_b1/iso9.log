@@ -1,0 +1,34 @@
+0024:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+002c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0034:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+003c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0048:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0070:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0078:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0090:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00ac:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0078:err:winediag:nodrv_CreateWindow Application tried to create a window, but no driver could be loaded.
+0078:err:winediag:nodrv_CreateWindow L"The explorer process failed to start."
+0078:err:systray:initialize_systray Could not create tray window
+0078:trace:seh:dispatch_exception code=6ba (RPC_S_SERVER_UNAVAILABLE) flags=0 addr=00006FFFFF3FCF77
+0078:trace:seh:dispatch_exception rip=00006fffff3fcf77 rsp=00007ffffe2fd690 rbp=0000000000000000 eflags=00000206
+0078:trace:seh:dispatch_exception rax=00007ffffe2fd6b0 rbx=00007ffffe2fe530 rcx=00007ffffe2fd6b0 rdx=0000000000000000
+0078:trace:seh:dispatch_exception rsi=0000000000000064 rdi=00007ffffeada210  r8=0000000000000000  r9=0000000000000000
+0078:trace:seh:dispatch_exception r10=00007ffffeada350 r11=000000000000d5cb r12=00007ffffe2fd838 r13=0000000000000005
+0078:trace:seh:dispatch_exception r14=0000000000000000 r15=00007ffffe2fd840 mxcsr=00001fa0
+0078:trace:seh:call_seh_handlers calling TEB handler 00006FFFFD796620 (rec=00007FFFFE2FD6B0 frame=00007FFFFE2FD8C0 context=00007FFFFE2FD1B0 dispatch=00007FFFFE2FCA90) sp=7ffffe2fe240
+0078:trace:seh:call_seh_handlers TEB handler at 00006FFFFD796620 returned 1
+0078:trace:seh:call_seh_handlers calling TEB handler 00006FFFFE3A48F0 (rec=00007FFFFE2FD6B0 frame=00007FFFFE2FEDB0 context=00007FFFFE2FD1B0 dispatch=00007FFFFE2FCA90) sp=7ffffe2fef00
+0078:trace:seh:RtlUnwindEx code=6ba flags=2 end_frame=00007FFFFE2FEDB0 target_ip=00006FFFFE393DEA
+0078:trace:seh:RtlUnwindEx rip=00006fffffc553f5 rsp=00007ffffe2fbda0 rbp=00007ffffe2fc460 eflags=00000206
+0078:trace:seh:RtlUnwindEx rax=000000007ffc0000 rbx=00007ffffe2fd6b0 rcx=00007ffffe2fc460 rdx=00006ffffe393dea
+0078:trace:seh:RtlUnwindEx rsi=00007ffffe2fc460 rdi=00007ffffe2fedb0  r8=00007ffffe2fd6b0  r9=00006ffffe3b4710
+0078:trace:seh:RtlUnwindEx r10=0000000000000000 r11=0000000000000246 r12=00007ffffe2fbf00 r13=000000007ffc0000
+0078:trace:seh:RtlUnwindEx r14=00007ffffe2fd8c0 r15=00007ffffe2fedb0 mxcsr=00001fa0
+0078:trace:seh:RtlUnwindEx calling TEB handler 00006FFFFD796620 (rec=00007FFFFE2FD6B0, frame=00007FFFFE2FD8C0 context=00007FFFFE2FC460, dispatch=00007FFFFE2FBE10)
+0078:trace:seh:RtlUnwindEx handler at 00006FFFFD796620 returned 1
+0078:trace:seh:RtlRestoreContext returning to 00006FFFFE393DEA stack 00007FFFFE2FED60
+00b4:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5
+003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1359
+0100:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.

@@ -1,0 +1,98 @@
+[PE] Z:\home\z\my-project\scripts\a4fpu\r5_110.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1580
+  sec .text    RVA=0x001000 VSz=0x028066 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B73C Raw=0x028600 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005B Raw=0x033E00 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034000 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x001764 Raw=0x034200 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035A00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x035C00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=543 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 539 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x00001035 boyut=0x0000002D tip=V
+[SDK] isaret bulundu: SDK_M_0x0000107D boyut=0x00000020 tip=M
+[SDK] isaret bulundu: SDK_U_0x000010B2 boyut=0x0000001E tip=U
+[SDK] isaret bulundu: SDK_V_0x000010E5 boyut=0x0000002E tip=V
+[MANUEL] SDK_V_0x00001035 @RVA=0x001035 boyut=0x2D tip=V
+[MANUEL] SDK_M_0x0000107D @RVA=0x00107D boyut=0x20 tip=M
+[MANUEL] SDK_U_0x000010B2 @RVA=0x0010B2 boyut=0x1E tip=U
+[MANUEL] SDK_V_0x000010E5 @RVA=0x0010E5 boyut=0x2E tip=V
+[ULTRA] on-mutasyon RED: ret bulunamadi -> saf V ye dusuluyor (bolge)
+[LIFT] 4/4 secili fonksiyon | V=3 M=1 U=0 (U-mutdus=1)
+[SEH] dinamik unwind: kayit=5 tabloRVA=0x048780 (xrt ilk kapida RtlAddFunctionTable)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x00B7DC | VM blob 27516B | vm_entry RVA=0x0439C0
+[YAMA] SDK_V_0x00001035 @RVA=0x001035 boyut=0x2D | bc=88B key=0xD74EBB5ED00C11D9 | stubRVA=0x048320 retimm=4294967295 (trampoline)
+  00001035: lea rax, [mem]
+  00001038: mov [mem], rax (sz4)
+  0000103E: mov rax, [mem] (sz4)
+  00001044: lea rax, [mem]
+  00001047: alu0 (sz4)
+  0000104A: mov [mem], rax (sz4)
+  00001050: mov rax, [mem] (sz4)
+  00001056: alu5 [PE] Z:\home\z\my-project\scripts\a4fpu\r5_110.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1580
+  sec .text    RVA=0x001000 VSz=0x028066 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B73C Raw=0x028600 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005B Raw=0x033E00 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034000 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x001764 Raw=0x034200 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035A00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x035C00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=543 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 539 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x00001035 boyut=0x0000002D tip=V
+[SDK] isaret bulundu: SDK_M_0x0000107D boyut=0x00000020 tip=M
+[SDK] isaret bulundu: SDK_U_0x000010B2 boyut=0x0000001E tip=U
+[SDK] isaret bulundu: SDK_V_0x000010E5 boyut=0x0000002E tip=V
+[MANUEL] SDK_V_0x00001035 @RVA=0x001035 boyut=0x2D tip=V
+[MANUEL] SDK_M_0x0000107D @RVA=0x00107D boyut=0x20 tip=M
+[MANUEL] SDK_U_0x000010B2 @RVA=0x0010B2 boyut=0x1E tip=U
+[MANUEL] SDK_V_0x000010E5 @RVA=0x0010E5 boyut=0x2E tip=V
+[ULTRA] on-mutasyon RED: ret bulunamadi -> saf V ye dusuluyor (bolge)
+[LIFT] 4/4 secili fonksiyon | V=3 M=1 U=0 (U-mutdus=1)
+[SEH] dinamik unwind: kayit=5 tabloRVA=0x048780 (xrt ilk kapida RtlAddFunctionTable)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x00B7DC | VM blob 27516B | vm_entry RVA=0x0439C0
+[YAMA] SDK_V_0x00001035 @RVA=0x001035 boyut=0x2D | bc=88B key=0xD74EBB5ED00C11D9 | stubRVA=0x048320 retimm=4294967295 (trampoline)
+  00001035: lea rax, [mem]
+  00001038: mov [mem], rax (sz4)
+  0000103E: mov rax, [mem] (sz4)
+  00001044: lea rax, [mem]
+  00001047: alu0 (sz4)
+  0000104A: mov [mem], rax (sz4)
+  00001050: mov rax, [mem] (sz4)
+  00001056: alu5 (sz4)
+  00001059: jcc12 0x1062
+  0000105B: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna[OZET] tipler: V=3 M=1 U=0 (U->V dusus=1) | vmn=1 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=1,text=1,file=1) | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00049000) | sectcrypt=ACIK(CFB-64) | stripfix=ACIK | stripdbg=kapali
+rc=0
+744B | stubRVA=0x048460 retimm=4294967295 (trampoline)
+  000010B2: mov [mem], imm32=0x2468
+  000010BC: alu4 (sz4)
+  000010C3: shift[mem] 1
+  000010C9: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x000010E5 @RVA=0x0010E5 boyut=0x2E | bc=81B key=0x9D72650ECB2261E3 | stubRVA=0x0485A0 retimm=4294967295 (trampoline)
+  000010E5: mov [mem], imm32=0x3a
+  000010EF: mov rax, [mem] (sz4)
+  000010F5: lea rax, [mem]
+  000010F8: alu0 (sz4)
+  000010FB: mov [mem], rax (sz4)
+  00001101: mov rax, [mem] (sz4)
+  00001107: alu5 (sz4)
+  0000110A: jcc12 0x1113
+  0000110C: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+  [1.1.0-FIX] jcc->bolge-sonu: son OP_RET'e yonlendirildi
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[PACK] .text RVA=0x00001000 164352 B -> LZMA 66325 B (%40.4) [CFB]
+[PACK] .data RVA=0x00037000 512 B -> LZMA 53 B (%10.4) [CFB]
+[SECTCRYPT] akislar CFB-64 sifrelendi (anahtar cfg'de maskeli, kayit-bagi nonce)
+[PACK] EP 0x1580 -> unpack stub 0x593A0 (.vmp1) | OEP 0x1580 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[PACK] dosya compaction: 267776 -> 236544 bayt
+[STRIPFIX] .reloc dizini silindi (96 bayt)
+[XRT] runtime katmani: flags=0x1F | self=0x5969134E (45509B) | text=0x21047E6D (0x28066, reloc-atla 0B) | file=0xEE8B5403 (atla: cksum+208, .vmp0 122880..169984) | pack=0x49000
+[XRT] xrt_entry=0x00046360 cfg=0x000481D0 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: MessageBoxA + ExitProcess
+[KAYIT] /home/z/my-project/scripts/a4fpu/r5_120_p.exe (236544 bayt)
+[OZET] tipler: V=3 M=1 U=0 (U->V dusus=1) | vmn=1 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=1,text=1,file=1) | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00049000) | sectcrypt=ACIK(CFB-64) | stripfix=ACIK | stripdbg=kapali
+rc=0

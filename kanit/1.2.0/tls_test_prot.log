@@ -1,0 +1,26 @@
+[PE] Z:\home\z\my-project\scripts\a4fpu\tls_test.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1460
+  sec .text    RVA=0x001000 VSz=0x027F36 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x029000 VSz=0x00B6EC Raw=0x028400 Chars=0x40000040
+  sec .buildid RVA=0x035000 VSz=0x00005D Raw=0x033C00 Chars=0x40000040
+  sec .data    RVA=0x036000 VSz=0x001158 Raw=0x033E00 Chars=0xC0000040
+  sec .pdata   RVA=0x038000 VSz=0x001770 Raw=0x034000 Chars=0x40000040
+  sec .tls     RVA=0x03A000 VSz=0x000010 Raw=0x035800 Chars=0xC0000040
+  sec .reloc   RVA=0x03B000 VSz=0x000064 Raw=0x035A00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[SEH] dinamik unwind: kayit=0 tabloRVA=0x047230 (xrt ilk kapida RtlAddFunctionTable)
+[SECTION] .vmp0 RVA=0x03C000 boyut=0x00B230 | VM blob 27516B | vm_entry RVA=0x0429C0
+[RELOC] reloc girdisi silindi: 0, yeni boyut=100
+[PACK] .text RVA=0x00001000 163840 B -> LZMA 66190 B (%40.4)
+[PACK] .data RVA=0x00036000 512 B -> LZMA 52 B (%10.2)
+[PACK] EP 0x1460 -> unpack stub 0x58310 (.vmp1) | OEP 0x1460 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[TLS-LOADER] 3 callback -> .vmp1 trampolin + EP-sonrasi cagri dongusu (defer-tasarim: callback paket-acilmis bellekte calisir)
+[PACK] dosya compaction: 266240 -> 236032 bayt
+[STRIPFIX] .reloc dizini silindi (100 bayt)
+[XRT] runtime katmani: flags=0x18 | self=0x00000000 (0B) | text=0x00000000 (0x27F36, reloc-atla 0B) | file=0xE976118E (atla: cksum+208, .vmp0 122880..168960) | pack=0x48000
+[XRT] xrt_entry=0x00045360 cfg=0x000471D0 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: MessageBoxA + ExitProcess
+[KAYIT] Z:\home\z\my-project\scripts\a4fpu\tls_test_p.exe (236032 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00048000) | sectcrypt=kapali | stripfix=ACIK | stripdbg=kapali
+rc=0

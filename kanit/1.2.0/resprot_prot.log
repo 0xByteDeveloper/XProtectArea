@@ -1,0 +1,30 @@
+[PE] Z:\home\z\my-project\scripts\a4fpu\res_test_r.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x14A0
+  sec .text    RVA=0x001000 VSz=0x027FB6 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x029000 VSz=0x00B780 Raw=0x028400 Chars=0x40000040
+  sec .buildid RVA=0x035000 VSz=0x00005D Raw=0x033C00 Chars=0x40000040
+  sec .data    RVA=0x036000 VSz=0x001158 Raw=0x033E00 Chars=0xC0000040
+  sec .pdata   RVA=0x038000 VSz=0x001764 Raw=0x034000 Chars=0x40000040
+  sec .tls     RVA=0x03A000 VSz=0x000010 Raw=0x035800 Chars=0xC0000040
+  sec .reloc   RVA=0x03B000 VSz=0x000060 Raw=0x035A00 Chars=0x42000040
+  sec .rsrc    RVA=0x03C000 VSz=0x00006E Raw=0x035C00 Chars=0x40000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=546 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 542 aday (.text)
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[SEH] dinamik unwind: kayit=0 tabloRVA=0x048230 (xrt ilk kapida RtlAddFunctionTable)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x00B230 | VM blob 27516B | vm_entry RVA=0x0439C0
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[PACK] .text RVA=0x00001000 163840 B -> LZMA 66199 B (%40.4) [CFB]
+[PACK] .data RVA=0x00036000 512 B -> LZMA 53 B (%10.4) [CFB]
+[PACK] .rsrc RVA=0x0003C000 512 B -> LZMA 69 B (%13.5) [CFB]
+[SECTCRYPT] akislar CFB-64 sifrelendi (anahtar cfg'de maskeli, kayit-bagi nonce)
+[PACK] EP 0x14A0 -> unpack stub 0x59380 (.vmp1) | OEP 0x14A0 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[TLS-LOADER] 2 callback -> .vmp1 trampolin + EP-sonrasi cagri dongusu (defer-tasarim: callback paket-acilmis bellekte calisir)
+[PACK] dosya compaction: 266752 -> 236544 bayt
+[STRIPFIX] .reloc dizini silindi (96 bayt)
+[XRT] runtime katmani: flags=0x1F | self=0x5969134E (45509B) | text=0x98D96004 (0x27FB6, reloc-atla 0B) | file=0x32CDF21F (atla: cksum+208, .vmp0 123392..169472) | pack=0x49000
+[XRT] xrt_entry=0x00046360 cfg=0x000481D0 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: MessageBoxA + ExitProcess
+[KAYIT] Z:\home\z\my-project\scripts\a4fpu\res_test_rp.exe (236544 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=ACIK | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=1,text=1,file=1) | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00049000) | sectcrypt=ACIK(CFB-64) | stripfix=ACIK | stripdbg=kapali
+rc=0

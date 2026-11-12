@@ -1,0 +1,93 @@
+[PE] Z:\home\z\my-project\scripts\kanit_b1\test_b1_64.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x16A0
+  sec .text    RVA=0x001000 VSz=0x028176 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B7E8 Raw=0x028600 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005F Raw=0x033E00 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034000 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x0017AC Raw=0x034200 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035A00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x035C00 Chars=0x42000040
+[KESIF] export=4 coff-fonksiyon=0
+[KESIF] +PDB/MAP=544 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 544 aday (.text)
+[SDK] isaret bulundu: SDK_U_0x00001012 boyut=0x0000000A tip=U
+[SDK] isaret bulundu: SDK_V_0x0000103E boyut=0x000000B1 tip=V
+[SDK] isaret bulundu: SDK_U_0x00001118 boyut=0x0000001F tip=U
+[MANUEL] SDK_U_0x00001012 @RVA=0x001012 boyut=0xA tip=U
+[MANUEL] SDK_V_0x0000103E @RVA=0x00103E boyut=0xB1 tip=V
+[MANUEL] SDK_U_0x00001118 @RVA=0x001118 boyut=0x1F tip=U
+[ULTRA] on-mutasyon RED: disari jcc (U-on-mutasyon — VNJCC ye dusus) -> saf V ye dusuluyor (bolge)
+[ULTRA] on-mutasyon RED: ret bulunamadi -> saf V ye dusuluyor (bolge)
+[LIFT] 3/3 secili fonksiyon | V=3 M=0 U=0 (U-mutdus=2)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x007058 | VM blob 27420B | vm_entry RVA=0x043980
+[YAMA] SDK_U_0x00001012 @RVA=0x001012 boyut=0xA | bc=36B key=0x35B9182B3DD66465 | stubRVA=0x043DE0 retimm=4294967295 (trampoline)
+  00001012: alu6 (sz4)
+  00001014: jcc5 disari 0x1000 (njcc)
+  00001016: mov rax, imm=0x6f
+  0000101B: ret
+[YAMA] SDK_V_0x0000103E @RVA=0x00103E boyut=0xB1 | bc=592B key=0x6742029731C58F51 | stubRVA=0x043EA0 retimm=4294967295 (trampoline)
+  0000103E: mov rdx, rcx (sz4)
+  00001040: and-imm KAPI-dekompoze (sz4)
+  00001043: jcc4 0x1059
+  00001045: mov rax, rcx (sz4)
+  00001047: and-imm KAPI-dekompoze (sz4)
+  0000104A: alu5 (sz4)
+  0000104D: jcc3 0x1063
+  0000104F: mov rdx, imm=0x811c9dc5
+  00001054: xor-rr KAPI-dekompoze (sz4)
+  00001057: jmp 0x10d0
+  00001059: mov rdx, imm=0x811c9dc5
+  0000105E: jmp 0x10e9
+  00001063: and-imm KAPI-dekompoze (sz4)
+  00001066: mov rdx, imm=0x811c9dc5
+  0000106B: xor-rr KAPI-dekompoze (sz4)
+  0000106E: xor-rr KAPI-dekompoze (sz4)
+  00001070: xor-rr KAPI-dekompoze (sz4)
+  00001073: imul rdx, rdx, 0x1000193
+  00001079: lea r9, [mem]
+  0000107D: xor-rr KAPI-dekompoze (sz4)
+  00001080: shift 7
+  00001083: xor-rr KAPI-dekompoze (sz4)
+  00001086: imul rdx, rdx, 0x1000193
+  0000108C: lea r9, [mem]
+  00001090: xor-rr KAPI-dekompoze (sz4)
+  00001093: shift 7
+  00001096: xor-rr KAPI-dekompoze (sz4)
+  00001099: imul rdx, rdx, 0x1000193
+  0000109F: lea r9, [mem]
+  000010A3: xor-rr KAPI-dekompoze (sz4)
+  000010A6: shift 7
+  000010A9: xor-rr KAPI-dekompoze (sz4)
+  000010AC: imul r9, rdx, 0x1000193
+  000010B3: mov rdx, r9 (sz4)
+  000010B6: shift 7
+  000010B9: xor-rr KAPI-dekompoze (sz4)
+  000010BC: alu0 (sz4)
+  000010C0: alu5 (sz4)
+  000010C3: jcc5 0x1070
+  000010C5: alu6 (sz4)
+  000010C7: jcc4 0x10e9
+  000010C9: jcc4 0x10e9
+  000010D0: xor-rr KAPI-dekompoze (sz4)
+  000010D3: imul rcx, rdx, 0x1000193
+  000010D9: mov rdx, rcx (sz4)
+  000010DB: shift 7
+  000010DE: xor-rr KAPI-dekompoze (sz4)
+  000010E0: alu0 (sz4)
+  000010E4: alu0 (sz4)
+  000010E7: jcc5 0x10d0
+  000010E9: mov [mem], rdx (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_U_0x00001118 @RVA=0x001118 boyut=0x1F | bc=70B key=0x227FA3513120DFA7 | stubRVA=0x043F80 retimm=4294967295 (trampoline)
+  00001118: call 0x1030 (ncall)
+  0000111D: mov rdi, rax (sz4)
+  0000111F: alu0 (sz4)
+  00001122: mov rcx, rsi (sz4)
+  00001124: call 0x1030 (ncall)
+  00001129: imul rax, rax, 0x9e3779b1
+  0000112F: xor-rr KAPI-dekompoze (sz4)
+  00001131: mov [mem], rax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\home\z\my-project\scripts\kanit_b1\test_b1_64_p.exe (249856 bayt)
+[OZET] tipler: V=3 M=0 U=0 (U->V dusus=2) | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

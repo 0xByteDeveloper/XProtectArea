@@ -1,0 +1,11 @@
+basla
+wine: Unhandled exception 0x80000003 in thread 158 at address 000000014000136E (thread 0158), starting debugger...
+0160:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+Can't attach process 0154: error 5
+RCODE=-2147483645
+0168:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0168:err:winediag:nodrv_CreateWindow Application tried to create a window, but no driver could be loaded.
+0168:err:winediag:nodrv_CreateWindow L"The explorer process failed to start."
+0168:err:systray:initialize_systray Could not create tray window
+0160:err:winediag:nodrv_CreateWindow Application tried to create a window, but no driver could be loaded.
+0160:err:winediag:nodrv_CreateWindow L"Make sure that your display server is running and that its variables are set."

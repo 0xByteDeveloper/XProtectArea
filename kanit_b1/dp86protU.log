@@ -1,0 +1,888 @@
+[PE] Z:\home\z\my-project\scripts\kanit_b1\test_deepvm86.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x1AF0
+  sec .text    RVA=0x001000 VSz=0x034DD0 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x036000 VSz=0x008DAF Raw=0x035200 Chars=0x40000040
+  sec .buildid RVA=0x03F000 VSz=0x000062 Raw=0x03E000 Chars=0x40000040
+  sec .data    RVA=0x040000 VSz=0x001104 Raw=0x03E200 Chars=0xC0000040
+  sec .tls     RVA=0x042000 VSz=0x000008 Raw=0x03E400 Chars=0xC0000040
+  sec .reloc   RVA=0x043000 VSz=0x000DCC Raw=0x03E600 Chars=0x42000040
+  sec /4       RVA=0x044000 VSz=0x003CF8 Raw=0x03F400 Chars=0x42000040
+[KESIF] export=21 coff-fonksiyon=0
+[FONKSIYON] 21 aday (.text)
+[LIFT] 19/20 secili fonksiyon | V=0 M=0 U=20 (U-mutdus=0) | UYARI: 1 fonksiyon RED edildi (asagida)
+[RED] t_loop @0x00001110: RED: fixup hedefi yok @0x00001147
+[SECTION] .vmp0 RVA=0x048000 boyut=0x00BFF0 | VM blob 39648B | vm_entry RVA=0x0518D0
+[YAMA] t_adc @RVA=0x001000 boyut=0x20 | bc=202B key=0x15D289B96932FA6B | stubRVA=0x053670 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=0 junk=2 kapi=2 | 32B->75B (x2.34)
+  00001000: push ebp
+  00001001: mov ebp, esp (sz4)
+  00001003: mov ecx, [mem] (sz4)
+  00001006: mov eax, [mem] (sz4)
+  00001009: alu0 (sz4)
+  0000100B: alu7 (sz4)
+  00001010: alu8 (sz4)
+  00001012: jmp 0x1026
+  00001014: alu0 (sz4)
+  0000101A: mov ecx, imm=0x1a136aa0
+  0000101F: mov ecx, imm=0x1a03dc3
+  00001024: alu6 (sz4)
+  00001026: jmp 0x102e
+  00001028: lea ecx, [mem]
+  0000102B: lea ecx, [mem]
+  0000102E: xor-rr KAPI-dekompoze (sz4)
+  00001030: pop ebp
+  00001031: jmp 0x1044
+  00001033: alu0 (sz4)
+  00001039: mov ecx, imm=0x589d3cdb
+  0000103E: alu0 (sz4)
+  00001044: push 0x3de2149a
+  00001049: pop ecx
+  0000104A: ret
+[YAMA] t_pushf @RVA=0x001020 boyut=0x30 | bc=275B key=0xDCC1BFD90A25B7C5 | stubRVA=0x0536F0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=5 kapi=2 | 48B->85B (x1.77)
+  00001020: push ebp
+  00001021: mov ebp, esp (sz4)
+  00001023: push esi
+  00001024: mov edx, [mem] (sz4)
+  00001027: alu5 (sz4)
+  0000102A: pushf
+  0000102B: pop esi
+  0000102C: alu6 (sz4)
+  0000102E: mov ecx, imm=0x13e6f1ef
+  00001033: lahf
+  00001034: mov ecx, imm=0xff42535
+  00001039: lea ecx, [mem]
+  0000103C: movzx32<-8 ah
+  0000103F: lea ecx, [mem]
+  00001042: jmp 0x1049
+  00001044: mov ecx, imm=0x9060fd0d
+  00001049: mov ah, ecx (sz1)
+  0000104B: sahf
+  0000104C: pushf
+  0000104D: pop esi
+  0000104E: and-imm KAPI-dekompoze (sz4)
+  00001054: alu6 (sz4)
+  00001056: shift 16
+  00001059: xor-rr KAPI-dekompoze (sz4)
+  0000105B: push ecx
+  0000105C: pop eax
+  0000105D: alu6 (sz4)
+  0000105F: pop esi
+  00001060: jmp 0x1073
+  00001062: mov ecx, imm=0x99d13a0e
+  00001067: alu0 (sz4)
+  0000106D: push 0x9ba91d1c
+  00001072: pop ecx
+  00001073: pop ebp
+  00001074: ret
+[YAMA] t_flagops @RVA=0x001050 boyut=0x20 | bc=338B key=0x87289109365CE773 | stubRVA=0x053770 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=4 junk=5 kapi=5 | 32B->123B (x3.84)
+  00001050: push ebp
+  00001051: mov ebp, esp (sz4)
+  00001053: jmp 0x1068
+  00001055: mov ecx, imm=0xc4c70a71
+  0000105A: push 0x7cf872c3
+  0000105F: pop ecx
+  00001060: mov ecx, imm=0x3ef498fe
+  00001065: lea ecx, [mem]
+  00001068: mov ecx, [mem] (sz4)
+  0000106B: jmp 0x1072
+  0000106D: mov ecx, imm=0x54ef8395
+  00001072: alu1 (sz4)
+  00001074: setflag0
+  00001075: jcc2 0x1083
+  0000107B: jmp 0x1080
+  0000107D: lea ecx, [mem]
+  00001080: lea eax, [mem]
+  00001083: setflag1
+  00001084: jcc3 0x108d
+  0000108A: lea eax, [mem]
+  0000108D: setflag0
+  0000108E: setflag2
+  0000108F: jcc3 0x10a0
+  00001095: jmp 0x1099
+  00001097: alu6 (sz4)
+  00001099: jmp 0x109d
+  0000109B: alu6 (sz4)
+  0000109D: lea eax, [mem]
+  000010A0: alu0 (sz4)
+  000010A2: pop ebp
+  000010A3: jmp 0x10b5
+  000010A5: alu6 (sz4)
+  000010A7: alu0 (sz4)
+  000010AD: alu6 (sz4)
+  000010AF: alu0 (sz4)
+  000010B5: jmp 0x10ca
+  000010B7: push 0xff91ea38
+  000010BC: pop ecx
+  000010BD: mov ecx, imm=0xe017d743
+  000010C2: lea ecx, [mem]
+  000010C5: mov ecx, imm=0x6e646dd8
+  000010CA: ret
+[YAMA] t_muldiv @RVA=0x001070 boyut=0x30 | bc=275B key=0x4E17C7290A25B7C5 | stubRVA=0x0537F0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=5 junk=8 kapi=0 | 48B->81B (x1.69)
+  00001070: push ebp
+  00001071: mov ebp, esp (sz4)
+  00001073: push ebx
+  00001074: push edi
+  00001075: alu6 (sz4)
+  00001077: push esi
+  00001078: mov ecx, imm=0x313ceef2
+  0000107D: mov edi, [mem] (sz4)
+  00001080: mov ebx, [mem] (sz4)
+  00001083: push edi
+  00001084: pop eax
+  00001085: mul ebx
+  00001087: push 0x2dd6a01b
+  0000108C: pop ecx
+  0000108D: mov ecx, imm=0x603068ed
+  00001092: push edx
+  00001093: pop ecx
+  00001094: push eax
+  00001095: pop esi
+  00001096: alu6 (sz4)
+  00001098: alu0 (sz4)
+  0000109E: push ebx
+  0000109F: pop eax
+  000010A0: alu1 (sz4)
+  000010A2: div edi
+  000010A4: xor-rr KAPI-dekompoze (sz4)
+  000010A6: xor-rr KAPI-dekompoze (sz4)
+  000010A8: xor-rr KAPI-dekompoze (sz4)
+  000010AA: alu0 (sz4)
+  000010B0: mov ecx, imm=0xc5629461
+  000010B5: pop esi
+  000010B6: pop edi
+  000010B7: mov ecx, imm=0xb6bf66db
+  000010BC: alu6 (sz4)
+  000010BE: pop ebx
+  000010BF: pop ebp
+  000010C0: ret
+[YAMA] t_bt @RVA=0x0010A0 boyut=0x40 | bc=393B key=0xF87E98593864729B | stubRVA=0x053870 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=5 junk=3 kapi=3 | 64B->160B (x2.50)
+  000010A0: push ebp
+  000010A1: mov ebp, esp (sz4)
+  000010A3: jmp 0x10b9
+  000010A5: lea ecx, [mem]
+  000010A8: push 0x666e02ec
+  000010AD: pop ecx
+  000010AE: push 0xe9cf5104
+  000010B3: pop ecx
+  000010B4: mov ecx, imm=0x3f3e6370
+  000010B9: jmp 0x10c1
+  000010BB: push 0x6f27c817
+  000010C0: pop ecx
+  000010C1: alu0 (sz4)
+  000010C7: push 0xb2dd155f
+  000010CC: pop ecx
+  000010CD: push 0x9
+  000010D2: pop ecx
+  000010D3: alu0 (sz4)
+  000010D9: alu0 (sz4)
+  000010DF: xor-rr KAPI-dekompoze (sz4)
+  000010E1: push 0x240
+  000010E6: pop edx
+  000010E7: bt0 edx
+  000010EA: jcc2 0x1105
+  000010F0: lea eax, [mem]
+  000010F3: jmp 0x1105
+  000010F5: mov ecx, imm=0x829b2ae2
+  000010FA: mov ecx, imm=0x980af101
+  000010FF: push 0x30a9fa43
+  00001104: pop ecx
+  00001105: bt0 edx
+  00001109: jcc3 0x1112
+  0000110F: lea eax, [mem]
+  00001112: bt1 edx
+  00001115: jmp 0x1129
+  00001117: push 0x26f588a7
+  0000111C: pop ecx
+  0000111D: alu0 (sz4)
+  00001123: lea ecx, [mem]
+  00001126: lea ecx, [mem]
+  00001129: bt2 edx
+  0000112D: bt3 edx
+  00001130: bt0 edx
+  00001133: jcc2 0x113c
+  00001139: lea eax, [mem]
+  0000113C: xor-rr KAPI-dekompoze (sz4)
+  0000113E: pop ebp
+  0000113F: ret
+[YAMA] t_shld @RVA=0x0010E0 boyut=0x30 | bc=347B key=0x865D049985D2808D | stubRVA=0x0538F0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=3 junk=8 kapi=3 | 48B->113B (x2.35)
+  000010E0: push ebp
+  000010E1: mov ebp, esp (sz4)
+  000010E3: lea ecx, [mem]
+  000010E6: push 0x9f94a21f
+  000010EB: pop ecx
+  000010EC: push edi
+  000010ED: alu0 (sz4)
+  000010F3: push esi
+  000010F4: mov edx, [mem] (sz4)
+  000010F7: lea ecx, [mem]
+  000010FA: mov esi, [mem] (sz4)
+  000010FD: alu0 (sz4)
+  00001103: alu6 (sz4)
+  00001105: push edx
+  00001106: pop eax
+  00001107: shld eax, esi
+  0000110B: jmp 0x1115
+  0000110D: push 0x60572a8a
+  00001112: pop ecx
+  00001113: alu6 (sz4)
+  00001115: lea ecx, [mem]
+  00001118: alu6 (sz4)
+  0000111A: push esi
+  0000111B: pop edi
+  0000111C: jmp 0x1123
+  0000111E: mov ecx, imm=0xb3de39f2
+  00001123: shrd edi, edx
+  00001127: alu0 (sz4)
+  0000112D: push 0x4
+  00001132: pop ecx
+  00001133: jmp 0x1137
+  00001135: alu6 (sz4)
+  00001137: shld eax, esi
+  0000113A: mov ecx, imm=0xe15b99b3
+  0000113F: push 0xd035ec8a
+  00001144: pop ecx
+  00001145: xor-rr KAPI-dekompoze (sz4)
+  00001147: pop esi
+  00001148: lea ecx, [mem]
+  0000114B: lea ecx, [mem]
+  0000114E: pop edi
+  0000114F: pop ebp
+  00001150: ret
+[YAMA] t_str @RVA=0x001140 boyut=0x130 | bc=2014B key=0xDB2AA6F93C5A0CBF | stubRVA=0x053970 retimm=4294967295 (yerinde)
+  [ULTRA] on-mutasyon: ikame=19 junk=35 kapi=13 | 304B->718B (x2.36)
+  00001140: push ebp
+  00001141: mov ebp, esp (sz4)
+  00001143: lea ecx, [mem]
+  00001146: push ebx
+  00001147: push edi
+  00001148: push esi
+  00001149: alu0 (sz4)
+  0000114C: lea edx, [mem]
+  0000114F: alu0 (sz4)
+  00001155: alu1 (sz4)
+  00001157: mov ecx, imm=0xd7f2b0f7
+  0000115C: setflag3
+  0000115D: lea edi, [mem]
+  00001160: push 0x8
+  00001165: pop ecx
+  00001166: push 0xab
+  0000116B: pop eax
+  0000116C: repe stos sz1
+  0000116E: lea esi, [mem]
+  00001171: lea edi, [mem]
+  00001174: jmp 0x1187
+  00001176: push 0x3d67c7c4
+  0000117B: pop ecx
+  0000117C: lea ecx, [mem]
+  0000117F: push 0x1a8d9409
+  00001184: pop ecx
+  00001185: alu6 (sz4)
+  00001187: push 0x8
+  0000118C: pop ecx
+  0000118D: repe movs sz1
+  0000118F: jmp 0x11a3
+  00001191: mov ecx, imm=0x58452c22
+  00001196: mov ecx, imm=0xbad087bb
+  0000119B: alu0 (sz4)
+  000011A1: alu6 (sz4)
+  000011A3: alu6 (sz4)
+  000011A5: mov eax, imm=0xab
+  000011AA: jmp 0x11be
+  000011AC: push 0xed21179c
+  000011B1: pop ecx
+  000011B2: push 0xe097743e
+  000011B7: pop ecx
+  000011B8: alu0 (sz4)
+  000011BE: lea edi, [mem]
+  000011C1: push 0x8
+  000011C6: pop ecx
+  000011C7: repe scas sz1
+  000011C9: lea ecx, [mem]
+  000011CC: jcc5 0x11e0
+  000011D2: alu0 (sz4)
+  000011D8: lea ecx, [mem]
+  000011DB: alu0 (sz4)
+  000011DE: alu6 (sz4)
+  000011E0: setflag4
+  000011E1: push 0x5c
+  000011E6: pop eax
+  000011E7: lea edi, [mem]
+  000011EA: push 0x8
+  000011EF: pop ecx
+  000011F0: repe stos sz1
+  000011F2: setflag3
+  000011F3: mov ecx, imm=0x35525f16
+  000011F8: alu6 (sz4)
+  000011FA: push ebx
+  000011FB: pop eax
+  000011FC: shift 5
+  000011FF: jmp 0x1213
+  00001201: alu6 (sz4)
+  00001203: mov ecx, imm=0x3924d5b1
+  00001208: alu0 (sz4)
+  0000120E: mov ecx, imm=0x41c834c7
+  00001213: alu1 (sz4)
+  00001215: push 0x4d4c36e
+  0000121A: pop ecx
+  0000121B: mov ecx, imm=0xc92aa1ad
+  00001220: movzx32<-8 [mem]
+  00001224: alu0 (sz4)
+  00001226: mov eax, ecx (sz4)
+  00001228: lea edx, [mem]
+  0000122B: alu6 (sz4)
+  0000122D: shift 5
+  00001230: alu1 (sz4)
+  00001232: movzx32<-8 [mem]
+  00001236: alu0 (sz4)
+  00001238: jmp 0x1241
+  0000123A: mov ecx, imm=0x4df3bf8e
+  0000123F: alu6 (sz4)
+  00001241: push ecx
+  00001242: pop eax
+  00001243: shift 5
+  00001246: alu1 (sz4)
+  00001248: jmp 0x124e
+  0000124A: alu6 (sz4)
+  0000124C: alu6 (sz4)
+  0000124E: alu6 (sz4)
+  00001250: movzx32<-8 [mem]
+  00001254: alu0 (sz4)
+  00001256: push ecx
+  00001257: pop eax
+  00001258: jmp 0x1268
+  0000125A: alu0 (sz4)
+  00001260: alu6 (sz4)
+  00001262: push 0xb6aa6335
+  00001267: pop ecx
+  00001268: shift 5
+  0000126B: alu0 (sz4)
+  00001271: alu1 (sz4)
+  00001273: lea ecx, [mem]
+  00001276: movzx32<-8 [mem]
+  0000127A: jmp 0x1284
+  0000127C: lea ecx, [mem]
+  0000127F: mov ecx, imm=0x555f9e3d
+  00001284: alu6 (sz4)
+  00001286: lea edx, [mem]
+  00001289: alu0 (sz4)
+  0000128B: mov eax, ecx (sz4)
+  0000128D: shift 5
+  00001290: alu1 (sz4)
+  00001292: alu0 (sz4)
+  00001298: movzx32<-8 [mem]
+  0000129C: alu0 (sz4)
+  0000129E: mov eax, ecx (sz4)
+  000012A0: shift 5
+  000012A3: jmp 0x12b5
+  000012A5: mov ecx, imm=0x9527392a
+  000012AA: lea ecx, [mem]
+  000012AD: alu6 (sz4)
+  000012AF: alu0 (sz4)
+  000012B5: push 0xed3ba1ea
+  000012BA: pop edx
+  000012BB: alu1 (sz4)
+  000012BD: movzx32<-8 [mem]
+  000012C1: alu0 (sz4)
+  000012C3: mov eax, ecx (sz4)
+  000012C5: shift 5
+  000012C8: alu1 (sz4)
+  000012CA: movzx32<-8 [mem]
+  000012CE: mov edx, imm=0xd9bfd002
+  000012D3: alu0 (sz4)
+  000012D5: push ecx
+  000012D6: pop eax
+  000012D7: shift 5
+  000012DA: alu1 (sz4)
+  000012DC: alu0 (sz4)
+  000012E2: mov ecx, imm=0xd4995895
+  000012E7: movzx32<-8 [mem]
+  000012EB: alu0 (sz4)
+  000012ED: push ecx
+  000012EE: pop eax
+  000012EF: shift 5
+  000012F2: alu1 (sz4)
+  000012F4: movzx32<-8 [mem]
+  000012F8: alu0 (sz4)
+  000012FA: mov eax, ecx (sz4)
+  000012FC: shift 5
+  000012FF: jmp 0x130d
+  00001301: alu0 (sz4)
+  00001307: alu0 (sz4)
+  0000130D: alu1 (sz4)
+  0000130F: movzx32<-8 [mem]
+  00001313: alu0 (sz4)
+  00001319: alu6 (sz4)
+  0000131B: alu0 (sz4)
+  0000131D: mov eax, ecx (sz4)
+  0000131F: shift 5
+  00001322: lea edx, [mem]
+  00001325: mov edx, imm=0xc68faa2b
+  0000132A: alu1 (sz4)
+  0000132C: alu6 (sz4)
+  0000132E: mov ecx, imm=0x100483d3
+  00001333: movzx32<-8 [mem]
+  00001337: alu0 (sz4)
+  00001339: alu0 (sz4)
+  0000133F: alu6 (sz4)
+  00001341: push ecx
+  00001342: pop eax
+  00001343: shift 5
+  00001346: alu1 (sz4)
+  00001348: movzx32<-8 [mem]
+  0000134C: alu0 (sz4)
+  0000134E: push 0xe3882e26
+  00001353: pop edx
+  00001354: push ecx
+  00001355: pop eax
+  00001356: shift 5
+  00001359: jmp 0x1369
+  0000135B: alu6 (sz4)
+  0000135D: alu0 (sz4)
+  00001363: alu0 (sz4)
+  00001369: alu1 (sz4)
+  0000136B: movzx32<-8 [mem]
+  0000136F: mov edx, imm=0x3b17a227
+  00001374: alu0 (sz4)
+  00001376: push ecx
+  00001377: pop eax
+  00001378: jmp 0x1386
+  0000137A: lea ecx, [mem]
+  0000137D: mov ecx, imm=0x5aed0b96
+  00001382: alu6 (sz4)
+  00001384: alu6 (sz4)
+  00001386: jmp 0x1395
+  00001388: mov ecx, imm=0xac2ad81e
+  0000138D: alu6 (sz4)
+  0000138F: push 0x332a036c
+  00001394: pop ecx
+  00001395: shift 5
+  00001398: push 0x302c9ed9
+  0000139D: pop edx
+  0000139E: alu1 (sz4)
+  000013A0: alu6 (sz4)
+  000013A2: movzx32<-8 [mem]
+  000013A6: alu0 (sz4)
+  000013A8: push ecx
+  000013A9: pop eax
+  000013AA: alu6 (sz4)
+  000013AC: lea edx, [mem]
+  000013AF: shift 5
+  000013B2: alu1 (sz4)
+  000013B4: movzx32<-8 [mem]
+  000013B8: jmp 0x13c2
+  000013BA: alu6 (sz4)
+  000013BC: alu0 (sz4)
+  000013C2: mov edx, imm=0x3be777f6
+  000013C7: alu6 (sz4)
+  000013C9: alu0 (sz4)
+  000013CB: push ecx
+  000013CC: pop edx
+  000013CD: alu0 (sz4)
+  000013D3: shift 5
+  000013D6: alu1 (sz4)
+  000013D8: movzx32<-8 [mem]
+  000013DC: alu0 (sz4)
+  000013DE: mov ecx, imm=0x4d3df0a
+  000013E3: alu4 (sz4)
+  000013E6: mov ecx, imm=0x554ab018
+  000013EB: alu1 (sz4)
+  000013EE: alu0 (sz4)
+  000013F4: lea ecx, [mem]
+  000013F7: pop esi
+  000013F8: pop edi
+  000013F9: mov ecx, imm=0xf9b0e0c4
+  000013FE: mov ecx, imm=0x4fa3f5c4
+  00001403: pop ebx
+  00001404: alu6 (sz4)
+  00001406: alu0 (sz4)
+  0000140C: pop ebp
+  0000140D: ret
+[YAMA] t_fs @RVA=0x001270 boyut=0x20 | bc=142B key=0xBD0B2929ACCDA86F | stubRVA=0x0539F0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=2 kapi=1 | 32B->48B (x1.50)
+  00001270: push ebp
+  00001271: mov ebp, esp (sz4)
+  00001273: mov ecx, imm=0xde048554
+  00001278: mov eax, [mem] (sz4)
+  0000127E: or-rr KAPI-dekompoze (sz4)
+  00001280: jmp 0x128f
+  00001282: push 0x9b749def
+  00001287: pop ecx
+  00001288: lea ecx, [mem]
+  0000128B: alu6 (sz4)
+  0000128D: alu6 (sz4)
+  0000128F: lea ecx, [mem]
+  00001292: movzx32<-16 eax
+  00001295: push 0xdeadbeef
+  0000129A: pop eax
+  0000129B: cmov5 ecx
+  0000129E: pop ebp
+  0000129F: ret
+[YAMA] t_parity @RVA=0x001290 boyut=0x30 | bc=144B key=0x83FA5F49F7599191 | stubRVA=0x053A70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=3 junk=5 kapi=0 | 48B->52B (x1.08)
+  00001290: push ebp
+  00001291: mov ebp, esp (sz4)
+  00001293: mov ecx, [mem] (sz4)
+  00001296: alu1 (sz4)
+  00001298: xor-rr KAPI-dekompoze (sz4)
+  0000129A: alu5 (sz4)
+  000012A0: jcc11 0x12ac
+  000012A6: lea eax, [mem]
+  000012AC: alu5 (sz4)
+  000012AF: jcc10 0x12b8
+  000012B5: lea eax, [mem]
+  000012B8: pop ebp
+  000012B9: mov ecx, imm=0xb78387ec
+  000012BE: mov ecx, imm=0xdbe225a9
+  000012C3: ret
+[YAMA] t_imulmem @RVA=0x0012C0 boyut=0x30 | bc=270B key=0x2E6130794FC7F0EF | stubRVA=0x053AF0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=1 kapi=3 | 48B->91B (x1.90)
+  000012C0: push ebp
+  000012C1: mov ebp, esp (sz4)
+  000012C3: alu0 (sz4)
+  000012C6: mov eax, [mem] (sz4)
+  000012C9: mov ecx, eax (sz4)
+  000012CB: jmp 0x12d4
+  000012CD: alu6 (sz4)
+  000012CF: mov ecx, imm=0xadea850
+  000012D4: neg ecx
+  000012D6: mov [mem], ecx (sz4)
+  000012D9: jmp 0x12ed
+  000012DB: alu6 (sz4)
+  000012DD: alu0 (sz4)
+  000012E3: mov ecx, imm=0x272d59be
+  000012E8: mov ecx, imm=0x6510c12e
+  000012ED: jmp 0x12f8
+  000012EF: alu6 (sz4)
+  000012F1: mov ecx, imm=0x165fa760
+  000012F6: alu6 (sz4)
+  000012F8: mov [mem], imm32=0x7
+  000012FF: lea ecx, [mem]
+  00001302: imul eax, [mem]
+  00001306: jmp 0x1313
+  00001308: lea ecx, [mem]
+  0000130B: lea ecx, [mem]
+  0000130E: mov ecx, imm=0x2a25561e
+  00001313: imul eax, [mem]
+  00001316: alu1 (sz4)
+  00001319: pop ebp
+  0000131A: ret
+[YAMA] t_mul8 @RVA=0x0012F0 boyut=0x30 | bc=357B key=0xD8C801A9FA8E0E37 | stubRVA=0x053B70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=3 junk=4 kapi=4 | 48B->130B (x2.71)
+  000012F0: push ebp
+  000012F1: mov ebp, esp (sz4)
+  000012F3: push edi
+  000012F4: push esi
+  000012F5: mov esi, [mem] (sz4)
+  000012F8: mov ecx, imm=0xa0706a7f
+  000012FD: mov ecx, imm=0xd9d8300c
+  00001302: push 0x12
+  00001307: pop eax
+  00001308: push 0x33
+  0000130D: pop ecx
+  0000130E: mul ecx
+  00001310: jmp 0x131b
+  00001312: alu0 (sz4)
+  00001318: lea ecx, [mem]
+  0000131B: movzx32<-16 eax
+  0000131E: mov eax, imm=0x807
+  00001322: mov ecx, imm=0x10
+  00001324: div ecx
+  00001326: jmp 0x133a
+  00001328: alu0 (sz4)
+  0000132E: alu6 (sz4)
+  00001330: mov ecx, imm=0xd5fd9da6
+  00001335: mov ecx, imm=0x2f20b11c
+  0000133A: push 0x4c5e733d
+  0000133F: pop ecx
+  00001340: movzx32<-16 eax
+  00001343: lea ecx, [mem]
+  00001346: push 0x4a334b87
+  0000134B: pop ecx
+  0000134C: xor-rr KAPI-dekompoze (sz4)
+  0000134E: push edx
+  0000134F: pop eax
+  00001350: pop esi
+  00001351: jmp 0x1359
+  00001353: alu6 (sz4)
+  00001355: alu6 (sz4)
+  00001357: alu6 (sz4)
+  00001359: pop edi
+  0000135A: jmp 0x1370
+  0000135C: mov ecx, imm=0x2e77b5de
+  00001361: alu0 (sz4)
+  00001367: lea ecx, [mem]
+  0000136A: alu0 (sz4)
+  00001370: pop ebp
+  00001371: ret
+[YAMA] t_gate32 @RVA=0x001320 boyut=0x30 | bc=260B key=0x832ED2D9DB0C6345 | stubRVA=0x053BF0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=4 kapi=1 | 48B->94B (x1.96)
+  00001320: push ebp
+  00001321: mov ebp, esp (sz4)
+  00001323: push 0x63b486e2
+  00001328: pop ecx
+  00001329: alu0 (sz4)
+  0000132F: mov eax, [mem] (sz4)
+  00001332: alu0 (sz4)
+  00001338: mov ecx, [mem] (sz4)
+  0000133B: push ecx
+  0000133C: pop edx
+  0000133D: xor-imm KAPI-dekompoze (sz4)
+  00001343: and-rr KAPI-dekompoze (sz4)
+  00001345: jcc4 0x136d
+  0000134B: or-rr KAPI-dekompoze (sz4)
+  0000134D: jcc8 0x136d
+  00001353: xor-rr KAPI-dekompoze (sz4)
+  00001355: jcc10 0x136d
+  0000135B: jmp 0x1368
+  0000135D: mov ecx, imm=0xeae3030f
+  00001362: alu6 (sz4)
+  00001364: alu6 (sz4)
+  00001366: alu6 (sz4)
+  00001368: jmp 0x1375
+  0000136D: push 0xdeadbeef
+  00001372: pop eax
+  00001373: alu6 (sz4)
+  00001375: pop ebp
+  00001376: alu6 (sz4)
+  00001378: mov ecx, imm=0x48b74cc6
+  0000137D: ret
+[YAMA] t_gate816 @RVA=0x001350 boyut=0x40 | bc=380B key=0x2D95A40953D7073D | stubRVA=0x053C70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=0 junk=5 kapi=3 | 64B->112B (x1.75)
+  00001350: push ebp
+  00001351: alu6 (sz4)
+  00001353: mov ebp, esp (sz4)
+  00001355: jmp 0x135c
+  00001357: mov ecx, imm=0x2a4b38f3
+  0000135C: mov eax, [mem] (sz4)
+  0000135F: mov edx, imm=0xfcc9890e
+  00001364: mov ecx, ah (sz1)
+  00001366: and-imm KAPI-dekompoze (sz2)
+  0000136C: or-imm KAPI-dekompoze (sz2)
+  00001372: xor-imm KAPI-dekompoze (sz1)
+  00001375: jmp 0x137d
+  00001377: alu0 (sz4)
+  0000137D: jcc10 0x13a0
+  00001383: or-imm KAPI-dekompoze (sz1)
+  00001386: jmp 0x138a
+  00001388: alu6 (sz4)
+  0000138A: jmp 0x1395
+  0000138C: lea ecx, [mem]
+  0000138F: push 0x6aa7886
+  00001394: pop ecx
+  00001395: push 0xbb7dee01
+  0000139A: pop edx
+  0000139B: jmp 0x13b3
+  000013A0: mov eax, imm=0x1234
+  000013A4: alu6 (sz4)
+  000013A6: alu6 (sz4)
+  000013A8: mov ecx, imm=0x77
+  000013AA: alu0 (sz4)
+  000013B0: lea edx, [mem]
+  000013B3: movzx32<-16 eax
+  000013B6: shift 8
+  000013B9: movzx32<-8 ecx
+  000013BC: or-rr KAPI-dekompoze (sz4)
+  000013BE: pop ebp
+  000013BF: ret
+[YAMA] t_gate_zr @RVA=0x001390 boyut=0x20 | bc=282B key=0xBB7410490F0F67BB | stubRVA=0x053CF0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=2 kapi=4 | 32B->116B (x3.62)
+  00001390: push ebp
+  00001391: jmp 0x13a1
+  00001393: alu0 (sz4)
+  00001399: alu6 (sz4)
+  0000139B: lea ecx, [mem]
+  0000139E: lea ecx, [mem]
+  000013A1: jmp 0x13af
+  000013A3: alu0 (sz4)
+  000013A9: alu0 (sz4)
+  000013AF: mov ebp, esp (sz4)
+  000013B1: jmp 0x13c2
+  000013B3: alu6 (sz4)
+  000013B5: alu6 (sz4)
+  000013B7: alu0 (sz4)
+  000013BD: mov ecx, imm=0x5fe5f490
+  000013C2: mov ecx, [mem] (sz4)
+  000013C5: jmp 0x13d5
+  000013C7: mov ecx, imm=0x33291186
+  000013CC: alu6 (sz4)
+  000013CE: alu6 (sz4)
+  000013D0: mov ecx, imm=0xeb2fa5c6
+  000013D5: alu6 (sz4)
+  000013D7: alu1 (sz4)
+  000013D9: jcc4 0x1400
+  000013DF: jmp 0x13f8
+  000013E1: push 0xbfdc6eb5
+  000013E6: pop ecx
+  000013E7: mov ecx, imm=0x9ba55a63
+  000013EC: alu0 (sz4)
+  000013F2: alu0 (sz4)
+  000013F8: lea eax, [mem]
+  000013FB: mov ecx, imm=0x111
+  00001400: push ecx
+  00001401: pop eax
+  00001402: pop ebp
+  00001403: ret
+[YAMA] t_gate_loop @RVA=0x0013B0 boyut=0x30 | bc=356B key=0x82634669D54819A5 | stubRVA=0x053D70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=2 junk=1 kapi=4 | 48B->118B (x2.46)
+  000013B0: push ebp
+  000013B1: mov ebp, esp (sz4)
+  000013B3: mov ecx, [mem] (sz4)
+  000013B6: jmp 0x13be
+  000013B8: alu0 (sz4)
+  000013BE: jmp 0x13d4
+  000013C0: alu0 (sz4)
+  000013C6: alu6 (sz4)
+  000013C8: alu0 (sz4)
+  000013CE: alu0 (sz4)
+  000013D4: push 0xa5a5a5a5
+  000013D9: pop edx
+  000013DA: alu6 (sz4)
+  000013DC: push 0x725493cb
+  000013E1: pop ecx
+  000013E2: push 0x9e3779b9
+  000013E7: pop eax
+  000013E8: xor-rr KAPI-dekompoze (sz4)
+  000013EA: and-imm KAPI-dekompoze (sz4)
+  000013EF: or-imm KAPI-dekompoze (sz4)
+  000013F4: jmp 0x1402
+  000013F6: alu0 (sz4)
+  000013FC: alu0 (sz4)
+  00001402: alu0 (sz4)
+  00001405: dec ecx
+  00001406: jmp 0x140e
+  00001408: alu0 (sz4)
+  0000140E: jcc5 0x13e8
+  00001414: jmp 0x1419
+  00001416: lea ecx, [mem]
+  00001419: jmp 0x1424
+  0000141B: push 0x708254a0
+  00001420: pop ecx
+  00001421: lea ecx, [mem]
+  00001424: pop ebp
+  00001425: ret
+[YAMA] t_gate_stack @RVA=0x0013E0 boyut=0x40 | bc=451B key=0x2CCA1799AA3DDB75 | stubRVA=0x053DF0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=4 junk=7 kapi=4 | 64B->136B (x2.12)
+  000013E0: push ebp
+  000013E1: mov ebp, esp (sz4)
+  000013E3: push ebx
+  000013E4: push edi
+  000013E5: push esi
+  000013E6: jmp 0x13f3
+  000013E8: lea ecx, [mem]
+  000013EB: push 0x92323616
+  000013F0: pop ecx
+  000013F1: alu6 (sz4)
+  000013F3: push 0xe2fe2a24
+  000013F8: pop edx
+  000013F9: push 0xcafe
+  000013FE: pop eax
+  000013FF: mov edx, imm=0x330250ee
+  00001404: alu1 (sz4)
+  00001406: lea ecx, [mem]
+  00001409: push eax
+  0000140A: push 0x1234
+  0000140F: push 0xf0f0
+  00001414: pop edx
+  00001415: and-rr KAPI-dekompoze (sz4)
+  00001417: or-imm KAPI-dekompoze (sz4)
+  0000141D: xor-imm KAPI-dekompoze (sz4)
+  00001423: pop ebx
+  00001424: pop ebx
+  00001425: mov ecx, imm=0x2572920
+  0000142A: xor-rr KAPI-dekompoze (sz4)
+  0000142C: jmp 0x1436
+  0000142E: mov ecx, imm=0xa1541060
+  00001433: lea ecx, [mem]
+  00001436: xor-imm KAPI-dekompoze (sz4)
+  0000143C: alu0 (sz4)
+  00001442: alu0 (sz4)
+  00001448: alu1 (sz4)
+  0000144A: or-rr KAPI-dekompoze (sz4)
+  0000144C: setcc5 eax
+  0000144F: jmp 0x1457
+  00001451: alu6 (sz4)
+  00001453: alu6 (sz4)
+  00001455: alu6 (sz4)
+  00001457: alu6 (sz4)
+  00001459: alu6 (sz4)
+  0000145B: xor-rr KAPI-dekompoze (sz4)
+  0000145D: pop esi
+  0000145E: pop edi
+  0000145F: pop ebx
+  00001460: pop ebp
+  00001461: jmp 0x1465
+  00001463: alu6 (sz4)
+  00001465: alu6 (sz4)
+  00001467: ret
+[YAMA] t_gate_imm @RVA=0x001420 boyut=0x2E | bc=163B key=0xBAA883D9BB8AB855 | stubRVA=0x053E70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=0 junk=1 kapi=0 | 46B->39B (x0.85)
+  00001420: push ebp
+  00001421: mov ebp, esp (sz4)
+  00001423: mov eax, [mem] (sz4)
+  00001426: and-imm KAPI-dekompoze (sz4)
+  0000142B: jcc4 0x143b
+  00001431: or-imm KAPI-dekompoze (sz4)
+  00001436: jmp 0x143e
+  0000143B: or-imm KAPI-dekompoze (sz4)
+  0000143E: xor-imm KAPI-dekompoze (sz4)
+  00001443: pop ebp
+  00001444: alu6 (sz4)
+  00001446: ret
+[YAMA] t_mulonly @RVA=0x001700 boyut=0x20 | bc=171B key=0x9A2660B9E5BA5CDD | stubRVA=0x053EF0 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=3 junk=4 kapi=1 | 32B->65B (x2.03)
+  00001700: push ebp
+  00001701: mov ebp, esp (sz4)
+  00001703: push esi
+  00001704: alu6 (sz4)
+  00001706: mov esi, [mem] (sz4)
+  00001709: lea ecx, [mem]
+  0000170C: push 0x12
+  00001711: pop eax
+  00001712: push 0x33
+  00001717: pop ecx
+  00001718: mul ecx
+  0000171A: jmp 0x172b
+  0000171C: mov ecx, imm=0xe848cb70
+  00001721: mov ecx, imm=0x4c19f9e3
+  00001726: mov ecx, imm=0x692870fc
+  0000172B: movzx32<-16 eax
+  0000172E: alu0 (sz4)
+  00001734: push edx
+  00001735: pop eax
+  00001736: pop esi
+  00001737: alu6 (sz4)
+  00001739: alu0 (sz4)
+  0000173F: pop ebp
+  00001740: ret
+[YAMA] t_divonly @RVA=0x001720 boyut=0x27 | bc=147B key=0x611596D9672B6F45 | stubRVA=0x053F70 retimm=4294967295 (trampoline)
+  [ULTRA] on-mutasyon: ikame=0 junk=9 kapi=0 | 39B->64B (x1.64)
+  00001720: push ebp
+  00001721: mov ebp, esp (sz4)
+  00001723: push esi
+  00001724: mov esi, [mem] (sz4)
+  00001727: mov eax, imm=0x807
+  0000172B: mov ecx, imm=0x10
+  0000172D: div ecx
+  0000172F: alu0 (sz4)
+  00001735: movzx32<-16 eax
+  00001738: push 0xc57e29c8
+  0000173D: pop ecx
+  0000173E: mov eax, edx (sz4)
+  00001740: mov ecx, imm=0xabf8e693
+  00001745: alu0 (sz4)
+  0000174B: pop esi
+  0000174C: mov ecx, imm=0x2f0c1518
+  00001751: alu6 (sz4)
+  00001753: pop ebp
+  00001754: mov ecx, imm=0xe1df9a82
+  00001759: push 0x35377d49
+  0000175E: pop ecx
+  0000175F: ret
+[RELOC] reloc girdisi silindi: 2, yeni boyut=3528
+[KAYIT] Z:\home\z\my-project\scripts\kanit_b1\test_deepvm86_U.exe (324608 bayt)
+[OZET] tipler: V=0 M=0 U=20 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

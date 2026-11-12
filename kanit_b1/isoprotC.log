@@ -1,0 +1,57 @@
+[PE] Z:\home\z\my-project\scripts\kanit_b1\test_b1iso.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1AB0
+  sec .text    RVA=0x001000 VSz=0x0285D6 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B86C Raw=0x028A00 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005F Raw=0x034400 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034600 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x0017A0 Raw=0x034800 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x036000 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x036200 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=552 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 548 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x0000100A boyut=0x0000000E tip=V
+[SDK] isaret bulundu: SDK_V_0x00001027 boyut=0x0000000C tip=V
+[SDK] isaret bulundu: SDK_V_0x0000104E boyut=0x00000016 tip=V
+[SDK] isaret bulundu: SDK_V_0x0000107E boyut=0x00000010 tip=V
+[SDK] isaret bulundu: SDK_V_0x000010B4 boyut=0x0000000D tip=V
+[MANUEL] SDK_V_0x0000100A @RVA=0x00100A boyut=0xE tip=V
+[MANUEL] SDK_V_0x00001027 @RVA=0x001027 boyut=0xC tip=V
+[MANUEL] SDK_V_0x0000104E @RVA=0x00104E boyut=0x16 tip=V
+[MANUEL] SDK_V_0x0000107E @RVA=0x00107E boyut=0x10 tip=V
+[MANUEL] SDK_V_0x000010B4 @RVA=0x0010B4 boyut=0xD tip=V
+[LIFT] 5/5 secili fonksiyon | V=5 M=0 U=0 (U-mutdus=0)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x006E68 | VM blob 27036B | vm_entry RVA=0x043800
+[YAMA] SDK_V_0x0000100A @RVA=0x00100A boyut=0xE | bc=24B key=0x43FD4AA37E8EED99 | stubRVA=0x043A70 retimm=4294967295 (trampoline)
+  0000100A: alu6 (sz4)
+  0000100C: jcc5 disari 0x10d0 (njcc)
+  00001012: mov rax, imm=0x6f
+  00001017: ret
+[YAMA] SDK_V_0x00001027 @RVA=0x001027 boyut=0xC | bc=25B key=0x304613B0A3D4E22B | stubRVA=0x043B20 retimm=4294967295 (trampoline)
+  00001027: alu6 (sz4)
+  00001029: jcc4 0x102d
+  0000102B: jmp disari -> ncall 0x1038 (kuyruk)
+  0000102D: mov rax, imm=0xde
+  00001032: ret
+[YAMA] SDK_V_0x0000104E @RVA=0x00104E boyut=0x16 | bc=51B key=0x4AB99DA76CEFB8E5 | stubRVA=0x043BD0 retimm=4294967295 (trampoline)
+  0000104E: lea rax, [mem]
+  00001051: alu0 (sz4)
+  00001054: alu5 (sz4)
+  00001057: lea rcx, [mem]
+  0000105B: cmov2 rax
+  0000105E: mov [mem], rcx (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x0000107E @RVA=0x00107E boyut=0x10 | bc=57B key=0xF5206ED74C93744B | stubRVA=0x043CB0 retimm=4294967295 (trampoline)
+  0000107E: lea rdx, [mem]
+  00001081: mov rax, rcx (sz4)
+  00001083: xor-imm KAPI-dekompoze (sz4)
+  00001088: mov [mem], rax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x000010B4 @RVA=0x0010B4 boyut=0xD | bc=18B key=0x54D41A2D9EEB3233 | stubRVA=0x043D90 retimm=4294967295 (trampoline)
+  000010B4: call 0x1070 (ncall)
+  000010B9: mov rcx, rax (sz4)
+  000010BB: mov [mem], rax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\home\z\my-project\scripts\kanit_b1\test_b1iso_p.exe (250880 bayt)
+[OZET] tipler: V=5 M=0 U=0 | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

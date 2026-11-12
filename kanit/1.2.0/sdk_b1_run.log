@@ -1,0 +1,8 @@
+trace a: g_r=25
+trace a2: g_r=1207
+trace b: g_r=4718 ret=4719
+trace c: g_r=133 ret=134
+trace d: g_r=27
+B1 a=91 a2=3622 b=4719 c=134 d=27
+B1 OK hepsi (jmpext=3622 jccext=134)
+RCODE=42

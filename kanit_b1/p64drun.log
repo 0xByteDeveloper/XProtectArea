@@ -1,0 +1,6 @@
+FAIL multvm got=2806442764 want=1995704810
+FAIL multvm2 got=1040212378 want=2770608187
+OK njcc-taken 48874
+OK njcc-fall 111
+HATALI r=3
+RCODE=7

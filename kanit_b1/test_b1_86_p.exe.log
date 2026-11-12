@@ -1,0 +1,120 @@
+[PE] Z:\home\z\my-project\scripts\kanit_b1\test_b1_86.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x1860
+  sec .text    RVA=0x001000 VSz=0x034B7A Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x036000 VSz=0x008D45 Raw=0x035000 Chars=0x40000040
+  sec .buildid RVA=0x03F000 VSz=0x00005F Raw=0x03DE00 Chars=0x40000040
+  sec .data    RVA=0x040000 VSz=0x001104 Raw=0x03E000 Chars=0xC0000040
+  sec .tls     RVA=0x042000 VSz=0x000008 Raw=0x03E200 Chars=0xC0000040
+  sec .reloc   RVA=0x043000 VSz=0x000DC0 Raw=0x03E400 Chars=0x42000040
+  sec /4       RVA=0x044000 VSz=0x003C04 Raw=0x03F200 Chars=0x42000040
+[KESIF] export=8 coff-fonksiyon=0
+[KESIF] +PDB/MAP=545 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 513 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x0000101D boyut=0x00000008 tip=V
+[SDK] isaret bulundu: SDK_V_0x00001042 boyut=0x0000000A tip=V
+[SDK] isaret bulundu: SDK_V_0x00001070 boyut=0x0000001A tip=V
+[SDK] isaret bulundu: SDK_U_0x000010A5 boyut=0x0000000A tip=U
+[SDK] isaret bulundu: SDK_V_0x000010D2 boyut=0x00000097 tip=V
+[SDK] isaret bulundu: SDK_U_0x00001192 boyut=0x00000022 tip=U
+[MANUEL] SDK_V_0x0000101D @RVA=0x00101D boyut=0x8 tip=V
+[MANUEL] SDK_V_0x00001042 @RVA=0x001042 boyut=0xA tip=V
+[MANUEL] SDK_V_0x00001070 @RVA=0x001070 boyut=0x1A tip=V
+[MANUEL] SDK_U_0x000010A5 @RVA=0x0010A5 boyut=0xA tip=U
+[MANUEL] SDK_V_0x000010D2 @RVA=0x0010D2 boyut=0x97 tip=V
+[MANUEL] SDK_U_0x00001192 @RVA=0x001192 boyut=0x22 tip=U
+[ULTRA] on-mutasyon RED: disari jcc (U-on-mutasyon — VNJCC ye dusus) -> saf V ye dusuluyor (bolge)
+[ULTRA] on-mutasyon RED: ret bulunamadi -> saf V ye dusuluyor (bolge)
+[LIFT] 6/6 secili fonksiyon | V=6 M=0 U=0 (U-mutdus=2)
+[SECTION] .vmp0 RVA=0x048000 boyut=0x00A148 | VM blob 39648B | vm_entry RVA=0x0518D0
+[YAMA] SDK_V_0x0000101D @RVA=0x00101D boyut=0x8 | bc=18B key=0x21B52C69EEB3233 | stubRVA=0x051E30 retimm=0 (trampoline)
+  0000101D: lea eax, [mem]
+  00001020: alu0 (sz4)
+  00001022: ret 0x8 (dinamik)
+[YAMA] SDK_V_0x00001042 @RVA=0x001042 boyut=0xA | bc=41B key=0xE01FE95BF8342B3B | stubRVA=0x051EB0 retimm=0 (trampoline)
+  00001042: mov eax, ecx (sz4)
+  00001044: xor-imm KAPI-dekompoze (sz4)
+  00001049: ret 0x4 (dinamik)
+[YAMA] SDK_V_0x00001070 @RVA=0x001070 boyut=0x1A | bc=66B key=0x4E17C7299C090D63 | stubRVA=0x051F30 retimm=0 (trampoline)
+  00001070: mov eax, ecx (sz4)
+  00001072: alu6 (sz4)
+  00001077: jcc4 0x1080
+  00001079: alu0 (sz4)
+  0000107B: xor-rr KAPI-dekompoze (sz4)
+  0000107D: ret 0x8 (dinamik)
+  00001080: alu1 (sz4)
+  00001082: mov edx, imm=0x4
+  00001087: ret 0x4 (dinamik)
+[YAMA] SDK_U_0x000010A5 @RVA=0x0010A5 boyut=0xA | bc=27B key=0xF93F8CEEE60CB4D | stubRVA=0x051FB0 retimm=4294967295 (trampoline)
+  000010A5: alu6 (sz4)
+  000010A7: jcc5 disari 0x1095 (njcc)
+  000010A9: mov eax, imm=0x6f
+  000010AE: ret
+[YAMA] SDK_V_0x000010D2 @RVA=0x0010D2 boyut=0x97 | bc=584B key=0xDF545CEB0795EAC9 | stubRVA=0x052030 retimm=4294967295 (yerinde)
+  000010D2: mov ecx, esi (sz4)
+  000010D4: and-imm KAPI-dekompoze (sz4)
+  000010D7: jcc4 0x10ec
+  000010D9: mov eax, esi (sz4)
+  000010DB: and-imm KAPI-dekompoze (sz4)
+  000010DE: alu5 (sz4)
+  000010E1: jcc3 0x10f3
+  000010E3: mov ecx, imm=0x811c9dc5
+  000010E8: xor-rr KAPI-dekompoze (sz4)
+  000010EA: jmp 0x1150
+  000010EC: mov ecx, imm=0x811c9dc5
+  000010F1: jmp 0x1163
+  000010F3: and-imm KAPI-dekompoze (sz4)
+  000010F6: mov ecx, imm=0x811c9dc5
+  000010FB: xor-rr KAPI-dekompoze (sz4)
+  000010FD: xor-rr KAPI-dekompoze (sz4)
+  00001100: xor-rr KAPI-dekompoze (sz4)
+  00001102: imul ecx, ecx, 0x1000193
+  00001108: lea edi, [mem]
+  0000110B: xor-rr KAPI-dekompoze (sz4)
+  0000110D: shift 7
+  00001110: xor-rr KAPI-dekompoze (sz4)
+  00001112: imul ecx, ecx, 0x1000193
+  00001118: lea edi, [mem]
+  0000111B: xor-rr KAPI-dekompoze (sz4)
+  0000111D: shift 7
+  00001120: xor-rr KAPI-dekompoze (sz4)
+  00001122: imul ecx, ecx, 0x1000193
+  00001128: lea edi, [mem]
+  0000112B: xor-rr KAPI-dekompoze (sz4)
+  0000112D: shift 7
+  00001130: xor-rr KAPI-dekompoze (sz4)
+  00001132: imul edi, ecx, 0x1000193
+  00001138: mov ecx, edi (sz4)
+  0000113A: shift 7
+  0000113D: xor-rr KAPI-dekompoze (sz4)
+  0000113F: alu0 (sz4)
+  00001142: alu5 (sz4)
+  00001144: jcc5 0x1100
+  00001146: alu6 (sz4)
+  00001148: jcc4 0x1163
+  0000114A: jcc4 0x1163
+  00001150: xor-rr KAPI-dekompoze (sz4)
+  00001152: imul esi, ecx, 0x1000193
+  00001158: mov ecx, esi (sz4)
+  0000115A: shift 7
+  0000115D: xor-rr KAPI-dekompoze (sz4)
+  0000115F: inc edx
+  00001160: dec eax
+  00001161: jcc5 0x1150
+  00001163: mov [mem], ecx (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_U_0x00001192 @RVA=0x001192 boyut=0x22 | bc=83B key=0x88EFA1AB15AE4B05 | stubRVA=0x0520C0 retimm=4294967295 (trampoline)
+  00001192: push edi
+  00001193: call 0x10c0 (ncall)
+  00001198: alu0 (sz4)
+  0000119B: mov esi, eax (sz4)
+  0000119D: inc edi
+  0000119E: push edi
+  0000119F: call 0x10c0 (ncall)
+  000011A4: alu0 (sz4)
+  000011A7: imul eax, eax, 0x9e3779b1
+  000011AD: xor-rr KAPI-dekompoze (sz4)
+  000011AF: mov [mem], eax (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 2, yeni boyut=3516
+[KAYIT] Z:\home\z\my-project\scripts\kanit_b1\test_b1_86_p.exe (316416 bayt)
+[OZET] tipler: V=6 M=0 U=0 (U->V dusus=2) | antidebug=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0
