@@ -708,34 +708,54 @@ static u64 xa_call5(u64 t, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5) {
     return vm_natcall5(t, r, a5);
 }
 #else
+/* 1.2.2 KOK-FIX (kullanici bulgusu: metin2 0xD7610 ULTRA + CheckDebugger
+   damage'te cokus): x86 stdcall sarmalayicilari ECX/EDX'i clobber
+   listesine ALMIYORDU. Gercek Windows API'leri ECX/EDX'i (caller-saved)
+   serbestce EZER; GCC clobber bildirimi olmadigi icin yasan DEGERLERI
+   (orn. siradaki API'nin fonksiyon isaretcisi!) bu registerlarda tutar.
+   1.2.0-A8 K8'in ardi ardina IKI NtQueryInformationProcess cagrisi
+   GCC'nin isaretciyi ECX'te OMNESIYLE sonucta buldu: ilk cagri ECX'i
+   ezdi, ikinci 'call *%ecx' cop adrese atlayip 0xC0000005 veriyor.
+   (Unicorn kanit: clobber-stub testi EIP=DEAD0001.)
+   COZUM (1.2.2): tum sarmalayicilar (1/2/4/5-arg) TEK duzenli bicime
+   gecti — argumanlar C tarafinda args[] dizisine kurulur, asm arg'lari
+   DIZIDEN (register-gostergesi ile, esp-kaymasindan bagimsiz) push eder,
+   clobber listesi ecx/edx icerir. Bylece GCC'in yasan degerleri
+   caller-saved registerlarda tutmasi IMKANSIZ hale gelir. */
 /* stdcall 2-arg (callee pop): GetThreadContext(hThread, pContext) */
 static u32 xa_call2_86(u32 t, u32 a1, u32 a2) {
+    u32 args[2] = { a1, a2 };
     u32 ret;
-    __asm__ volatile("pushl %2\n\tpushl %1\n\tcall *%3\n\t"
-        : "=a"(ret) : "r"(a1), "r"(a2), "r"(t) : "memory", "cc");
+    __asm__ volatile("pushl 4(%2)\n\tpushl (%2)\n\tcall *%1\n\t"
+        : "=a"(ret) : "r"(t), "r"(args) : "memory", "cc", "ecx", "edx");
     return ret;
 }
 /* 1.1.0: stdcall 4-arg (callee pop): NtSetInformationThread /
    NtQuerySystemInformationBattery icin */
 static long xa_call4_86(u32 t, u32 a1, u32 a2, u32 a3, u32 a4) {
+    u32 args[4] = { a1, a2, a3, a4 };
     u32 ret;
-    __asm__ volatile("pushl %4\n\tpushl %3\n\tpushl %2\n\tpushl %1\n\tcall *%5\n\t"
-        : "=a"(ret) : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(t) : "memory", "cc");
+    __asm__ volatile(
+        "pushl 12(%2)\n\tpushl 8(%2)\n\tpushl 4(%2)\n\tpushl (%2)\n\tcall *%1\n\t"
+        : "=a"(ret) : "r"(t), "r"(args) : "memory", "cc", "ecx", "edx");
     return (long)ret;
 }
 /* 1.2.0-A8: stdcall 5-arg — NtQueryInformationProcess (K8) icin
    (5 arg push edilir; stdcall callee 5*4=20 bayti kendisi poplar). */
 static long xa_call5_86(u32 t, u32 a1, u32 a2, u32 a3, u32 a4, u32 a5) {
+    u32 args[5] = { a1, a2, a3, a4, a5 };
     u32 ret;
-    __asm__ volatile("pushl %5\n\tpushl %4\n\tpushl %3\n\tpushl %2\n\tpushl %1\n\tcall *%6\n\t"
-        : "=a"(ret) : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5), "r"(t) : "memory", "cc");
+    __asm__ volatile(
+        "pushl 16(%2)\n\tpushl 12(%2)\n\tpushl 8(%2)\n\tpushl 4(%2)\n\tpushl (%2)\n\tcall *%1\n\t"
+        : "=a"(ret) : "r"(t), "r"(args) : "memory", "cc", "ecx", "edx");
     return (long)ret;
 }
 /* 1.2.0-A8: stdcall 1-arg — CloseHandle (K9) icin */
 static u32 xa_call1_86(u32 t, u32 a1) {
+    u32 args[1] = { a1 };
     u32 ret;
-    __asm__ volatile("pushl %1\n\tcall *%2\n\t"
-        : "=a"(ret) : "r"(a1), "r"(t) : "memory", "cc");
+    __asm__ volatile("pushl (%2)\n\tcall *%1\n\t"
+        : "=a"(ret) : "r"(t), "r"(args) : "memory", "cc", "ecx", "edx");
     return ret;
 }
 #endif

@@ -244,3 +244,29 @@
   harness ARCH_SET_GS ile sahte TEB kurar.
 - URUN: XProtectUI.exe 1290240B + XProtectUI32.exe 1340416B (temiz
   derleme, BC_DUMP kanci kapali) — paket kokune kopyalandi.
+
+---
+
+## 2026-11-12 08:55 — 1.2.2: CHECKDEBUGGER ÇÖKMESİ KÖK-NEDENDEN ÇÖZÜLDÜ
+
+- KULLANICI BİLDİRİMİ: metin2 0xD7610 ULTRA + CheckDebugger=True → oyunda damage
+  atınca ÇÖKME (normal derleme sorunsuz). "Önceki sürümlerde CheckDebugger başarılıydı;
+  güçlendir dedim diye hata oldu; çözemezsen eski hatasız sürüme çevir."
+- İZLEME: 1) iki exe farkı yalnız .vmp0 (bc 0x239→0x23E: ANTIDBG öneki + 3×OP_CHKRET);
+  2) bytecode çözümü (bcd.c + bc_diff121.py): CHKRET yerleşimi/fixup'ları SAPIKSIZ —
+  akış değil NATIVE çağrı disiplini şüpheli; 3) Unicorn diferansiyeli (m2vm_repro2.py):
+  boş LDR → temiz (batarya API kısmı atlıyor) → API tarafında; 4) GERÇEK-API-benzeri
+  clobber-stub'larla (ECX/EDX ezici): KULLANICININ EXE'Sİ ÇÖKTÜ (EIP=0xDEAD0001 =
+  `call *%ecx` çöp işaretçi) — birebir reprodüksiyon ✓.
+- KÖK NEDEN: x86 `xa_call1/2/4/5_86` sarmalayıcıları inline-asm clobber listesinde
+  ECX/EDX'i bildirmiyordu. 1.2.0-A8 K8'in arda ardina IKI NtQueryInformationProcess
+  cagrisi, GCC'nin fonksiyon isaretcisini ECX'te tutmasiyla sonucta buldu: ilk cagri
+  ECX'i ezdi, ikinci `call *%ecx` cop adrese atladi → 0xC0000005. (0.8.5'te latent —
+  batarya kucuktu, sasmadan gecti; "guclendir" talimatiyla tetiklendi.)
+- DÜZELTME (vm_core.c): dort sarmalayici TEK duzenli bicim — arg'lar C tarafinda
+  args[] dizisine kurulur, asm register-gostergeli adresemeyle push eder, clobber
+  listesi ecx/edx icerir; derlenmis blob'da isaretci artik EBX'te (callee-saved).
+- KANIT: 1.2.2 uretimi clobber-stub testinde TEMIZ (iki yol); x64 blob md5-ozdes
+  (yol degismedi) + x64 sdk+antidebug rc=42 yeniden dogrulandi.
+- SONRAKİ: Loader CRC cokmesi (kullanici bulgusu) ayri tur; mult-VM×antidebug SEH
+  siniri; UO tam kapsam portu devam.

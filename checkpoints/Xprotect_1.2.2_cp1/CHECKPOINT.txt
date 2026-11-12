@@ -1,0 +1,38 @@
+CHECKPOINT Xprotect_1.2.2_cp1 (cp1) — CHECKDEBUGGER ÇÖKMESİ ÇÖZÜLDÜ
+==================================================
+Tarih : 2026-11-12 08:55
+Zip   : XProtect_1.2.2_cp1.zip (11837318 bayt)
+Agac  : /home/z/my-project/download/XProtect_1.2.2
+
+SON KALINAN ENDPOINT
+--------------------
+- Kullanıcının çökme bildirimi KÖK-NEDENDEN çözüldü: x86 anti-debug API
+  sarmalayıcıları (xa_call1/2/4/5_86) ECX/EDX clobber bildirmiyordu;
+  gerçek Windows API'leri ECX'i ezince K8'in ikinci NtQueryInformationProcess
+  çağrısı `call *%ecx` ile ÇÖP ADRESE atlıyordu → 0xC0000005.
+  Düzeltme: args[] dizisi + register-götergeli push + ecx/edx clobber;
+  işaretçi artık EBX'te (callee-saved).
+- Kanıt: Unicorn clobber-stub diferansiyeli — kullanıcının eski exe'si
+  EIP=0xDEAD0001 ile ÇÖKÜYOR (kontrol), 1.2.2 üretimi TEMİZ (iki yol);
+  x64 blob md5-özdeş + x64 sdk+antidebug rc=42.
+- Teslim edilenler: XProtectUI.exe/XProtectUI32.exe (1.2.2), sabit kaynak,
+  kanit_122/ (m2vm_repro.py, m2vm_repro2.py, bcd.c, bc_diff121.py, test exe'leri),
+  metin2client_vmp_CheckDebugger_1.2.2.exe + metin2client_vmp_1.2.2.exe
+  (download/ — kullanıcı senaryosu: 0xD7610:D766F ULTRA, birebir).
+
+YAPILACAKLAR (sıradaki endpoint)
+--------------------------------
+1. Loader CRC çökmesi (kullanıcı: "Loader CRC oyunu çöktürüyor damage'da")
+   → ayrı kök-neden avı (koşul: exe'yi sonraki chatta kullanıcı verecek)
+2. mult-VM(vmadv) × antidebug SEH istisnası (bilinen 1.2.0 sınırı)
+3. UO TAM KAPSAMLI PORT devamı: özellik listesi eksik taraması + %100 hedef
+4. Chat raporları: XProtect gücü / UO ile güç farkı / % kod farkı
+5. 4 dk checkpoint döngüsü (cp_daemon_122) çalışır halde tutulacak
+
+PORT DURUMU ÖZETİ
+------------------
+- Check Debugger x86: 1.2.1 ÇÖKÜYORDU → 1.2.2 DÜZELTİLDİ (Unicorn kanıtlı)
+- Virtualization/Mutation/Ultra: %90 (değişmedi) | Encrypt ByteCode: tamam
+- Encrypt Registers: GERÇEK (UO ölü-bayrağını aşar) | Loader CRC: SONRAKİ TUR
+
+Tam içerik: ILERLEME_NOTLARI.md (zip içinde) + PORT_DURUMU.md (zip içinde)

@@ -103,3 +103,26 @@ kopyalanmaz. Çalışma zinciri: PE oku → sembol/export/COFF keşfi → SDK ma
 disasm → mutasyon (M) ve/veya VM bytecode'a derleme (V/U) → .vmp0 bölümü + stub + key →
 LZMA paket + section şifre + reloc filtre → runtime (xrt) PEB-gezintili loader CRC/anti-
 debug → GUI (Win32, sanal ListView, özellik ızgarası UO core.h 1:1).
+
+---
+
+## GÜNCELLEME 2026-11-12 (1.2.2 — KULLANICI ÇÖKME BİLDİRİMİ)
+
+Kullanıcı metin2client 0xD7610 ULTRA + CheckDebugger=True'da damage'te ÇÖKME bildirdi.
+
+| Kalem | 1.2.1 durumu | 1.2.2 durumu |
+|-------|--------------|-------------|
+| Check Debugger x86 (metin2 senaryosu) | ❌ ÇÖKÜYOR (K8'de ECX clobber) | ✅ DÜZELTİLDİ — Unicorn clobber-kanıtı: eski EIP=çöp / yeni temiz |
+| Check Debugger x64 | ✅ (R1 kanıtı) | ✅ (blob md5 özdeş + rc=42 yeniden koştu) |
+| Virtualization/Mutation/Ultra | ✅ %90 (değişmedi) | ✅ %90 |
+| Encrypt ByteCode | ✅ (A9 düzeltmesiyle) | ✅ |
+| Encrypt Registers | ✅ GERÇEK (UO'yu aşan) | ✅ |
+| Loader CRC | ❌ KULLANICI: damage'te çökertiyor | ⏳ SONRAKİ TUR (ayrı kök-neden avı) |
+
+**Kök-neden:** x86 `xa_call*_86` sarmalayıcıları ECX/EDX clobber bildirmiyordu; 1.2.0-A8
+K8 çift-çağrısı GCC'nin işaretçiyi ECX'te tutmasına yol açtı; gerçek Windows API'si ECX'i
+ezdi, ikinci `call *%ecx` çöp adrese atladı → 0xC0000005. Detay: CHANGELOG_1.2.2.md.
+
+**Bu turda yanıtlanması gereken chat soruları (GUIDED):** UO sürümü = VMProtect 3.5.1
+kaynak tabanlı (pub1); XProtect'in şu anki gücü / UO güç farkı / % kod farkı — sohbet
+sonunda dürüst rapor verilecek.
