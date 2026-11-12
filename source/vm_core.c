@@ -471,6 +471,30 @@ static u64 vm_natcall(u64 t, const u64* regs) {
     (void)va0;
     return ret;
 }
+/* 1.2.0-A8 K8: NtQueryInformationProcess'e ozel 5-arg sarmalayici —
+   dogrudan asm (vm_natcall deseninin temiz kopyasi; r[16] ara-dizisi YOK).
+   NtQueryInformationProcess(GetCurrentProcess()=-1, cls, buf, 8, &rl).
+   5. arg [rsp+0x20]; ReturnLength GECERLI isaretci (wine guvenli). */
+static i64 xa_qip5(u64 fn, u64 cls, u64 bufaddr) {
+    u64 ret; u64 rl = 0;
+    u64 rla = (u64)(unsigned long)(void*)&rl;
+    register u64 a1 __asm__("rcx") = 0xFFFFFFFFFFFFFFFFull;   /* GetCurrentProcess */
+    register u64 a2 __asm__("rdx") = cls;
+    register u64 a3 __asm__("r8")  = bufaddr;
+    register u64 a4 __asm__("r9")  = 8;
+    register u64 ft __asm__("r11") = fn;
+    __asm__ volatile(
+        "mov %%rsp, %%rbx \n\t"
+        "and $-16, %%rsp \n\t"
+        "sub $0x30, %%rsp \n\t"
+        "movq %6, 0x20(%%rsp) \n\t"
+        "call *%%r11 \n\t"
+        "mov %%rbx, %%rsp \n\t"
+        : "+a"(ret), "+c"(a1), "+d"(a2), "+r"(a3), "+r"(a4), "+r"(ft), "+r"(rla)
+        :
+        : "memory", "cc", "rbx", "r10");
+    return (i64)ret;
+}
 /* 1.2.0-A8: 5-arg Win64 natcall — NtQueryInformationProcess (K8) icin.
    5. arg [rsp+0x20]'ye yazilir (r10 uzerinden; r10 zaten clobber listesinde).
    sub 0x30: 0x20 shadow + 8 arg = hizalamayi koruyacak 16'nin kati. */
@@ -1302,7 +1326,6 @@ static void vm_run(VMContext* c) {
                     }
                 }
             }
-            renc(c, 0, 0xB0000010ULL);   /* IZ: K8 ONCESI */
             /* (K8) PROCESS DEBUG PORT/OBJECT — UO loader.cc:1810-1827 1:1:
                ProcessDebugPort(7): NT_SUCCESS && port != 0 -> debugger.
                ProcessDebugObjectHandle(30): NT_SUCCESS tek basina debugger
@@ -1312,12 +1335,10 @@ static void vm_run(VMContext* c) {
                 if (nqip) {
                     u64 dbo = 0;
 #if defined(VM_IS_X64)
-                    i64 st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 7,
-                                           (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    i64 st = xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
                     if (st >= 0 && dbo != 0) c->done = 2;
                     dbo = 0;
-                    st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 30,
-                                       (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    st = xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
                     if (st >= 0) c->done = 2;
 #else
                     i64 st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
@@ -1330,7 +1351,6 @@ static void vm_run(VMContext* c) {
 #endif
                 }
             }
-            if (c->done == 2) renc(c, 0, 0xB0000012ULL); else renc(c, 0, 0xB0000011ULL);   /* IZ: K8 SONRASI */
             /* (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1 */
             if (!c->done) {
                 u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
