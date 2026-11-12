@@ -153,6 +153,8 @@
 // atlama yapar (donus adresi yiginda KALIR — G ret ile cagirana döner).
 #define OP_JMPEXT    0x41   // rva32 : disari kuyruk-jmp (done=3, scratch[6]=rva)
 #define OP_JCCEXT    0x42   // cc rva32 : sartli disari kuyruk-jmp
+#define OP_CHKRET    0x43   // (arg yok) : donus-adresi int3/uzun-int3/ud2 kontrolu —
+                           //  UO AddCheckBreakpointSection (intel.cc:9305) 1:1
 
 // Advanced command-cryptor: 4-byte kaba periyot (VM_KS 8-byte'in kardesi;
 // baska sabit ailesi — vtAdvanced osDWord komut-sifreleyici karsiligi)
@@ -327,7 +329,7 @@
 // fonksiyondan turer -> tablo tasimaya gerek yok (stub yalniz tohumu
 // ctx->scratch[3]'e yazar). Tohum 0 = kimlik degil, gecerli permütasyon
 // (determinizm iki tarafta da ayni fonksiyondan).
-#define VM_OPN 0x43   // opcode uzayi (0x00..0x42) — 1.2.0-B1: 0x40 -> 0x43 (OP_JMPEXT/OP_JCCEXT)
+#define VM_OPN 0x44   // opcode uzayi (0x00..0x43) — 1.2.0-A8: 0x43 -> 0x44 (OP_CHKRET)
 static void vm_perm_tab(unsigned int seed, unsigned char* t, int dec) {
     unsigned char p[VM_OPN]; int i, j;
     for (i = 0; i < VM_OPN; i++) p[i] = (unsigned char)i;

@@ -211,7 +211,8 @@ struct VFn {
 VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
                   u64 imagebase, u32 imagesize, bool allow_call,
                   u32 rdata_rva, u32 rdata_size, int junk_level, u32 junk_seed,
-                  bool pad_terminates, bool region_mode, u32 perm_seed = 0);
+                  bool pad_terminates, bool region_mode, u32 perm_seed = 0,
+                  bool antidebug = false);   // 1.2.0-A8: OP_CHKRET yayimi
 
 // ---------------- Mutasyon cekirdegi (0.3.0) ----------------
 // VMProtect "Mutation" tipinin yerli uygulaması: fonksiyon makine
@@ -254,11 +255,13 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
 std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0);
+                               u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
+                               int regsenc = 0);   // 1.2.0-A9: Encrypt Registers
 std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len, u32 retimm,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0);
+                               u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
+                               int regsenc = 0);   // 1.2.0-A9: Encrypt Registers
 // 0.5.0: M-govdesi onu runtime kapisI + gecikmeli import thunk'lari
 std::vector<u8> build_mgate_x86(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
 std::vector<u8> build_mgate_x64(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
@@ -337,6 +340,7 @@ struct Options {
     bool strenc = false;
     bool memprot = false;
     bool vmenc = true;
+    bool vmregs = true;   // 1.2.0-A9: Encrypt Registers (cpEncryptRegs) — VM register dosyasi bellekte sifreli
     std::vector<std::string> funcs;   // isim ya da rva(hex) listesi; bos -> hepsi uygun olanlar
     bool all = false;
     std::vector<ManFn> manual;        // 0.4.1: kesin {rva,boyut,tip} listesi — tarayici adayina bakilmaksizin derlenir

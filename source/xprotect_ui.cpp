@@ -179,7 +179,10 @@ struct Project {
     bool open = false, modified = false;
     std::wstring target;                 // hedef PE (tam yol)
     std::wstring path;                   // .xproj dosya yolu
-    unsigned long long options = 0;      // cp* bitleri (core.h birebir)
+    unsigned long long options = 0x80000000ull | 0x00000080ull;   // cp* bitleri (core.h birebir)
+                                        // = cpEncryptBytecode | cpEncryptRegs — enum tanimi
+                                        // asagida oldugu icin sabit degerlerle: 1.2.0-A9
+                                        // varsayilan GUC ACIK (UO kayitli-sürüm davranisi:
     std::vector<ProjFunc> funcs;
     std::vector<ProjWatermark> wms;
     std::vector<ProjLicense> lics;
@@ -2567,7 +2570,15 @@ static void start_compile() {
     opt.checkvm = (g_proj.options & cpCheckVirtualMachine) != 0;   // 1.1.0-A7: motor baglandi
     opt.strenc = (g_proj.options & cpCryptValues) != 0;
     opt.memprot = (g_proj.options & cpMemoryProtection) != 0;
-    opt.vmenc = (g_proj.options & cpEncryptBytecode) == 0;   // vmenc varsayilan ACIK
+    /* 1.2.0-A9 DUZELTILDI (inversiyon hatasi): "Encrypt Bytecode" isareti
+       artik sifrelemeyi ACAR (eski kod: isaretlenince KAPANIYORDU — kutu
+       mantigi tersti). UO kayitli-sürüm davranisi: yeni projeler isaretli
+       baslar (bkz. Project::options varsayilani). */
+    opt.vmenc = (g_proj.options & cpEncryptBytecode) != 0;
+    /* 1.2.0-A9: Encrypt Registers GERCEK baglanti — cpEncryptRegs kutusu
+       artik VM register-dosyasi sifrelemesini acar (UO'da bu bayrak OLU;
+       XProtect'te islevsel: regs[16] bellekte sifreli). */
+    opt.vmregs = (g_proj.options & cpEncryptRegs) != 0;
     // --- 0.5.0: runtime katmani + import korumasi ---
     // cpLoaderCRC (core.h): bellek butunlugu -> motor kodu self-CRC + .text CRC
     opt.rt_selfcrc = (g_proj.options & cpLoaderCRC) != 0;
@@ -4051,6 +4062,7 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     else if (!wcscmp(argv[j], L"--strenc")) opt.strenc = true;
                     else if (!wcscmp(argv[j], L"--memprot")) opt.memprot = true;
                     else if (!wcscmp(argv[j], L"--novmenc")) opt.vmenc = false;
+                    else if (!wcscmp(argv[j], L"--noregs")) opt.vmregs = false;  /* 1.2.0-A9: Encrypt Registers kapat */
                     // 0.5.0: runtime katmani + import korumasi + SDK
                     else if (!wcscmp(argv[j], L"--loadercrc")) { opt.rt_selfcrc = true; opt.rt_textcrc = true; }
                     else if (!wcscmp(argv[j], L"--selfcrc")) opt.rt_selfcrc = true;

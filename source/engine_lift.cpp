@@ -14,6 +14,8 @@ struct Lift {
     bool is64;
     u64 imagebase;
     u32 rdata_rva, rdata_size;
+    bool antidebug = false;   // 1.2.0-A8: OP_CHKRET (dönüş-adresi int3 kontrolü) yayımı
+    bool region_mode = false; // 1.2.0-A8: bölge kipinde dönüş adresi garanti DEĞİL — CHKRET yasak
 
     void e(u8 x) { bc.push_back(x); }
     // 0.8.0 polimorfik: komut opcode'u emit'i (gercel -> permüteli)
@@ -150,10 +152,13 @@ struct Lift {
 VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
                   u64 imagebase, u32 imagesize, bool allow_call,
                   u32 rdata_rva, u32 rdata_size, int junk_level, u32 junk_seed,
-                  bool pad_terminates, bool region_mode, u32 perm_seed) {
+                  bool pad_terminates, bool region_mode, u32 perm_seed,
+                  bool antidebug) {
     VFn F; F.rva = rva; F.size = size;
 
     Lift L{ F.plain, F.fix, F.str_refs, F.str_sites, is64, imagebase, rdata_rva, rdata_size };
+    L.antidebug = antidebug;          // 1.2.0-A8: UO AddCheckBreakpointSection karsiligi
+    L.region_mode = region_mode;
     // 0.8.0 polimorfik isleyiciler: fonksiyon-bazina opcode permütasyonu
     unsigned char ptab[VM_OPN];
     if (perm_seed) { vm_perm_tab(perm_seed, ptab, 0); L.perm = ptab; }
@@ -424,11 +429,17 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
             L.eop(OP_MOV_RR); L.e((u8)8); L.ereg(REG_RSP); L.ereg(REG_RBP);
             L.eop(OP_POP_R);  L.ereg(REG_RBP);
             snprintf(buf, sizeof buf, "leave"); break;
-        case XP_RET: L.eop(OP_RET); saw_ret = true; last_ret = true;
+        case XP_RET: 
+            /* 1.2.0-A8: antidebug acikken her GERCEK ret onune donus-adresi
+               kirici kontrolu (UO ret-section enjeksiyonu 1:1). BOLGE
+               kipinde donus adresi garanti degil — atla. */
+            if (L.antidebug && !L.region_mode) L.eop(OP_CHKRET);
+            L.eop(OP_RET); saw_ret = true; last_ret = true;
             snprintf(buf, sizeof buf, "ret"); break;
         case XP_RETI16: {
             u32 im = (u32)I.imm;
             if (retimm != 0xFFFFFFFF && retimm != im) { F.why = "farkli ret imm"; return F; }
+            if (L.antidebug && !L.region_mode) L.eop(OP_CHKRET);
             retimm = im; L.eop(OP_RET); saw_ret = true; last_ret = true;
             snprintf(buf, sizeof buf, "ret 0x%x", im); break;
         }

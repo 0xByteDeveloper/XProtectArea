@@ -73,6 +73,30 @@ typedef struct {
     u64 scratch[8]; // +0xC8
 } VMContext;
 
+/* --- 1.2.0-A9 Encrypt Registers (cpEncryptRegs GERCEK portu) ---
+   UO/VMProtect 3.5.1'de bu bayrak OLU bayraktir (kaynakta hicbir kod
+   okumaz; islevsel karsiligi bytecode operand-bayt sifrelemesidir).
+   XProtect bu oturumda UO'YU ASAR: VM register DOSYASI (regs[16])
+   bellekte SIFRELI tutulur — per-slot deterministik maske (splitmix64
+   finalizer) fonksiyon anahtarindan turetilir; her okuma cozer,
+   her yazim yeniden sifreler. Bellek dump'inda sanal register degerleri
+   DUZ gorunmez. Bayrak: ctx scratch[5] bit1 (stub yazar; bit0 = ksadv).
+   Kapaliyken rdec/renc kimlik-islevidir (geriye uyumlu). */
+static u64 rmask(u64 k, int i) {
+    u64 x = k ^ (0x9E3779B97F4A7C15ULL * ((u64)i + 1ULL));
+    x ^= x >> 30; x *= 0xBF58476D1CE4E5B9ULL;
+    x ^= x >> 27; x *= 0x94D049BB133111EBULL;
+    x ^= x >> 31;
+    return x;
+}
+static u64 rdec(VMContext* c, int i) {
+    u64 s = c->regs[i];
+    return (c->scratch[5] & 2) ? (s ^ rmask(c->key, i)) : s;
+}
+static void renc(VMContext* c, int i, u64 v) {
+    c->regs[i] = (c->scratch[5] & 2) ? (v ^ rmask(c->key, i)) : v;
+}
+
 #if defined(VM_IS_X64)
   #define PUSHSZ 8
   #define NMAP 15
@@ -447,6 +471,29 @@ static u64 vm_natcall(u64 t, const u64* regs) {
     (void)va0;
     return ret;
 }
+/* 1.2.0-A8: 5-arg Win64 natcall — NtQueryInformationProcess (K8) icin.
+   5. arg [rsp+0x20]'ye yazilir (r10 uzerinden; r10 zaten clobber listesinde).
+   sub 0x30: 0x20 shadow + 8 arg = hizalamayi koruyacak 16'nin kati. */
+static u64 vm_natcall5(u64 t, const u64* regs, u64 a5) {
+    u64 ret;
+    register u64 va1 __asm__("rcx") = regs[1];
+    register u64 va2 __asm__("rdx") = regs[2];
+    register u64 vr8 __asm__("r8")  = regs[8];
+    register u64 vr9 __asm__("r9")  = regs[9];
+    register u64 vt  __asm__("r11") = t;
+    register u64 va5 __asm__("r10") = a5;
+    __asm__ volatile(
+        "mov %%rsp, %%rbx \n\t"
+        "and $-16, %%rsp \n\t"
+        "sub $0x30, %%rsp \n\t"
+        "movq %%r10, 0x20(%%rsp) \n\t"
+        "call *%%r11 \n\t"
+        "mov %%rbx, %%rsp \n\t"
+        : "+a"(ret), "+c"(va1), "+d"(va2), "+r"(vr8), "+r"(vr9), "+r"(vt), "+r"(va5)
+        :
+        : "memory", "cc", "rbx");
+    return ret;
+}
 #endif
 #endif
 
@@ -503,6 +550,8 @@ static u64 vm_natcall(u64 t, const u64* regs) {
 #define XA_GTC   0x85CCA27Eu   /* GetThreadContext */
 #define XA_NSIT  0xF19E1321u   /* 1.1.0: NtSetInformationThread */
 #define XA_NQSI  0x7A43974Au   /* 1.1.0: NtQuerySystemInformation */
+#define XA_NQIP  0xEA2DDA8Au   /* 1.2.0-A8: NtQueryInformationProcess (K8) */
+#define XA_CLOSEH 0xFABA0065u  /* 1.2.0-A8: CloseHandle (K9) */
 
 /* CONTEXT ofsetleri (winnt.h birebir) — yalniz DEBUG_REGISTERS alani.
    0.8.2 dersi: EFLAGS/RAX ofsetleri (TF-isleyicisi icin) yanlisti; K3
@@ -613,7 +662,7 @@ static u64 xa_export(u64 kbase, u32 want) {
     return 0;
 }
 
-/* ---- API cagri sarmalayicilari (yalniz K3 kullanir) ---- */
+/* ---- API cagri sarmalayicilari ---- */
 #if defined(VM_IS_X64)
 /* GetThreadContext(h, ctx, 0, 0) — vm_natcall Win64 ABI yolu */
 static u64 xa_call4(u64 t, u64 a1, u64 a2, u64 a3, u64 a4) {
@@ -621,6 +670,14 @@ static u64 xa_call4(u64 t, u64 a1, u64 a2, u64 a3, u64 a4) {
     for (i = 0; i < 16; i++) r[i] = 0;
     r[1] = a1; r[2] = a2; r[8] = a3; r[9] = a4;
     return vm_natcall(t, r);
+}
+/* 1.2.0-A8: 5-arg (NtQueryInformationProcess, K8) — 5. arg Win64
+   ABI'de [rsp+0x20]'dedir; vm_natcall5 yoluyla yazilir. */
+static u64 xa_call5(u64 t, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5) {
+    u64 r[16]; int i;
+    for (i = 0; i < 16; i++) r[i] = 0;
+    r[1] = a1; r[2] = a2; r[8] = a3; r[9] = a4;
+    return vm_natcall5(t, r, a5);
 }
 #else
 /* stdcall 2-arg (callee pop): GetThreadContext(hThread, pContext) */
@@ -637,6 +694,21 @@ static long xa_call4_86(u32 t, u32 a1, u32 a2, u32 a3, u32 a4) {
     __asm__ volatile("pushl %4\n\tpushl %3\n\tpushl %2\n\tpushl %1\n\tcall *%5\n\t"
         : "=a"(ret) : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(t) : "memory", "cc");
     return (long)ret;
+}
+/* 1.2.0-A8: stdcall 5-arg — NtQueryInformationProcess (K8) icin
+   (5 arg push edilir; stdcall callee 5*4=20 bayti kendisi poplar). */
+static long xa_call5_86(u32 t, u32 a1, u32 a2, u32 a3, u32 a4, u32 a5) {
+    u32 ret;
+    __asm__ volatile("pushl %5\n\tpushl %4\n\tpushl %3\n\tpushl %2\n\tpushl %1\n\tcall *%6\n\t"
+        : "=a"(ret) : "r"(a1), "r"(a2), "r"(a3), "r"(a4), "r"(a5), "r"(t) : "memory", "cc");
+    return (long)ret;
+}
+/* 1.2.0-A8: stdcall 1-arg — CloseHandle (K9) icin */
+static u32 xa_call1_86(u32 t, u32 a1) {
+    u32 ret;
+    __asm__ volatile("pushl %1\n\tcall *%2\n\t"
+        : "=a"(ret) : "r"(a1), "r"(t) : "memory", "cc");
+    return ret;
 }
 #endif
 
@@ -1251,6 +1323,52 @@ static void vm_run(VMContext* c) {
                     }
                 }
             }
+            /* (K8) PROCESS DEBUG PORT/OBJECT — UO loader.cc:1810-1827 1:1:
+               NtQueryInformationProcess(GetCurrentProcess()=-1,
+               ProcessDebugPort(7), &dbo, 8, NULL): NT_SUCCESS && dbo != 0
+               -> debugger. ProcessDebugObjectHandle(30): NT_SUCCESS tek
+               basina debugger (debug nesnesi YOKKEN cagri basarisizdir —
+               UO PORT_NOT_SET semantigi). 0.8.2'de bilincli yoktu; UO
+               1:1 parite talebiyle eklendi (temiz surecte port=0, class-30
+               basarisiz -> yanlis-pozitif yok). */
+            if (!c->done) {
+                u64 nqip = xa_export(xa_module(XA_NTD), XA_NQIP);
+                if (nqip) {
+                    u64 dbo = 0;
+#if defined(VM_IS_X64)
+                    i64 st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 7,
+                                           (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 30,
+                                       (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0) c->done = 2;
+#else
+                    i64 st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
+                                              (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
+                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0) c->done = 2;
+#endif
+                }
+            }
+
+            /* (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1:
+               gecersiz handle'e CloseHandle 0 (FALSE) donmeli; != 0 ise
+               debugger/monitor yakaladi -> zehir. (UO'da istisna da
+               kanittir; PIC C'de istisnasiz yol — donus degeri kaniti.) */
+            if (!c->done) {
+                u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
+                if (ch) {
+#if defined(VM_IS_X64)
+                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
+#else
+                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
+#endif
+                }
+            }
             }   /* if (ud & 1) — anti-debug bataryasi */
 #endif
 
@@ -1365,8 +1483,8 @@ static void vm_run(VMContext* c) {
                 u32 d = (u32)(b & 0xFF);
                 u32 q = d ? (n / d) : 0, rm = d ? (n % d) : 0;
                 if (q > 0xFF) { q = 0; rm = 0; }          /* #DE -> guvenli sifir */
-                rdec(c, REG_RAX) = (rdec(c, REG_RAX) & ~0xFFFFULL)
-                                 | (u64)((q & 0xFF) | ((rm & 0xFF) << 8));
+                renc(c, REG_RAX, (rdec(c, REG_RAX) & ~0xFFFFULL)
+                                 | (u64)((q & 0xFF) | ((rm & 0xFF) << 8)));
             } else if (sz == 2) {
                 u32 n = ((u32)(rdec(c, REG_RDX) & 0xFFFF) << 16)
                       |  (u32)(rdec(c, REG_RAX) & 0xFFFF);
@@ -1869,6 +1987,20 @@ static void vm_run(VMContext* c) {
                 }
             }
 
+        } else if (op == OP_CHKRET) {
+            /* 1.2.0-A8: UO AddCheckBreakpointSection (intel.cc:9305-9364) 1:1
+               — DONUS ADRESI baytlari kontrolu. ctx->init_rsp = stub'un
+               yazdigi donus-adresi slotu (x64: push_area+0x78 = 15*8,
+               x86: push_area+0x20 = 8*4). Donus sitesinde 0xCC (kisa int3),
+               CD 03 (uzun int3) veya 0F 0B (ud2) varsa debugger kirici
+               koymustur -> zehir. Lifter, antidebug acikken her gercek
+               ret (XP_RET/XP_RETI16) onune bu op'u yazar; UO ret-section
+               enjeksiyonunun birebir karsiligi. */
+            u64 ra = mrd(c->init_rsp, PUSHSZ);
+            u8 b0 = (u8)mrd(ra, 1), b1 = (u8)mrd(ra + 1, 1);
+            if (b0 == 0xCC || (b0 == 0xCD && b1 == 0x03)
+                || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
+
         } else {
             c->done = 1;   // bilinmeyen opcode -> guvenli dur
         }
@@ -1903,6 +2035,19 @@ void vm_entry(VMContext* c) {
     #define SRC_STORE(k, v) (src[k] = (u32)(v))
 #endif
 
+    /* 0.8.0 crypt_key: stub key^K2 tasiydi — gercek rolling anahtari geri
+       coz. K2 = (bc_rva, bc_len) fonksiyonu (engine_stub ile ayni makro).
+       1.2.0-A9 DUZEN: anahtar finalizasyonu regs yukleme ONCE yapilir —
+       Encrypt Registers per-slot maskeleri FINAL anahtardan turetilir
+       (yukleme/yazma ayni maskelerle eslesir). */
+    {
+        u32 bc_rva = (u32)(((const u8*)u2p(c->bc)) - (const u8*)u2p(c->base));
+        c->key ^= VM_KEYXOR(bc_rva, c->bc_len);
+        /* 1.2.0-B1 mult-VM: vm_id (scratch[7], stub yazar) anahtar-alani
+           ayristirir — her VM instanci kendi bytecode anahtar uzayinda. */
+        c->key ^= VM_VMK((u32)c->scratch[7]);
+    }
+
     for (k = 0; k < NMAP; k++) {
         if (map[k] != (int)0xFFFFFFFFu) renc(c, map[k], SRC_LOAD(k));
     }
@@ -1919,16 +2064,6 @@ void vm_entry(VMContext* c) {
 #else
     { u32 teb; __asm__ volatile("movl %%fs:0x18, %0" : "=r"(teb)); c->scratch[4] = (u64)teb; }
 #endif
-
-    /* 0.8.0 crypt_key: stub key^K2 tasiydi — gercek rolling anahtari geri
-       coz. K2 = (bc_rva, bc_len) fonksiyonu (engine_stub ile ayni makro). */
-    {
-        u32 bc_rva = (u32)(((const u8*)u2p(c->bc)) - (const u8*)u2p(c->base));
-        c->key ^= VM_KEYXOR(bc_rva, c->bc_len);
-        /* 1.2.0-B1 mult-VM: vm_id (scratch[7], stub yazar) anahtar-alani
-           ayristirir — her VM instanci kendi bytecode anahtar uzayinda. */
-        c->key ^= VM_VMK((u32)c->scratch[7]);
-    }
 
     vm_run(c);
 

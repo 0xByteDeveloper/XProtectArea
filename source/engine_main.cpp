@@ -856,7 +856,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                               rdata_rva, rdata_sz,
                               jl, f.rva ^ 0x9E3779B9u,
                               mbuf.empty() /* 0.4.1: mutant girdide dolgu akisi kesmez */,
-                              is_region, perm_seed /* 0.8.0/B1 tohum */);
+                              is_region, perm_seed /* 0.8.0/B1 tohum */,
+                              opt.antidebug /* 1.2.0-A8: OP_CHKRET yayimi */);
         if (!v.ok) { f.note = "RED: " + v.why; continue; }
         Compiled c; c.f = &f; c.ty = ty; c.v = v;
         c.vm_id = vm_id; c.perm_seed = perm_seed;   /* 1.2.0-B1 */
@@ -960,10 +961,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
                                          rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
         cur += (u32)st.size();
@@ -1148,10 +1149,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                          rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         memcpy(&secimg[so], st.data(), st.size());
     }
     // 0.5.0: IAT thunklari (gecikmeli import cozumleyicileri)
@@ -1354,10 +1355,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                              rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                              rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
         }
@@ -1634,6 +1635,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
       + " | strenc=" + (opt.strenc ? "ACIK" : "kapali")
       + " | memprot=" + (opt.memprot ? "ACIK" : "kapali")
       + " | vmenc=" + (opt.vmenc ? "ACIK" : "KAPALI")
+      + " | vmregs=" + (opt.vmregs ? "ACIK" : "KAPALI")
+      + " | chkret=" + (opt.antidebug ? "ACIK" : "kapali")   /* 1.2.0-A8: donus-adresi int3 kontrolu */
       + " | mutasyon-gucu=" + std::to_string(opt.mut_strength)
       + " | runtime=" + (rt_any ? std::string("ACIK(self=") + (opt.rt_selfcrc ? "1" : "0")
           + ",text=" + (opt.rt_textcrc ? "1" : "0") + ",file=" + (opt.rt_filecrc ? "1" : "0") + ")" : "kapali")
