@@ -270,3 +270,50 @@
   (yol degismedi) + x64 sdk+antidebug rc=42 yeniden dogrulandi.
 - SONRAKİ: Loader CRC cokmesi (kullanici bulgusu) ayri tur; mult-VM×antidebug SEH
   siniri; UO tam kapsam portu devam.
+
+---
+
+## 2026-11-12 22:40 — FILECRC KÖK-NEDENİ KESİN KANITLANDI + FIX SHIP EDİLDİ (K9-tamam)
+
+- KULLANICI BİLDİRİMİ: "Loader CRC sorun yokmuş, File CRC sorun." metin2client
+  0xD7610 ULTRA(M+V) + FileCRC=True → damage'te 0xC0000005 @0x010E093D.
+  errorlog: eax=0 ecx=0x3D esi=0x3D edx=0x002A0028 ebp=0x00B90000.
+- KANIT ZİNCİRİ (kullanıcının kendi exe'sinde):
+  1) ASLR base 0x00B90000 → EIP RVA 0x55093D = .vmp0 peb_path_for_base
+     geniş→ANSI kopya döngüsü: `movzx ecx,word ptr [edx]` (0x55093D FAULT).
+  2) Döngüyü besleyen yükleme 0x5508F3: `mov edx,[ecx+0x2C]` — x86 LDR_DATA_
+     TABLE_ENTRY'de +0x2C = BaseDllName{Length=0x28,MaxLen=0x2A} → 4B pointer
+     okuma = 0x002A0028 COP İŞARETÇİ (errorlog edx'i birebir).
+  3) ecx=esi=0x3D=61 = FullDllName.Length(122)>>1 = döngü sayacı; eax=0 =
+     i=0 ilk iterasyon. TÜM registerlar açıklandı.
+  4) A/B: cp13 zip UI32 (08:53 build) gömülü xrt86 blob'unda 8b512c VAR,
+     8b5128 YOK → kullanıcı cp13 ile derlediği için çöktü. 10:46 K9 fix'i
+     kaynakta vardı ama hiçbir checkpoint ile SHIP EDİLMEMİŞTİ (cp13 09:33'te
+     kesilmişti) — oturum kesintisi payı.
+- DÜZELTME (xrt_core.c zaten yerinde): x86 ENT_FULLBUF_OFF 0x2C→0x28
+  (FullDllName.Buffer), ENT_FULLLEN_OFF=0x24. Yeni xrt86.bin (17880B):
+  8b512c YOK, 8b5128 @+2903 VAR. UI x64+x86 yeniden derlendi
+  (XProtectUI.exe 1290752B + XProtectUI32.exe 1340928B).
+- REGLERESYON (yeni UI, wine): R1 sdk+filecrc RC=42 ✓ | R2 .text tamper
+  RC=115(0x73) ✓ | R2b .vmp0 dolgu-tamper RC=42 (atlama bölgesi) ✓ |
+  R4 determinizm md5-özdeş ✓ | R3 kesin kanıt: YENİ m2_fc.exe'de 0x5508F3
+  `mov edx,[ecx+0x28]` (kullanıcı exe'siyle aynı RVA'da tek bayt farkı).
+- TESLİMAT: download/metin2client_vmp_FileCrc.exe (0xD7610:0xD766C ULTRA
+  + FileCRC, 5284352B — kullanıcının çöken exe'siyle aynı konfig, FIX'li
+  motorla). Kullanıcı bu exe ile damage testini tekrar edecek.
+- MEMORY PROTECTION CEVABI (kullanıcı sorusu "ne işe yarar, neden .vmp0'ı
+  değiştirebildim"): bugünkü memprot = STATİK: .text section-header'dan
+  IMAGE_SCN_MEM_WRITE kaldırır (OS .text'i RX yükler; VirtualProtect'siz
+  yazarlar fault yer). .vmp0 KAPSAMAZ (jmp'ın götürdüğü VM entry orada) —
+  bu yüzden kullanıcı .vmp0'ı yamalayabildi. Debugger notu: x64dbg
+  WriteProcessMemory ile sayfa korumasını bypass eder — debugger-testi bu
+  özelliği ölçemez; gerçek test = debugger'sız yazar (injection/patcher).
+  .vmp0 runtime'da meşru yazar (unpack CFB yerinde-decrypt, state byte,
+  VM scratch/OP_JMPEXT hedefleri) → header-RX crash verir; VMP-parite
+  "Internal Memory Protection" (cpInternalMemoryProtection kutusu boşta)
+  için plan: mutable state/scratch ayrı RW section'a taşınacak + .vmp0
+  runtime sonunda VirtualProtect RX. SONRAKİ TUR işi olarak kaydedildi.
+- TÜM ÖZELLİK DOĞRULAMASI: xp122_featver.sh (F1-F11) — LoaderCRC+file tamper,
+  antidebug+ULTRA, EncryptByteCode ON/OFF statik fark, EncryptRegs ON/OFF
+  statik fark, TLS+pack, ResourceProtection, mult-VM(4)+vmadv, memprot,
+  strenc. Sonuçlar FEATVER.txt'ye yazılıyor (bu dosyanın altında rapor).

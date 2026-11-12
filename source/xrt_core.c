@@ -137,7 +137,17 @@ static u32 peb_addr(void) { u32 v; __asm__ volatile ("movl %%fs:0x30, %0" : "=r"
 #define ENT_NAMEBUF_OFF 0x30
 #define ENT_NAMELEN_OFF 0x2C   // 0.5.0 DUZELTME: x86 BaseDllName.Length +0x2C
                                // (+0x28 = FullDllName.Buffer'di — yanlis alan)
-#define ENT_FULLBUF_OFF 0x2C   /* 1.1.0: x86 FullDllName.Buffer */
+/* 1.2.2-K9 KOK-DUZELTME (FileCRC cokmesi — metin2 ULTRA+FileCRC damage'te):
+   x86 LDR_DATA_TABLE_ENTRY gercek yerlesimi:
+     +0x24 FullDllName.Length (2B)  +0x26 FullDllName.MaximumLength (2B)
+     +0x28 FullDllName.Buffer (4B)  +0x2C BaseDllName.Length (2B)...
+   ESKI DEGER 0x2C, BaseDllName.Length+MaximumLength'i 4B LDPTR ile okuyordu:
+   "metin2client_vmp.exe" icin Length=0x28, MaxLen=0x2A -> deger 0x002A0028
+   = COP ISARETCI. Kullanici errorlog'u birebir: edx=0x002a0028, EIP =
+   peb_path_for_base genis->ansi kopya dongusu (movzx ecx,word ptr [edx]),
+   Exc 0xC0000005 @ RVA 0x55093D (.vmp0), ASLR base 0x00B90000. Dogru ofset:
+   FullDllName.Buffer = +0x28. (Kanit: Unicorn A/B + wine regresyon R1-R4.) */
+#define ENT_FULLBUF_OFF 0x28   /* 1.2.2-K9: x86 FullDllName.Buffer */
 #define ENT_FULLLEN_OFF 0x24   /*        FullDllName.Length     */
 #define PEB_LDR_OFF 0x0C
 #endif
