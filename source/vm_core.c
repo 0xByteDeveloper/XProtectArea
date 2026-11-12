@@ -2089,6 +2089,15 @@ void vm_entry(VMContext* c) {
         renc(c, 0, 0xDEADBEEFDEADBEEFULL);   // debugger -> zehirli donus
         c->done = 1;
     }
+    if (c->done == 3) {
+        /* 1.2.2-A9FIX (JMPEXT x vmregs): stub'in .natgt blogu guest rsp'yi
+           ctx'den HAM okur; A9 ile regs[REG_RSP] SIFRELI oldugundan eski
+           okuma (x64 ctx+0x40 / x86 ctx+0x30) cop alirdi -> kuyruk-jmp
+           bozuk stack'le abort (sdk_b1 rc=3 kaniti). RAW rsp artik burada
+           init_rsp'ye (+0xB0, her iki mimaride ayni offset) yazilir; stub
+           [ctx+0xB0] okur. init_rsp vm_run SONRASI hicbir yerde okunmaz. */
+        c->init_rsp = rdec(c, REG_RSP);
+    }
     for (k = 0; k < NMAP; k++) {
         if (map[k] != (int)0xFFFFFFFFu) SRC_STORE(k, rdec(c, map[k]));
     }

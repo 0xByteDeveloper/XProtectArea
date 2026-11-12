@@ -141,7 +141,7 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
     put(s, {0x58,0x59,0x5A,0x5B,0x5D,0x5E,0x5F});       // pop rax,rcx,rdx,rbx,rbp,rsi,rdi
     for (int r = 8; r <= 15; r++) put(s, {0x41, (u8)(0x58 + (r - 8))});
     put(s, {0x48,0x8D,0x94,0x24,0x58,0xFC,0xFF,0xFF});  // lea rdx,[rsp-0x3A8] (ctx)
-    put(s, {0x48,0x8B,0x92,0x40,0x00,0x00,0x00});       // mov rdx,[rdx+0x40] (regs[4])
+    put(s, {0x48,0x8B,0x92,0xB0,0x00,0x00,0x00});       // mov rdx,[rdx+0xB0] (init_rsp RAW — 1.2.2-A9FIX: regs[] sifreli)
     put(s, {0x48,0x89,0xD4});                           // mov rsp,rdx (konuk rsp)
     put(s, {0x41,0xFF,0xE2});                           // jmp r10
 
@@ -287,8 +287,8 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
         put(s, {0xC3});                                 // plain ret (cdecl)
     }
     // --- 1.2.0-B1: .natgt (kuyruk-jmp disari) — v3 (x86) ---
-    // pops'tan sonra esp = giris esp; ctx = giris-0x28C; regs[4] (guest esp)
-    // ctx+0x30'da (4B kayitlar) -> esp = guest-esp; jmp ecx (hedef).
+    // pops'tan sonra esp = giris esp; ctx = giris-0x28C; guest esp RAW degeri
+    // ctx+0xB0 (init_rsp, vm_entry done==3 yazar) -> esp = guest-esp; jmp ecx.
     off_natgt = (u32)s.size();
     put(s, {0x8B,0x51,0x18});                           // mov edx,[ecx+0x18] (base)
     put(s, {0x03,0x91,0xF8,0x00,0x00,0x00});            // add edx,[ecx+0xF8] (natgt rva)
@@ -296,7 +296,7 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
     put(s, {0x83,0xC4,0x04});                           // add esp,4 (ctx ptr)
     put(s, {0x81,0xC4}); put32(s, VM_STUB_SUB86);       // add esp
     put(s, {0x61});                                     // popad (ecx = hedef)
-    put(s, {0x8B,0xA4,0x24,0xA4,0xFD,0xFF,0xFF});       // mov esp,[esp-0x25C] (ctx+0x30 = regs[4])
+    put(s, {0x8B,0xA4,0x24,0x24,0xFE,0xFF,0xFF});       // mov esp,[esp-0x1DC] (ctx+0xB0 = init_rsp RAW — 1.2.2-A9FIX)
     put(s, {0xFF,0xE1});                                // jmp ecx
 
     u32 l1_rva = stub_rva + off_pop;
