@@ -450,7 +450,17 @@ static void vm_perm_tab(unsigned int seed, unsigned char* t, int dec) {
 // DELTA ile tasinir -> kesisme imkansiz.
 #define VM_STUB_SUB64 0x330
 #define VM_STUB_SUB86 0x268
-#define VM_DELTA64  0x600   /* 0x78+0x330+8(ret)+0x240(C-frame) -> align16 */
-#define VM_DELTA86  0x420   /* 0x20+0x268+4+4(ret)+0x180(C-frame) -> align16 */
+/* 1.2.0-A8 KOK DUZELTME: C-frame butcesi 0x240/0x180 -> 0x5000.
+   KOK NEDEN: antidebug bataryasinin 16KB mbuf + 0x4D0 cbuf C-frame'i,
+   vm_run'un s/itab yerellerini GUEST yigin bolgesine itiyordu (budget
+   0x240'ti) — govde push'lari yorumlayici durumunu EZIYORDU (ilk-semptom:
+   V-fonksiyonlar giris-RAX'i donduruyor; K8 kodu frame yerlesimini
+   degistirince tetiklendi — TUR-E/K56'da gcc yerlesimi sansla derindeydi).
+   HARNESS KANITI: ozel yiginli harness'te ayni bytecode birebir kosuyor.
+   COZUM: guest yigin tabani tum yorumlayici+C-frame'in ALTINA tasinir
+   (0x5000 butce) — boylece mukerrer guest yazimlari asla frame'e ulasamaz.
+   Maliyet: VM cagrisi basina ~20KB yigin (1MB+ is parcaciklarinda guvenli). */
+#define VM_DELTA64  0x53C0  /* 0x78+0x330+8+0x5000(batarya C-frame butcesi) -> align16 */
+#define VM_DELTA86  0x50A0  /* 0x20+0x268+8+0x4E00 -> align16 */
 
 #endif

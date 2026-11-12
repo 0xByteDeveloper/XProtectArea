@@ -784,12 +784,12 @@ static void vm_run(VMContext* c) {
     {
         u64 budget = (u64)1 << 24;
         while (!c->done) {
-            if (budget-- == 0) { c->done = 1; break; }
+            if (budget-- == 0) { c->done = 1; renc(c, 0, 0xB0000001ULL); break; }
             /* 1.0.0 kok-fix (yakinma): akis-tasma korumasi — ic bc_len'i asarsa
                OOB bayti op diye cozmaya calisma (itab[garcop] stack-OOB okuma,
                rastgele VM op'u = oyun-cokmesi sinifi). Duru-cikis: stub retimm
                ile temiz doner (yanlis deger, cokme YOK). */
-            if (s.ic >= c->bc_len) { c->done = 1; break; }
+            if (s.ic >= c->bc_len) { c->done = 1; renc(c, 0, 0xB0000002ULL); break; }
         u8 op = itab[sf8(&s)];
         int alu, shi, cc, ud, sz, ssz, r1, r2, form, n, idx;
         u32 v32;
@@ -1073,7 +1073,7 @@ static void vm_run(VMContext* c) {
                stub push_area'dan kayitlari geri yukledikten sonra volatile
                reg ile base+rva'ya atlar; donus adresi yiginda KALIR. */
             c->scratch[6] = (u64)sf32(&s);
-            c->done = 3;
+            c->done = 3; renc(c, 0, 0xB0000006ULL);
 
         } else if (op == OP_JCCEXT) {
             /* sartli kuyruk-jmp: kosul yanlissa akis buradan devam eder. */
@@ -1995,7 +1995,7 @@ static void vm_run(VMContext* c) {
                 || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
 
         } else {
-            c->done = 1;   // bilinmeyen opcode -> guvenli dur
+            c->done = 1; renc(c, 0, 0xB0000003ULL);
         }
     }
     }
