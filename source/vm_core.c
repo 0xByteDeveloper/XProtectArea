@@ -755,13 +755,14 @@ static void vm_run(VMContext* c) {
        govdesi) asla ulasamaz; tamper-derailment sinirli surede durur. */
     {
         u64 budget = (u64)1 << 24;
+        u64 opcount = 0;
         while (!c->done) {
-            if (budget-- == 0) { c->done = 1; break; }
+            if (budget-- == 0) { c->done = 1; renc(c, 0, 0xB0000001ULL); break; }
             /* 1.0.0 kok-fix (yakinma): akis-tasma korumasi — ic bc_len'i asarsa
                OOB bayti op diye cozmaya calisma (itab[garcop] stack-OOB okuma,
                rastgele VM op'u = oyun-cokmesi sinifi). Duru-cikis: stub retimm
                ile temiz doner (yanlis deger, cokme YOK). */
-            if (s.ic >= c->bc_len) { c->done = 1; break; }
+            if (s.ic >= c->bc_len) { c->done = 1; renc(c, 0, 0xB0000002ULL); break; }
         u8 op = itab[sf8(&s)];
         int alu, shi, cc, ud, sz, ssz, r1, r2, form, n, idx;
         u32 v32;
@@ -1045,7 +1046,7 @@ static void vm_run(VMContext* c) {
                stub push_area'dan kayitlari geri yukledikten sonra volatile
                reg ile base+rva'ya atlar; donus adresi yiginda KALIR. */
             c->scratch[6] = (u64)sf32(&s);
-            c->done = 3;
+            c->done = 3; if (opcount < 3) renc(c, 0, 0xB0000006ULL);
 
         } else if (op == OP_JCCEXT) {
             /* sartli kuyruk-jmp: kosul yanlissa akis buradan devam eder. */
@@ -1165,8 +1166,36 @@ static void vm_run(VMContext* c) {
 #endif
                 if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
             }
-            if (ud & 1) { /* BISECT: TUM BATARYA KAPALI */ }
-            }   /* if (ud & 1) — anti-debug bataryasi */
+            if (ud & 1) {
+            /* BISECT TURU A: yalniz K1+K2 (PEB + kapi-0xCC + TF) */
+            {
+#if defined(VM_IS_X64)
+            { u64 peb; __asm__ volatile("movq %%gs:0x60, %0" : "=r"(peb));
+              u8* p = (u8*)u2p(peb);
+              if (p[2] || (p[0xBC] & 0x70)) c->done = 2; }
+#else
+            { u32 peb; __asm__ volatile("movl %%fs:0x30, %0" : "=r"(peb));
+              u8* p = (u8*)u2p((u64)peb);
+              if (p[2] || (p[0x68] & 0x70)) c->done = 2; }
+#endif
+            if (!c->done && (u32)c->scratch[3]) {
+                if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) c->done = 2;
+            }
+#if defined(VM_IS_X64)
+            if (!c->done) {
+                u64 fl;
+                __asm__ volatile("pushfq\n\t popq %0" : "=r"(fl));
+                if (fl & 0x100) c->done = 2;
+            }
+#else
+            if (!c->done) {
+                u32 fl;
+                __asm__ volatile("pushfl\n\t popl %0" : "=r"(fl));
+                if (fl & 0x100) c->done = 2;
+            }
+#endif
+            }
+            }   /* if (ud & 1) */
 #endif
 
                 } else if (op == OP_BSWAP_R) {
@@ -1799,11 +1828,12 @@ static void vm_run(VMContext* c) {
                 || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
 
         } else {
-            c->done = 1;   // bilinmeyen opcode -> guvenli dur
+            c->done = 1; renc(c, 0, 0xB0000003ULL);   // bilinmeyen opcode (IZ)
         }
     }
+    if (opcount < 3) renc(c, 0, 0xB0000005ULL);   /* IZ: dongu 3 op'tan az calisti */
     }
-}
+    }
 
 void vm_entry(VMContext* c) {
     int k;
