@@ -117,7 +117,8 @@ Kullanıcı metin2client 0xD7610 ULTRA + CheckDebugger=True'da damage'te ÇÖKME
 | Virtualization/Mutation/Ultra | ✅ %90 (değişmedi) | ✅ %90 |
 | Encrypt ByteCode | ✅ (A9 düzeltmesiyle) | ✅ |
 | Encrypt Registers | ✅ GERÇEK (UO'yu aşan) | ✅ |
-| Loader CRC | ❌ KULLANICI: damage'te çökertiyor | ⏳ SONRAKİ TUR (ayrı kök-neden avı) |
+| Loader CRC | ❌ sanılıyordu | ✅ KULLANICI DOĞRULADI: "Loader CRC sorun yokmuş" (çökme aslında FileCRC'deydi) |
+| File CRC (x86, metin2 ULTRA+FileCRC damage çökmesi) | ❌ ÇÖKÜYOR (cp13 ile üretilen exe) | ✅ KÖK-NEDEN ÇÖZÜLDÜ: x86 PEB yürüyüşü ENT_FULLBUF_OFF 0x2C→0x28 (BaseDllName Length/Max çifti çop pointer 0x002A0028 — errorlog edx birebir). Kanıt: A/B aynı RVA 0x5508F3 tek bayt farkı; cp13 blob'u hatalı, yeni blob temiz. Fix'li exe teslim edildi |
 
 **Kök-neden:** x86 `xa_call*_86` sarmalayıcıları ECX/EDX clobber bildirmiyordu; 1.2.0-A8
 K8 çift-çağrısı GCC'nin işaretçiyi ECX'te tutmasına yol açtı; gerçek Windows API'si ECX'i
