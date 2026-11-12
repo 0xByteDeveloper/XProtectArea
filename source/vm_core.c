@@ -784,12 +784,12 @@ static void vm_run(VMContext* c) {
     {
         u64 budget = (u64)1 << 24;
         while (!c->done) {
-            if (budget-- == 0) { c->done = 1; renc(c, 0, 0xB0000001ULL); break; }
+            if (budget-- == 0) { c->done = 1; break; }
             /* 1.0.0 kok-fix (yakinma): akis-tasma korumasi — ic bc_len'i asarsa
                OOB bayti op diye cozmaya calisma (itab[garcop] stack-OOB okuma,
                rastgele VM op'u = oyun-cokmesi sinifi). Duru-cikis: stub retimm
                ile temiz doner (yanlis deger, cokme YOK). */
-            if (s.ic >= c->bc_len) { c->done = 1; renc(c, 0, 0xB0000002ULL); break; }
+            if (s.ic >= c->bc_len) { c->done = 1; break; }
         u8 op = itab[sf8(&s)];
         int alu, shi, cc, ud, sz, ssz, r1, r2, form, n, idx;
         u32 v32;
@@ -1073,7 +1073,7 @@ static void vm_run(VMContext* c) {
                stub push_area'dan kayitlari geri yukledikten sonra volatile
                reg ile base+rva'ya atlar; donus adresi yiginda KALIR. */
             c->scratch[6] = (u64)sf32(&s);
-            c->done = 3; renc(c, 0, 0xB0000006ULL);
+            c->done = 3;
 
         } else if (op == OP_JCCEXT) {
             /* sartli kuyruk-jmp: kosul yanlissa akis buradan devam eder. */
@@ -1191,7 +1191,7 @@ static void vm_run(VMContext* c) {
                 __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
                                  : "=a"(ca), "=c"(ccx2), "=d"(cd2) : "a"(1) : "memory");
 #endif
-                if (ccx2 & 0x80000000u) { c->done = 2; renc(c, 0, 0xDEAD000AULL); }   /* hipervizor (MARK) */
+                if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
             }
             if (ud & 1) {
             /* 1.2.0-A8: K1..K9 TAM batarya (UO 1:1) */
@@ -1199,26 +1199,26 @@ static void vm_run(VMContext* c) {
 #if defined(VM_IS_X64)
             { u64 peb; __asm__ volatile("movq %%gs:0x60, %0" : "=r"(peb));
               u8* p = (u8*)u2p(peb);
-              if (p[2] || (p[0xBC] & 0x70)) { c->done = 2; renc(c, 0, 0xDEAD0001ULL); } }
+              if (p[2] || (p[0xBC] & 0x70)) c->done = 2; }
 #else
             { u32 peb; __asm__ volatile("movl %%fs:0x30, %0" : "=r"(peb));
               u8* p = (u8*)u2p((u64)peb);
-              if (p[2] || (p[0x68] & 0x70)) { c->done = 2; renc(c, 0, 0xDEAD0001ULL); } }
+              if (p[2] || (p[0x68] & 0x70)) c->done = 2; }
 #endif
             if (!c->done && (u32)c->scratch[3]) {
-                if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) { c->done = 2; renc(c, 0, 0xDEAD0002ULL); }
+                if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) c->done = 2;
             }
 #if defined(VM_IS_X64)
             if (!c->done) {
                 u64 fl;
                 __asm__ volatile("pushfq\n\t popq %0" : "=r"(fl));
-                if (fl & 0x100) { c->done = 2; renc(c, 0, 0xDEAD0003ULL); }
+                if (fl & 0x100) c->done = 2;
             }
 #else
             if (!c->done) {
                 u32 fl;
                 __asm__ volatile("pushfl\n\t popl %0" : "=r"(fl));
-                if (fl & 0x100) { c->done = 2; renc(c, 0, 0xDEAD0003ULL); }
+                if (fl & 0x100) c->done = 2;
             }
 #endif
             }
@@ -1233,7 +1233,7 @@ static void vm_run(VMContext* c) {
                     if (xa_call4(gtc, 0xFFFFFFFFFFFFFFFEull, cal, 0, 0)) {
                         u64 dr = mrd(cal + XA_CTX_DR0, 8) | mrd(cal + XA_CTX_DR1, 8)
                                | mrd(cal + XA_CTX_DR2, 8) | mrd(cal + XA_CTX_DR3, 8);
-                        if (dr) { c->done = 2; renc(c, 0, 0xDEAD0004ULL); }
+                        if (dr) c->done = 2;
                     }
 #else
                     u8 cbuf[XA_CTX_SIZE + 16];
@@ -1242,7 +1242,7 @@ static void vm_run(VMContext* c) {
                     if (xa_call2_86((u32)gtc, 0xFFFFFFFEu, cal)) {
                         u32 dr = (u32)mrd((u64)cal + XA_CTX_DR0, 4) | (u32)mrd((u64)cal + XA_CTX_DR1, 4)
                                | (u32)mrd((u64)cal + XA_CTX_DR2, 4) | (u32)mrd((u64)cal + XA_CTX_DR3, 4);
-                        if (dr) { c->done = 2; renc(c, 0, 0xDEAD0004ULL); }
+                        if (dr) c->done = 2;
                     }
 #endif
                 }
@@ -1265,13 +1265,13 @@ static void vm_run(VMContext* c) {
                     u8 ib[16];
                     u32 rl = 0;
 #if defined(VM_IS_X64)
-                    i64 st = (i64)xa_call4(nqsi, 0x23, (u64)(unsigned long)(void*)ib, 2,
+                    i64 st = (i64)(int)(u32)xa_call4(nqsi, 0x23, (u64)(unsigned long)(void*)ib, 2,
                                            (u64)(unsigned long)(void*)&rl);
 #else
-                    i64 st = (i64)xa_call4_86((u32)nqsi, 0x23, (u32)(unsigned long)(void*)ib, 2,
+                    i64 st = (i64)(long)xa_call4_86((u32)nqsi, 0x23, (u32)(unsigned long)(void*)ib, 2,
                                               (u32)(unsigned long)(void*)&rl);
 #endif
-                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) { c->done = 2; renc(c, 0, 0xDEAD0005ULL); }
+                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) c->done = 2;
                 }
             }
             /* (K6) SURUCU TARAMASI — SystemModuleInformation (0x0B) */
@@ -1287,10 +1287,10 @@ static void vm_run(VMContext* c) {
 #endif
                     u32 rl = 0;
 #if defined(VM_IS_X64)
-                    i64 st = (i64)xa_call4(nqsi, 0x0B, mal, 0x4000,
+                    i64 st = (i64)(int)(u32)xa_call4(nqsi, 0x0B, mal, 0x4000,
                                            (u64)(unsigned long)(void*)&rl);
 #else
-                    i64 st = (i64)xa_call4_86((u32)nqsi, 0x0B, (u32)mal, 0x4000,
+                    i64 st = (i64)(long)xa_call4_86((u32)nqsi, 0x0B, (u32)mal, 0x4000,
                                               (u32)(unsigned long)(void*)&rl);
 #endif
                     if (st >= 0 && rl >= 4 && rl <= 0x4000) {
@@ -1321,7 +1321,7 @@ static void vm_run(VMContext* c) {
                                 w == 0x000000656369746EULL ||   /* ntice  */
                                 w == 0x0000747865656369ULL ||   /* iceext */
                                 w == 0x0000007265737973ULL)     /* syser  */
-                                { c->done = 2; renc(c, 0, 0xDEAD0006ULL); }
+                                c->done = 2;
                         }
                     }
                 }
@@ -1335,17 +1335,22 @@ static void vm_run(VMContext* c) {
                 if (nqip) {
                     u64 dbo = 0;
 #if defined(VM_IS_X64)
-                    i64 st = xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0 && dbo != 0) { c->done = 2; renc(c, 0, 0xDEAD0007ULL); }
+                    /* 1.2.0-A8 KOK DUZELTME (NTSTATUS isaret-genisletme):
+                       Win64 ABI'de 32-bit NTSTATUS RAX'ta SIFIR-GENISLEMIS
+                       doner; (i64) u64 cast yanlis-pozitif uretir (0xC0000353
+                       -> +3221227219!). Cozum: u32 kirp -> i32 isaret
+                       genislet -> i64. (VMMIN K8b-kaniti: 0xDEAD0008.) */
+                    i64 st = (i64)(int)(u32)xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
+                    if (st >= 0 && dbo != 0) c->done = 2;
                     dbo = 0;
-                    st = xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0) { c->done = 2; renc(c, 0, 0xDEAD0008ULL); }
+                    st = (i64)(int)(u32)xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
+                    if (st >= 0) c->done = 2;
 #else
-                    i64 st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
+                    i64 st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
                                               (u32)(unsigned long)(void*)&dbo, 8, 0);
-                    if (st >= 0 && dbo != 0) { c->done = 2; renc(c, 0, 0xDEAD0007ULL); }
+                    if (st >= 0 && dbo != 0) c->done = 2;
                     dbo = 0;
-                    st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
+                    st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
                                           (u32)(unsigned long)(void*)&dbo, 8, 0);
                     if (st >= 0) c->done = 2;
 #endif
@@ -1356,7 +1361,7 @@ static void vm_run(VMContext* c) {
                 u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
                 if (ch) {
 #if defined(VM_IS_X64)
-                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) { c->done = 2; renc(c, 0, 0xDEAD0009ULL); }
+                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
 #else
                     if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
 #endif
@@ -1992,10 +1997,10 @@ static void vm_run(VMContext* c) {
             u64 ra = mrd(c->init_rsp, PUSHSZ);
             u8 b0 = (u8)mrd(ra, 1), b1 = (u8)mrd(ra + 1, 1);
             if (b0 == 0xCC || (b0 == 0xCD && b1 == 0x03)
-                || (b0 == 0x0F && b1 == 0x0B)) { c->done = 2; renc(c, 0, 0xDEAD000BULL); }
+                || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
 
         } else {
-            c->done = 1; renc(c, 0, 0xB0000003ULL);
+            c->done = 1;   // bilinmeyen opcode -> guvenli dur
         }
     }
     }
