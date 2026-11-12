@@ -939,6 +939,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         c.prefix_len = (u32)plain.size();     // 0.8.1: govde ref-site kaydirmasi
         plain.insert(plain.end(), c.v.plain.begin(), c.v.plain.end());
         c.plain = plain;
+#ifdef XPROTECT_BC_DUMP
+        {   /* HATA AYIKLAMA: duz plain akisi dosyaya (bcwalk dogrulamasi) */
+            char db[96]; snprintf(db, sizeof db, "/tmp/bcdump_%X.bin", c.f->rva);
+            FILE* df = fopen(db, "wb"); if (df) { fwrite(plain.data(), 1, plain.size(), df); fclose(df); }
+        }
+#endif
     }
 
     // --- section icinde RVAlari planla ---
