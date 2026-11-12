@@ -22,3 +22,4 @@
 | cp49 | 2026-11-12 07:20 | 7867298 B | Xprotect_1.2.0_cp49 |
 | cp1-1.2.2 | 2026-11-12 08:55 | 11837318 B | Xprotect_1.2.2_cp1 — CheckDebugger x86 çökmesi kök-nedenden çözüldü (ECX/EDX clobber) |
 | cp3 | 2026-11-12 08:55 | 11837318 B | Xprotect_1.2.2_cp3 |
+| cp4 | 2026-11-12 08:56 | 11837318 B | Xprotect_1.2.2_cp4 |
