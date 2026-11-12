@@ -857,7 +857,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                               jl, f.rva ^ 0x9E3779B9u,
                               mbuf.empty() /* 0.4.1: mutant girdide dolgu akisi kesmez */,
                               is_region, perm_seed /* 0.8.0/B1 tohum */,
-                              opt.antidebug /* 1.2.0-A8: OP_CHKRET yayimi */);
+                              false /* BISECT: CHKRET yayimi kapali */);
         if (!v.ok) { f.note = "RED: " + v.why; continue; }
         Compiled c; c.f = &f; c.ty = ty; c.v = v;
         c.vm_id = vm_id; c.perm_seed = perm_seed;   /* 1.2.0-B1 */
