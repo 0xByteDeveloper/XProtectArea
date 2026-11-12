@@ -481,17 +481,21 @@ static u64 vm_natcall5(u64 t, const u64* regs, u64 a5) {
     register u64 vr8 __asm__("r8")  = regs[8];
     register u64 vr9 __asm__("r9")  = regs[9];
     register u64 vt  __asm__("r11") = t;
-    register u64 va5 __asm__("r10") = a5;
+    /* DERS (kok neden): a5 r10'a BAGLI register-asm degiskeniydi + r10 clobber
+       listesinde YOKTU -> yorumlayicinin r10'daki canli degeri callee tarafindan
+       ezildi -> karmasik bozulma (K8 testinde ilk-saptandi). SAGLIKLI desen:
+       a5 DUZ yerel (+r operand ile herhangi bir register), r10 clobber listesinde
+       (orijinal vm_natcall hizgiyle ayni). */
     __asm__ volatile(
         "mov %%rsp, %%rbx \n\t"
         "and $-16, %%rsp \n\t"
         "sub $0x30, %%rsp \n\t"
-        "movq %%r10, 0x20(%%rsp) \n\t"
+        "movq %6, 0x20(%%rsp) \n\t"
         "call *%%r11 \n\t"
         "mov %%rbx, %%rsp \n\t"
-        : "+a"(ret), "+c"(va1), "+d"(va2), "+r"(vr8), "+r"(vr9), "+r"(vt), "+r"(va5)
+        : "+a"(ret), "+c"(va1), "+d"(va2), "+r"(vr8), "+r"(vr9), "+r"(vt), "+r"(a5)
         :
-        : "memory", "cc", "rbx");
+        : "memory", "cc", "rbx", "r10");
     return ret;
 }
 #endif
@@ -755,14 +759,13 @@ static void vm_run(VMContext* c) {
        govdesi) asla ulasamaz; tamper-derailment sinirli surede durur. */
     {
         u64 budget = (u64)1 << 24;
-        u64 opcount = 0;
         while (!c->done) {
-            if (budget-- == 0) { c->done = 1; renc(c, 0, 0xB0000001ULL); break; }
+            if (budget-- == 0) { c->done = 1; break; }
             /* 1.0.0 kok-fix (yakinma): akis-tasma korumasi — ic bc_len'i asarsa
                OOB bayti op diye cozmaya calisma (itab[garcop] stack-OOB okuma,
                rastgele VM op'u = oyun-cokmesi sinifi). Duru-cikis: stub retimm
                ile temiz doner (yanlis deger, cokme YOK). */
-            if (s.ic >= c->bc_len) { c->done = 1; renc(c, 0, 0xB0000002ULL); break; }
+            if (s.ic >= c->bc_len) { c->done = 1; break; }
         u8 op = itab[sf8(&s)];
         int alu, shi, cc, ud, sz, ssz, r1, r2, form, n, idx;
         u32 v32;
@@ -1046,7 +1049,7 @@ static void vm_run(VMContext* c) {
                stub push_area'dan kayitlari geri yukledikten sonra volatile
                reg ile base+rva'ya atlar; donus adresi yiginda KALIR. */
             c->scratch[6] = (u64)sf32(&s);
-            c->done = 3; if (opcount < 3) renc(c, 0, 0xB0000006ULL);
+            c->done = 3;
 
         } else if (op == OP_JCCEXT) {
             /* sartli kuyruk-jmp: kosul yanlissa akis buradan devam eder. */
@@ -1167,7 +1170,7 @@ static void vm_run(VMContext* c) {
                 if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
             }
             if (ud & 1) {
-            /* BISECT TURU A: yalniz K1+K2 (PEB + kapi-0xCC + TF) */
+            /* 1.2.0-A8: K1..K9 TAM batarya (UO 1:1) */
             {
 #if defined(VM_IS_X64)
             { u64 peb; __asm__ volatile("movq %%gs:0x60, %0" : "=r"(peb));
@@ -1194,6 +1197,150 @@ static void vm_run(VMContext* c) {
                 if (fl & 0x100) c->done = 2;
             }
 #endif
+            }
+            /* (K3) DRx — GetThreadContext senkron okuma (0.8.5) */
+            if (!c->done) {
+                u64 gtc = xa_export(xa_module(XA_K32), XA_GTC);
+                if (gtc) {
+#if defined(VM_IS_X64)
+                    u8 cbuf[XA_CTX_SIZE + 16];
+                    u64 cal = ((u64)(unsigned long)cbuf + 15ull) & ~15ull;
+                    mwr(cal + XA_CTX_FLAGS, 4, XA_CTX_DBGFL);
+                    if (xa_call4(gtc, 0xFFFFFFFFFFFFFFFEull, cal, 0, 0)) {
+                        u64 dr = mrd(cal + XA_CTX_DR0, 8) | mrd(cal + XA_CTX_DR1, 8)
+                               | mrd(cal + XA_CTX_DR2, 8) | mrd(cal + XA_CTX_DR3, 8);
+                        if (dr) c->done = 2;
+                    }
+#else
+                    u8 cbuf[XA_CTX_SIZE + 16];
+                    u32 cal = ((u32)(unsigned long)cbuf + 3u) & ~3u;
+                    mwr((u64)cal + XA_CTX_FLAGS, 4, XA_CTX_DBGFL);
+                    if (xa_call2_86((u32)gtc, 0xFFFFFFFEu, cal)) {
+                        u32 dr = (u32)mrd((u64)cal + XA_CTX_DR0, 4) | (u32)mrd((u64)cal + XA_CTX_DR1, 4)
+                               | (u32)mrd((u64)cal + XA_CTX_DR2, 4) | (u32)mrd((u64)cal + XA_CTX_DR3, 4);
+                        if (dr) c->done = 2;
+                    }
+#endif
+                }
+            }
+            /* (K4) ThreadHideFromDebugger — UO loader.cc 1:1 anti-aksiyon */
+            if (!c->done) {
+                u64 nsit = xa_export(xa_module(XA_NTD), XA_NSIT);
+                if (nsit) {
+#if defined(VM_IS_X64)
+                    xa_call4(nsit, 0xFFFFFFFFFFFFFFFEull, 0x11, 0, 0);
+#else
+                    xa_call4_86(nsit, 0xFFFFFFFEu, 0x11, 0, 0);
+#endif
+                }
+            }
+            /* (K5) KERNEL DEBUGGER — SystemKernelDebuggerInformation (0x23) */
+            if (!c->done) {
+                u64 nqsi = xa_export(xa_module(XA_NTD), XA_NQSI);
+                if (nqsi) {
+                    u8 ib[16];
+                    u32 rl = 0;
+#if defined(VM_IS_X64)
+                    i64 st = (i64)xa_call4(nqsi, 0x23, (u64)(unsigned long)(void*)ib, 2,
+                                           (u64)(unsigned long)(void*)&rl);
+#else
+                    i64 st = (i64)xa_call4_86((u32)nqsi, 0x23, (u32)(unsigned long)(void*)ib, 2,
+                                              (u32)(unsigned long)(void*)&rl);
+#endif
+                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) c->done = 2;
+                }
+            }
+            /* (K6) SURUCU TARAMASI — SystemModuleInformation (0x0B) */
+            if (!c->done) {
+                u64 nqsi = xa_export(xa_module(XA_NTD), XA_NQSI);
+                if (nqsi) {
+#if defined(VM_IS_X64)
+                    u8 mbuf[0x4000 + 16];
+                    u64 mal = ((u64)(unsigned long)mbuf + 15ull) & ~15ull;
+#else
+                    u8 mbuf[0x4000 + 8];
+                    u32 mal = ((u32)(unsigned long)mbuf + 3u) & ~3u;
+#endif
+                    u32 rl = 0;
+#if defined(VM_IS_X64)
+                    i64 st = (i64)xa_call4(nqsi, 0x0B, mal, 0x4000,
+                                           (u64)(unsigned long)(void*)&rl);
+#else
+                    i64 st = (i64)xa_call4_86((u32)nqsi, 0x0B, (u32)mal, 0x4000,
+                                              (u32)(unsigned long)(void*)&rl);
+#endif
+                    if (st >= 0 && rl >= 4 && rl <= 0x4000) {
+                        u32 n = (u32)mrd(mal, 4);
+                        u32 ent = (n > (0x4000 - 4) / 0x124) ? (0x4000 - 4) / 0x124 : n;
+                        u32 mi;
+                        for (mi = 0; mi < ent && !c->done; mi++) {
+#if defined(VM_IS_X64)
+                            u64 ebase = 4 + (u64)mi * 0x124 + 0x24;
+                            u64 foff = mrd(mal + ebase - 2, 2);
+#else
+                            u32 ebase = 4 + mi * 0x116 + 0x16;
+                            u32 foff = (u32)mrd((u64)mal + ebase - 2, 2);
+#endif
+                            if (foff >= 250) continue;
+                            u64 w = mrd((u64)mal + (u64)ebase + (u64)foff, 8);
+                            {
+                                u64 t = 0; int kb;
+                                for (kb = 0; kb < 8; kb++) {
+                                    u8 ch = (u8)((w >> (8 * kb)) & 0xFF);
+                                    if (ch >= 'A' && ch <= 'Z') ch += 32;
+                                    t |= ((u64)ch) << (8 * kb);
+                                }
+                                w = t;
+                            }
+                            if (w == 0x0000000065636973ULL ||   /* sice   */
+                                w == 0x0000646976776973ULL ||   /* siwvid */
+                                w == 0x000000656369746EULL ||   /* ntice  */
+                                w == 0x0000747865656369ULL ||   /* iceext */
+                                w == 0x0000007265737973ULL)     /* syser  */
+                                c->done = 2;
+                        }
+                    }
+                }
+            }
+            renc(c, 0, 0xB0000010ULL);   /* IZ: K8 ONCESI */
+            /* (K8) PROCESS DEBUG PORT/OBJECT — UO loader.cc:1810-1827 1:1:
+               ProcessDebugPort(7): NT_SUCCESS && port != 0 -> debugger.
+               ProcessDebugObjectHandle(30): NT_SUCCESS tek basina debugger
+               (debug nesnesi yokken cagri BASARISIZDIR — PORT_NOT_SET). */
+            if (!c->done) {
+                u64 nqip = xa_export(xa_module(XA_NTD), XA_NQIP);
+                if (nqip) {
+                    u64 dbo = 0;
+#if defined(VM_IS_X64)
+                    i64 st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 7,
+                                           (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)xa_call5(nqip, 0xFFFFFFFFFFFFFFFFull, 30,
+                                       (u64)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0) c->done = 2;
+#else
+                    i64 st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
+                                              (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
+                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0) c->done = 2;
+#endif
+                }
+            }
+            if (c->done == 2) renc(c, 0, 0xB0000012ULL); else renc(c, 0, 0xB0000011ULL);   /* IZ: K8 SONRASI */
+            /* (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1 */
+            if (!c->done) {
+                u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
+                if (ch) {
+#if defined(VM_IS_X64)
+                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
+#else
+                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
+#endif
+                }
             }
             }   /* if (ud & 1) */
 #endif
@@ -1828,10 +1975,9 @@ static void vm_run(VMContext* c) {
                 || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
 
         } else {
-            c->done = 1; renc(c, 0, 0xB0000003ULL);   // bilinmeyen opcode (IZ)
+            c->done = 1;   // bilinmeyen opcode -> guvenli dur
         }
     }
-    if (opcount < 3) renc(c, 0, 0xB0000005ULL);   /* IZ: dongu 3 op'tan az calisti */
     }
     }
 
