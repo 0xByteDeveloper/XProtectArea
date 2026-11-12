@@ -124,21 +124,21 @@ static void mwr(u64 a, int sz, u64 v) {
 
 // --- register ---
 static u64 rget(VMContext* c, int enc, int sz) {
-    if (enc >= 16) return (c->regs[enc-16] >> 8) & 0xFF;
-    if (sz == 1) return c->regs[enc] & 0xFF;
-    if (sz == 2) return c->regs[enc] & 0xFFFF;
-    if (sz == 4) return c->regs[enc] & 0xFFFFFFFF;
-    return c->regs[enc];
+    if (enc >= 16) return (rdec(c, enc-16) >> 8) & 0xFF;
+    if (sz == 1) return rdec(c, enc) & 0xFF;
+    if (sz == 2) return rdec(c, enc) & 0xFFFF;
+    if (sz == 4) return rdec(c, enc) & 0xFFFFFFFF;
+    return rdec(c, enc);
 }
 static void rset(VMContext* c, int enc, int sz, u64 v) {
     if (enc >= 16) {
-        c->regs[enc-16] = (c->regs[enc-16] & ~0xFF00ULL) | ((v & 0xFF) << 8);
+        renc(c, enc-16, (rdec(c, enc-16) & ~0xFF00ULL) | ((v & 0xFF) << 8));
         return;
     }
-    if (sz == 1)      c->regs[enc] = (c->regs[enc] & ~0xFFULL) | (v & 0xFF);
-    else if (sz == 2) c->regs[enc] = (c->regs[enc] & ~0xFFFFULL) | (v & 0xFFFF);
-    else if (sz == 4) c->regs[enc] = v & 0xFFFFFFFF;   /* x64: 32-bit yazim ust 32 biti SIFIRLAR */
-    else              c->regs[enc] = v;
+    if (sz == 1)      renc(c, enc, (rdec(c, enc) & ~0xFFULL) | (v & 0xFF));
+    else if (sz == 2) renc(c, enc, (rdec(c, enc) & ~0xFFFFULL) | (v & 0xFFFF));
+    else if (sz == 4) renc(c, enc, v & 0xFFFFFFFF);   /* x64: 32-bit yazim ust 32 biti SIFIRLAR */
+    else              renc(c, enc, v);
 }
 
 static u64 szmask(int sz) {
@@ -182,9 +182,9 @@ static u64 mem_addr(STRM* s, VMContext* c) {
         u64 img = (!segmode && form == MEMF_SIB_IMG) ? c->base : 0;
         u64 a;
         if (b == SIB_NOBASE)      a = segbase + img + (u64)(i64)(int)d;
-        else if (b == REG_RSP)    a = segbase + c->regs[REG_RSP] - (u64)VM_DELTA + (u64)(i64)(int)d;
-        else                      a = segbase + img + c->regs[b] + (u64)(i64)(int)d;
-        if (ix != SIB_NOBASE) a += c->regs[ix] << sc;
+        else if (b == REG_RSP)    a = segbase + rdec(c, REG_RSP) - (u64)VM_DELTA + (u64)(i64)(int)d;
+        else                      a = segbase + img + rdec(c, b) + (u64)(i64)(int)d;
+        if (ix != SIB_NOBASE) a += rdec(c, ix) << sc;
 #ifdef VM_TRACE
         if (vm_trace_on) tputn("[mem] a=", a, ((u64)(b & 0xFF) << 8) | (ix & 0xFF));
 #endif
@@ -800,7 +800,7 @@ static void vm_run(VMContext* c) {
 
         } else if (op == OP_SHI_CL) {
             shi = sf8(&s); sz = sf8(&s); r1 = sf8(&s);
-            n = (int)(c->regs[REG_RCX] & 0x3F);
+            n = (int)(rdec(c, REG_RCX) & 0x3F);
             r = do_shift(shi, rget(c, r1, sz), n, sz, c->flags, &fl);
             c->flags = fl;
             rset(c, r1, sz, r);
@@ -809,7 +809,7 @@ static void vm_run(VMContext* c) {
             shi = sf8(&s); sz = sf8(&s);
             addr = mem_addr(&s, c);
             if (op == OP_SHI_RM_RI) n = sf8(&s);
-            else                    n = (int)(c->regs[REG_RCX] & 0x3F);
+            else                    n = (int)(rdec(c, REG_RCX) & 0x3F);
             r = do_shift(shi, mrd(addr, sz), n, sz, c->flags, &fl);
             c->flags = fl;
             mwr(addr, sz, r);
@@ -915,18 +915,18 @@ static void vm_run(VMContext* c) {
 
         } else if (op == OP_PUSH_R) {
             r1 = sf8(&s);
-            c->regs[REG_RSP] -= PUSHSZ;
-            mwr(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ, rget(c, r1, PUSHSZ));
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, rget(c, r1, PUSHSZ));
 
         } else if (op == OP_PUSH_I) {
             sext32(&sv, sf32(&s));
-            c->regs[REG_RSP] -= PUSHSZ;
-            mwr(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ, (u64)sv);
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, (u64)sv);
 
         } else if (op == OP_POP_R) {
             r1 = sf8(&s);
-            rset(c, r1, PUSHSZ, mrd(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ));
-            c->regs[REG_RSP] += PUSHSZ;
+            rset(c, r1, PUSHSZ, mrd(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ));
+            renc(c, REG_RSP, rdec(c, REG_RSP) + (PUSHSZ));
 
         } else if (op == OP_NOR_ST || op == OP_NAND_ST) {
             /* 1.0.0-UO: VMP cmNor/cmNand yigin kapisi (intel.cc birebir).
@@ -944,13 +944,13 @@ static void vm_run(VMContext* c) {
                    cikiyordu — sdk_b1 b/c=136 kaniti). Sonuc da ta + PUSHSZ
                    yazilir (pop2/push1 -> net rsp += PUSHSZ, yeni top = eski
                    top'un altindaki slot = iki operandin birlesimi). */
-                u64 ta = c->regs[REG_RSP] - (u64)VM_DELTA;
+                u64 ta = rdec(c, REG_RSP) - (u64)VM_DELTA;
                 u64 vb = mrd(ta, PUSHSZ) & szmask(sz);
                 u64 va = mrd(ta + PUSHSZ, PUSHSZ) & szmask(sz);
                 u64 vr = (op == OP_NOR_ST) ? ((~(va | vb)) & szmask(sz))
                                            : ((~(va & vb)) & szmask(sz));
                 mwr(ta + PUSHSZ, PUSHSZ, vr);
-                c->regs[REG_RSP] += PUSHSZ;
+                renc(c, REG_RSP, rdec(c, REG_RSP) + (PUSHSZ));
                 do_alu(ALU_AND, vr, vr, sz, &fl);
                 c->flags = fl;
             }
@@ -961,8 +961,8 @@ static void vm_run(VMContext* c) {
                YAZILIR (sz<8'de ust baytlar KORUNUR — x64 and eax,ebx
                ust-32-koruma semantigi). */
             sz = sf8(&s); r1 = sf8(&s);
-            rset(c, r1, sz, mrd(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ));
-            c->regs[REG_RSP] += PUSHSZ;
+            rset(c, r1, sz, mrd(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ));
+            renc(c, REG_RSP, rdec(c, REG_RSP) + (PUSHSZ));
 
         } else if (op == OP_JMP) {
             sext32(&sv, sf32(&s));
@@ -990,21 +990,35 @@ static void vm_run(VMContext* c) {
 #ifdef VM_TRACE
             /* harness modu: native cagri YOK — sahte donus (rax=gumus),
                akis devam eder (mem/SIB teshisi icin). */
-            if (vm_trace_on) tputn("[ncall] hedef=", c->base + (u64)v32, c->regs[REG_RSP]);
-            c->regs[0] = 0;
+            if (vm_trace_on) tputn("[ncall] hedef=", c->base + (u64)v32, rdec(c, REG_RSP));
+            renc(c, 0, 0);
 #else
 #ifdef VM_IS_X64
-            c->regs[0] = vm_natcall(c->base + (u64)v32, c->regs);
+            /* 1.2.0-A9 Encrypt Registers: natcall arg kayitcilari COZULMUS
+               yerel kopyadan gelir; donus degeri yeniden SIFRELI yazilir.
+               (vm_natcall regs[1]/[2]/[8]/[9] okur — Win64 rcx,rdx,r8,r9.) */
+            {
+                u64 ncr[16]; int nci;
+                for (nci = 0; nci < 16; nci++) ncr[nci] = rdec(c, nci);
+                renc(c, 0, vm_natcall(c->base + (u64)v32, ncr));
+            }
 #else
             {
                 /* 0.5.1: x86 dogal cagri — arg kayitcilari (eax/ecx/edx)
                 gercek CPU'ya tasınır, callee sonrasi esp + eax/ecx/edx VM'e
                 yansitilir (0.5.0'da ikisi de yoktu -> yigin bozumu + cop
-                thiscall). stdcall temizlemesi esp senkronu ile yansitilir. */
+                thiscall). stdcall temizlemesi esp senkronu ile yansitilir.
+                1.2.0-A9 Encrypt Registers: yerel COZULMUS kopya ile cagrilir,
+                callee sonrasi donus/arg kayitcilari yeniden SIFRELI yazilir. */
                 u64 nret = 0, nesp = 0;
-                vm_natcall86(c->regs, (u32)(c->base + (u64)v32),
-                             (u32)(c->regs[REG_RSP] - (u64)VM_DELTA), &nret, &nesp);
-                c->regs[REG_RSP] = nesp + (u64)VM_DELTA;
+                u64 ncr86[16]; int nci;
+                for (nci = 0; nci < 16; nci++) ncr86[nci] = rdec(c, nci);
+                vm_natcall86(ncr86, (u32)(c->base + (u64)v32),
+                             (u32)(rdec(c, REG_RSP) - (u64)VM_DELTA), &nret, &nesp);
+                renc(c, REG_RSP, nesp + (u64)VM_DELTA);
+                renc(c, 0, ncr86[0]);
+                renc(c, 1, ncr86[1]);
+                renc(c, 2, ncr86[2]);
             }
 #endif
 #endif /* VM_TRACE */
@@ -1018,46 +1032,46 @@ static void vm_run(VMContext* c) {
 
         } else if (op == OP_CQO) {
 #if defined(VM_IS_X64)
-            c->regs[REG_RDX] = (c->regs[0] >> 63) ? ~0ULL : 0ULL;
+            renc(c, REG_RDX, (rdec(c, 0) >> 63) ? ~0ULL : 0ULL);
 #else
-            c->regs[REG_RDX] = (c->regs[0] & 0x80000000ULL) ? 0xFFFFFFFFULL : 0ULL;
+            renc(c, REG_RDX, (rdec(c, 0) & 0x80000000ULL) ? 0xFFFFFFFFULL : 0ULL);
 #endif
 
         } else if (op == OP_IDIV_R) {
             sz = sf8(&s); r1 = sf8(&s);
 #if defined(VM_IS_X64)
             if (sz == 4) {
-                i64 dd = ((i64)(int)(c->regs[REG_RDX] & 0xFFFFFFFF) << 32)
-                       |  (i64)(int)(c->regs[0] & 0xFFFFFFFF);
-                i64 dv = (i64)(int)(c->regs[r1] & 0xFFFFFFFF);
-                if (dv == 0) { c->regs[0] = 0; c->regs[REG_RDX] = 0; }
-                else { c->regs[0] = (u64)(int)(dd / dv); c->regs[REG_RDX] = (u64)(int)(dd % dv); }
+                i64 dd = ((i64)(int)(rdec(c, REG_RDX) & 0xFFFFFFFF) << 32)
+                       |  (i64)(int)(rdec(c, 0) & 0xFFFFFFFF);
+                i64 dv = (i64)(int)(rdec(c, r1) & 0xFFFFFFFF);
+                if (dv == 0) { renc(c, 0, 0); renc(c, REG_RDX, 0); }
+                else { renc(c, 0, (u64)(int)(dd / dv)); renc(c, REG_RDX, (u64)(int)(dd % dv)); }
             } else {
                 /* 0.9.0 KOK-FIX: 0.8.5'te dd = RDX YALNIZ (RAX yok sayiliyor)
                    — cqo sonrasi RDX = RAX isareti oldugu icin bolum hepsi
                    0/copluk cikiyordu. Dogrusu RDX:RAX 128-bit / r64. */
                 i64 q, rm;
-                idiv128((i64)c->regs[REG_RDX], (i64)c->regs[0], (i64)c->regs[r1], &q, &rm);
-                c->regs[0] = (u64)q; c->regs[REG_RDX] = (u64)rm;
+                idiv128((i64)rdec(c, REG_RDX), (i64)rdec(c, 0), (i64)rdec(c, r1), &q, &rm);
+                renc(c, 0, (u64)q); renc(c, REG_RDX, (u64)rm);
             }
 #else
             if (sz == 4) {
                 /* 0.9.0 KOK-FIX: 0.8.5'te EDX yok sayiliyor (yalniz eax/dv).
                    Dogrusu EDX:EAX 64-bit / r32. */
-                u64 dd = ((c->regs[REG_RDX] & 0xFFFFFFFFULL) << 32)
-                       |  (c->regs[0] & 0xFFFFFFFFULL);
-                int sdv = (int)(c->regs[r1] & 0xFFFFFFFF);
-                if (sdv == 0) { c->regs[0] = 0; c->regs[REG_RDX] = 0; }
+                u64 dd = ((rdec(c, REG_RDX) & 0xFFFFFFFFULL) << 32)
+                       |  (rdec(c, 0) & 0xFFFFFFFFULL);
+                int sdv = (int)(rdec(c, r1) & 0xFFFFFFFF);
+                if (sdv == 0) { renc(c, 0, 0); renc(c, REG_RDX, 0); }
                 else {
                     int neg = ((i64)dd < 0) != (sdv < 0);
                     u64 un = ((i64)dd < 0) ? (u64)(0 - (i64)dd) : dd;
                     u32 ud = (sdv < 0) ? (u32)(0 - sdv) : (u32)sdv;
                     u32 rm2;
                     u64 q = div64_32(un, ud, &rm2);   /* i386 guvenli */
-                    if (q > 0x7FFFFFFFULL) { c->regs[0] = 0; c->regs[REG_RDX] = 0; }
+                    if (q > 0x7FFFFFFFULL) { renc(c, 0, 0); renc(c, REG_RDX, 0); }
                     else {
-                        c->regs[0] = (u64)(u32)(neg ? (u32)(0 - (u32)q) : (u32)q);
-                        c->regs[REG_RDX] = (u64)(u32)(neg ? (u32)(0 - rm2) : rm2);
+                        renc(c, 0, (u64)(u32)(neg ? (u32)(0 - (u32)q) : (u32)q));
+                        renc(c, REG_RDX, (u64)(u32)(neg ? (u32)(0 - rm2) : rm2));
                     }
                 }
             } else { c->done = 1; }
@@ -1272,12 +1286,12 @@ static void vm_run(VMContext* c) {
                     | ((f & FSF) ? 0x080ull : 0)
                     | ((f & FDF) ? 0x400ull : 0)
                     | ((f & FOF) ? 0x800ull : 0);
-            c->regs[REG_RSP] -= PUSHSZ;
-            mwr(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ, img);
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, img);
 
         } else if (op == OP_POPF) {
-            u64 img = mrd(c->regs[REG_RSP] - (u64)VM_DELTA, PUSHSZ);
-            c->regs[REG_RSP] += PUSHSZ;
+            u64 img = mrd(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ);
+            renc(c, REG_RSP, rdec(c, REG_RSP) + (PUSHSZ));
             c->flags = ((img & 0x001ull) ? FCF : 0)
                      | ((img & 0x004ull) ? FPF : 0)
                      | ((img & 0x010ull) ? FAF : 0)
@@ -1287,7 +1301,7 @@ static void vm_run(VMContext* c) {
                      | ((img & 0x800ull) ? FOF : 0);
 
         } else if (op == OP_SAHF) {
-            u64 ah = (c->regs[REG_RAX] >> 8) & 0xFF;
+            u64 ah = (rdec(c, REG_RAX) >> 8) & 0xFF;
             c->flags = ((ah & 0x01) ? FCF : 0)
                      | ((ah & 0x04) ? FPF : 0)
                      | ((ah & 0x10) ? FAF : 0)
@@ -1302,7 +1316,7 @@ static void vm_run(VMContext* c) {
                    | ((f & FAF) ? 0x10 : 0)
                    | ((f & FZF) ? 0x40 : 0)
                    | ((f & FSF) ? 0x80 : 0);
-            c->regs[REG_RAX] = (c->regs[REG_RAX] & ~0xFF00ULL) | (ah << 8);
+            renc(c, REG_RAX, (rdec(c, REG_RAX) & ~0xFF00ULL) | (ah << 8));
 
         } else if (op == OP_SETFLAG) {
             ud = sf8(&s);
@@ -1321,23 +1335,23 @@ static void vm_run(VMContext* c) {
             if (sz == 1) {
                 /* AX = AL * r8 (x86) — rax'in ust bitleri korunur */
                 u64 p = (a & 0xFF) * (b & 0xFF);
-                c->regs[REG_RAX] = (c->regs[REG_RAX] & ~0xFFFFULL) | p;
+                renc(c, REG_RAX, (rdec(c, REG_RAX) & ~0xFFFFULL) | p);
                 if (p & 0xFF00ULL) c->flags |= FCF | FOF;
             } else if (sz == 2) {
                 u64 p = (a & 0xFFFF) * (b & 0xFFFF);
-                c->regs[REG_RAX] = (c->regs[REG_RAX] & ~0xFFFFULL) | (p & 0xFFFF);
-                c->regs[REG_RDX] = (c->regs[REG_RDX] & ~0xFFFFULL) | (p >> 16);
+                renc(c, REG_RAX, (rdec(c, REG_RAX) & ~0xFFFFULL) | (p & 0xFFFF));
+                renc(c, REG_RDX, (rdec(c, REG_RDX) & ~0xFFFFULL) | (p >> 16));
                 if (p >> 16) c->flags |= FCF | FOF;
             } else if (sz == 4) {
                 u64 p = (a & 0xFFFFFFFFULL) * (b & 0xFFFFFFFFULL);
-                c->regs[REG_RAX] = p & 0xFFFFFFFFULL;
-                c->regs[REG_RDX] = p >> 32;
+                renc(c, REG_RAX, p & 0xFFFFFFFFULL);
+                renc(c, REG_RDX, p >> 32);
                 if (p >> 32) c->flags |= FCF | FOF;
             } else {
                 u64 lo, hi;
                 mulu64(a, b, &lo, &hi);
-                c->regs[REG_RAX] = lo;
-                c->regs[REG_RDX] = hi;
+                renc(c, REG_RAX, lo);
+                renc(c, REG_RDX, hi);
                 if (hi) c->flags |= FCF | FOF;
             }
 
@@ -1347,40 +1361,40 @@ static void vm_run(VMContext* c) {
             else           b = mrd(mem_addr(&s, c), sz);
             /* flags: DIV sonrasi TUM bayraklar tanimsiz (x86) — dokunma */
             if (sz == 1) {
-                u32 n = (u32)(c->regs[REG_RAX] & 0xFFFF);
+                u32 n = (u32)(rdec(c, REG_RAX) & 0xFFFF);
                 u32 d = (u32)(b & 0xFF);
                 u32 q = d ? (n / d) : 0, rm = d ? (n % d) : 0;
                 if (q > 0xFF) { q = 0; rm = 0; }          /* #DE -> guvenli sifir */
-                c->regs[REG_RAX] = (c->regs[REG_RAX] & ~0xFFFFULL)
+                rdec(c, REG_RAX) = (rdec(c, REG_RAX) & ~0xFFFFULL)
                                  | (u64)((q & 0xFF) | ((rm & 0xFF) << 8));
             } else if (sz == 2) {
-                u32 n = ((u32)(c->regs[REG_RDX] & 0xFFFF) << 16)
-                      |  (u32)(c->regs[REG_RAX] & 0xFFFF);
+                u32 n = ((u32)(rdec(c, REG_RDX) & 0xFFFF) << 16)
+                      |  (u32)(rdec(c, REG_RAX) & 0xFFFF);
                 u32 d = (u32)(b & 0xFFFF);
                 u32 q = d ? (n / d) : 0, rm = d ? (n % d) : 0;
                 if (q > 0xFFFF) { q = 0; rm = 0; }
-                c->regs[REG_RAX] = (c->regs[REG_RAX] & ~0xFFFFULL) | (u64)(q & 0xFFFF);
-                c->regs[REG_RDX] = (c->regs[REG_RDX] & ~0xFFFFULL) | (u64)(rm & 0xFFFF);
+                renc(c, REG_RAX, (rdec(c, REG_RAX) & ~0xFFFFULL) | (u64)(q & 0xFFFF));
+                renc(c, REG_RDX, (rdec(c, REG_RDX) & ~0xFFFFULL) | (u64)(rm & 0xFFFF));
             } else if (sz == 4) {
-                u64 n = ((c->regs[REG_RDX] & 0xFFFFFFFFULL) << 32)
-                      |  (c->regs[REG_RAX] & 0xFFFFFFFFULL);
+                u64 n = ((rdec(c, REG_RDX) & 0xFFFFFFFFULL) << 32)
+                      |  (rdec(c, REG_RAX) & 0xFFFFFFFFULL);
                 u32 d = (u32)(b & 0xFFFFFFFFULL);
-                if (d == 0) { c->regs[0] = 0; c->regs[REG_RDX] = 0; }
+                if (d == 0) { renc(c, 0, 0); renc(c, REG_RDX, 0); }
                 else {
                     u32 rm;
                     u64 q = div64_32(n, d, &rm);   /* i386: __udivmoddi4 YASAK */
                     if (q > 0xFFFFFFFFULL) { q = 0; }     /* #DE -> guvenli sifir */
-                    c->regs[REG_RAX] = q & 0xFFFFFFFFULL;
-                    c->regs[REG_RDX] = (u64)rm;
+                    renc(c, REG_RAX, q & 0xFFFFFFFFULL);
+                    renc(c, REG_RDX, (u64)rm);
                 }
             } else {
                 u64 q, r;
-                if (b == 0) { c->regs[0] = 0; c->regs[REG_RDX] = 0; }
+                if (b == 0) { renc(c, 0, 0); renc(c, REG_RDX, 0); }
                 else {
-                    div128_64(c->regs[REG_RDX], c->regs[0], b, &q, &r);
+                    div128_64(rdec(c, REG_RDX), rdec(c, 0), b, &q, &r);
                     if (q >> 32) { q = 0; r = 0; }        /* #DE */
-                    c->regs[REG_RAX] = q;
-                    c->regs[REG_RDX] = r;
+                    renc(c, REG_RAX, q);
+                    renc(c, REG_RDX, r);
                 }
             }
 
@@ -1407,7 +1421,7 @@ static void vm_run(VMContext* c) {
         } else if (op == OP_SHLD) {
             sz = sf8(&s); r1 = sf8(&s); r2 = sf8(&s);
             int nm = sf8(&s);
-            int n = (nm == 1) ? (int)(c->regs[REG_RCX] & (sz == 8 ? 63 : 31))
+            int n = (nm == 1) ? (int)(rdec(c, REG_RCX) & (sz == 8 ? 63 : 31))
                               : (int)(u8)sf8(&s);
             n &= (sz == 8) ? 63 : 31;
             if (n > sz * 8) n = sz * 8;   /* 16-bit formda sayac > genislik */
@@ -1428,7 +1442,7 @@ static void vm_run(VMContext* c) {
         } else if (op == OP_SHRD) {
             sz = sf8(&s); r1 = sf8(&s); r2 = sf8(&s);
             int nm = sf8(&s);
-            int n = (nm == 1) ? (int)(c->regs[REG_RCX] & (sz == 8 ? 63 : 31))
+            int n = (nm == 1) ? (int)(rdec(c, REG_RCX) & (sz == 8 ? 63 : 31))
                               : (int)(u8)sf8(&s);
             n &= (sz == 8) ? 63 : 31;
             if (n > sz * 8) n = sz * 8;
@@ -1448,15 +1462,15 @@ static void vm_run(VMContext* c) {
 
         } else if (op == OP_LOOP) {
             cc = sf8(&s); sext32(&sv, sf32(&s));
-            c->regs[REG_RCX] = (c->regs[REG_RCX] - 1) & szmask(PUSHSZ);  /* x86: ecx */
-            int nz = (c->regs[REG_RCX] != 0);
+            renc(c, REG_RCX, (rdec(c, REG_RCX) - 1) & szmask(PUSHSZ));  /* x86: ecx */
+            int nz = (rdec(c, REG_RCX) != 0);
             int take = (cc == 0) ? nz : (cc == 1) ? (nz && ((c->flags & FZF) != 0))
                                                   : (nz && ((c->flags & FZF) == 0));
             if (take) s.ic = s.ic + (u64)sv;
 
         } else if (op == OP_JECXZ) {
             sext32(&sv, sf32(&s));
-            if ((c->regs[REG_RCX] & szmask(PUSHSZ)) == 0) s.ic = s.ic + (u64)sv;
+            if ((rdec(c, REG_RCX) & szmask(PUSHSZ)) == 0) s.ic = s.ic + (u64)sv;
 
         } else if (op == OP_XADD) {
             sz = sf8(&s); form = sf8(&s);
@@ -1489,26 +1503,26 @@ static void vm_run(VMContext* c) {
                 u64 cap = (rp ? ((u64)1 << 20) : 1);
                 u64 k;
                 for (k = 0; k < cap; k++) {
-                    if (rp && (c->regs[REG_RCX] & cmask) == 0) break;
+                    if (rp && (rdec(c, REG_RCX) & cmask) == 0) break;
                     if (ud == 0) {            /* movs */
-                        mwr(c->regs[REG_RDI], sz, mrd(c->regs[REG_RSI], sz));
-                        c->regs[REG_RSI] += step; c->regs[REG_RDI] += step;
+                        mwr(rdec(c, REG_RDI), sz, mrd(rdec(c, REG_RSI), sz));
+                        renc(c, REG_RSI, rdec(c, REG_RSI) + (step)); renc(c, REG_RDI, rdec(c, REG_RDI) + (step));
                     } else if (ud == 1) {     /* stos */
-                        mwr(c->regs[REG_RDI], sz, rget(c, REG_RAX, sz));
-                        c->regs[REG_RDI] += step;
+                        mwr(rdec(c, REG_RDI), sz, rget(c, REG_RAX, sz));
+                        renc(c, REG_RDI, rdec(c, REG_RDI) + (step));
                     } else if (ud == 2) {     /* lods */
-                        rset(c, REG_RAX, sz, mrd(c->regs[REG_RSI], sz));
-                        c->regs[REG_RSI] += step;
+                        rset(c, REG_RAX, sz, mrd(rdec(c, REG_RSI), sz));
+                        renc(c, REG_RSI, rdec(c, REG_RSI) + (step));
                     } else if (ud == 3) {     /* scas: cmp rax, [rdi] */
-                        r = do_alu(ALU_CMP, rget(c, REG_RAX, sz), mrd(c->regs[REG_RDI], sz), sz, &fl);
+                        r = do_alu(ALU_CMP, rget(c, REG_RAX, sz), mrd(rdec(c, REG_RDI), sz), sz, &fl);
                         c->flags = fl;
-                        c->regs[REG_RDI] += step;
+                        renc(c, REG_RDI, rdec(c, REG_RDI) + (step));
                     } else {                  /* cmps: cmp [rsi], [rdi] */
-                        r = do_alu(ALU_CMP, mrd(c->regs[REG_RSI], sz), mrd(c->regs[REG_RDI], sz), sz, &fl);
+                        r = do_alu(ALU_CMP, mrd(rdec(c, REG_RSI), sz), mrd(rdec(c, REG_RDI), sz), sz, &fl);
                         c->flags = fl;
-                        c->regs[REG_RSI] += step; c->regs[REG_RDI] += step;
+                        renc(c, REG_RSI, rdec(c, REG_RSI) + (step)); renc(c, REG_RDI, rdec(c, REG_RDI) + (step));
                     }
-                    if (rp) c->regs[REG_RCX] = (c->regs[REG_RCX] - 1) & cmask;
+                    if (rp) renc(c, REG_RCX, (rdec(c, REG_RCX) - 1) & cmask);
                     if (rp && (ud == 3 || ud == 4)) {
                         if (rp == 1 && !(c->flags & FZF)) break;   /* repe */
                         if (rp == 2 &&  (c->flags & FZF)) break;   /* repne */
@@ -1890,9 +1904,9 @@ void vm_entry(VMContext* c) {
 #endif
 
     for (k = 0; k < NMAP; k++) {
-        if (map[k] != (int)0xFFFFFFFFu) c->regs[map[k]] = SRC_LOAD(k);
+        if (map[k] != (int)0xFFFFFFFFu) renc(c, map[k], SRC_LOAD(k));
     }
-    c->regs[4] = c->init_rsp;
+    renc(c, 4, c->init_rsp);
     c->flags = 0;
     c->done = 0;
 
@@ -1919,11 +1933,11 @@ void vm_entry(VMContext* c) {
     vm_run(c);
 
     if (c->done == 2) {
-        c->regs[0] = 0xDEADBEEFDEADBEEFULL;   // debugger -> zehirli donus
+        renc(c, 0, 0xDEADBEEFDEADBEEFULL);   // debugger -> zehirli donus
         c->done = 1;
     }
     for (k = 0; k < NMAP; k++) {
-        if (map[k] != (int)0xFFFFFFFFu) SRC_STORE(k, c->regs[map[k]]);
+        if (map[k] != (int)0xFFFFFFFFu) SRC_STORE(k, rdec(c, map[k]));
     }
     (void)c->extra_pop;
 }
