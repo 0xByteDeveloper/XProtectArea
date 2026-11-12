@@ -317,3 +317,43 @@
   antidebug+ULTRA, EncryptByteCode ON/OFF statik fark, EncryptRegs ON/OFF
   statik fark, TLS+pack, ResourceProtection, mult-VM(4)+vmadv, memprot,
   strenc. Sonuçlar FEATVER.txt'ye yazılıyor (bu dosyanın altında rapor).
+
+---
+
+## 2026-11-12 23:35 — A9 HATASI BULUNDU+DÜZELTİLDİ (EncryptRegisters×JMPEXT) + TAM ÖZELLİK DOĞRULAMASI YEŞİL
+
+- BULGU (özellik doğrulama süiti F1-F11 yakaladı): sdk_b1 korumalı exe RC=42 DEĞİL,
+  "trace a" sonrası rc=3 (CRT abort). --noregs ile 42 → suçlu 1.2.0-A9 vmregs.
+  İZOLASYON: yalnız JMPEXT (kuyruk-jmp) yolu bozuk; normal VM dönüşleri sağlam.
+- KÖK NEDEN: stub'ların .natgt bloğu guest rsp'yi ctx+0x40'tan (x64 regs[4]) HAM
+  okuyordu; A9 ile regs[] SİFRELİ dosya oldu → okunan değer şifreli RSP → jmp
+  hedefi bozuk stack → abort. (A9 sonrası sdk_b1 regresyonu ZAMANLANMAMIŞTI —
+  07:10 turu r5_110 ile koşmuştu; JMPEXT'li sdk_b1 kaçmış.)
+- DÜZELTME (3 dosya):
+  1) vm_core.c: done==3'te `c->init_rsp = rdec(c, REG_RSP);` — RAW rsp artık
+     init_rsp (+0xB0, iki mimaride aynı offset) slotsuna yazılır.
+  2) engine_stub.cpp x64: natgt `mov rdx,[rdx+0x40]` → `mov rdx,[rdx+0xB0]`.
+  3) engine_stub.cpp x86: natgt `mov esp,[esp-0x25C]` → `mov esp,[esp-0x1DC]`.
+- KANIT (A9FIX sonrası, YENİ blob+UI): sdk_b1 ON=42 / OFF=42 / novmenc=42 /
+  mult-VM(4)+vmadv=42 / memprot+filecrc=42 / strenc=42 / loadercrc=42 /
+  filecrc=42 / antidebug+ULTRA+3crc+stripfix+debugmode=42 / sdkonly+pack=42.
+  Tamper dedektörleri: .text tamper→114/115 (0x72/0x73), disk tamper→detection ✓.
+  m2_fc2.exe (metin2 teslimatı) statik kanıtı: PEB-walk yükleme `mov edx,
+  [ecx+0x28]` ✓ + natgt `mov esp,[esp-0x1DC]` ✓ (eski baytlar YOK).
+- TESLİMAT: download/metin2client_vmp_FileCrc.exe (5284864B, U=1 @0xD7610,
+  vmenc+vmregs ACİK, runtime file=1) — K9+A9FIX'li motorla. Kullanıcı damage
+  testini bununla tekrar edecek (eski çöken exe'nin yerini aldı).
+- BİLİNEN SINIR (YENİ KEŞİF, sonraki tur işi): --all ile 428-433 fonksiyon
+  sanallaştırma + pack kombinasyonu main'e ulaşamadan düşüyor (RC=1, .vmp0
+  içinde AV @0x3EEE0). Az fonksiyon (sdkonly/manuel) + pack = 42 ✓. Eski
+  R4'te V=0 idi (eski motor 0 aday buluyordu; yeni motor --all zorluyor).
+  Kullanıcı senaryosu (1 fonksiyon manuel) ETKİLENMİYOR. Öncelik: çoklu-
+  fonksiyon×pack ölçek izolasyonu (stub/bc yerleşimi mi, XRT unpack mı).
+- MEMORY PROTECTION (kullanıcı sorusu): bugünkü memprot STATİKTİR — .text
+  section-header'dan WRITE bayrağı kaldırılır (OS .text'i RX yükler).
+  .vmp0 kapsamaz (jmp hedefi VM stub oradadır) — kullanıcının "jmp'ın
+  götürdüğü yeri değiştirebildim" bulgusu DOĞRU ve beklenen davranış.
+  Debugger notu: x64dbg WriteProcessMemory sayfa korumasını bypass eder;
+  debugger'la bu özellik test edilemez. VMP-parite yükseltme (Internal
+  Memory Protection, kutu boşta): mutable state/scratch ayrı RW section +
+  .vmp0 runtime sonunda RX — plan kaydı yapıldı (sonraki tur).
