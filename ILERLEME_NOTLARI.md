@@ -186,3 +186,29 @@
   8) Dokumanlar: PORT_DURUMU.md (% parite) + OZELLIK_LISTESI.md (tum 20
      ozellik aciklamasi + UO matrisi) repo'ya.
 - HEDEF: her 4 dk bir cp; isler bittince tam proje zip push.
+
+## 2026-11-12 06:20 — SONUC: UO port turu KOD TAMAMLANDI, derleme TAMAM
+
+- UO analizi (subagent) alindi; asagidaki portlar YAPILDI ve DERLENDI
+  (vm64.bin 31922B / vmx86.bin 48866B / vm_blob.cpp 419406B yeniden;
+  XProtectUI.exe 1290240B + XProtectUI32.exe 1340416B — TAMAM):
+  1. HATA DUZELTILDI: xprotect_ui.cpp vmenc INVERSIYONU — "Encrypt
+     Bytecode" isaretlenince sifreleme KAPANIYORDU; artik isaret=ACAR +
+     yeni projeler varsayilan isaretli (Project::options 0x80000080).
+  2. GERCEK Encrypt Registers (1.2.0-A9): cpEncryptRegs kutusu motora
+     baglandi (opt.vmregs) — VM register dosyasi regs[16] bellekte
+     per-slot splitmix64-mask ile SIFRELI (rdec/renc erisimcileri; 92
+     erisim noktasi donusturuldu; natcall yerel cozulmus kopya ile;
+     vm_entry anahtar finalizasyonu regs yukleme ONCE tasindi).
+     UO'da OLU bayrak — XProtect BURADA UO'YU ASIYOR.
+  3. K8 (ProcessDebugPort 7 + ProcessDebugObjectHandle 30 — UO
+     loader.cc:1810-1827 1:1) + K9 (CloseHandle 0xDEADC0DE — UO
+     loader.cc:2432 1:1) anti-debug bataryasina eklendi; xa_call5
+     (Win64 5-arg [rsp+0x20]) + xa_call5_86 + xa_call1_86 yazildi.
+  4. OP_CHKRET (0x43, VM_OPN 0x44): UO AddCheckBreakpointSection
+     (intel.cc:9305) 1:1 — donus adresi baytlari 0xCC/CD03/0F0B
+     kontrolu; lifter antidebug acikken her gercek ret onune yazar
+     (bolge kipinde atlanir — donus adresi garanti degil).
+  5. Stub'lar scratch[5] bit1 = regsenc bayragi yazar (x64+x86).
+- SIRADA: wine regresyonlari (R1 baseline + yeni ozellik acik/kapali
+  diferansiyeli + tamper) — asagida sonuclar yazilacak.
