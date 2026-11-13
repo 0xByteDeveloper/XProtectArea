@@ -616,9 +616,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // 0.7.0: lisans API'leri xrt dispatch ister
     bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
+    // 1.2.2-A18: strenc runtime ister (ilk kapida cozum) — strenc sinyali
+    bool strenc_want = opt.strenc;
     bool rt_blob = rt_any || opt.iat_prot || opt.pack || lic_any
                 || (opt.vfiles && !opt.vfile_paths.empty())
-                || (opt.vreg && !opt.vregs.empty());   /* 1.2.2-A17: VR ister */
+                || (opt.vreg && !opt.vregs.empty())
+                || strenc_want;   /* 1.2.2-A18: strenc ister */
     u32 xrt_len      = pe.is64 ? (u32)XRT_BLOB64_LEN : (u32)XRT_BLOBX86_LEN;
     u32 xrt_code_off = 0, cfg_off = 0;
     u32 xrt_entry_rva = 0, xrt_resolve_rva = 0, cfg_rva = 0, xrt_unpack_rva = 0;
@@ -856,7 +859,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     }
 
     if (lsd_area) lsd_rva = cfg_rva + XCFG_SIZE_E + vf_area;   // 1.2.2-A16: VF blogu cfg ile LSD arasinda
-    u32 thunk_area_end = rt_blob ? (cfg_off + XCFG_SIZE_E + vf_area + lsd_area) : (u32)blob_len;
+    // 1.2.2-A18: STRING ENCRYPTION tablo alani (cfg+0x60 RVA'ya yazilir;
+    // tablo CFB-sifreli 'XSTR': [u32 N][N x (u32 rva, u32 len)])
+    u32 strenc_area = (opt.strenc && rt_blob) ? 0x1000u : 0;
+    u32 strenc_rva = strenc_area ? (cfg_rva + XCFG_SIZE_E + vf_area + lsd_area) : 0;
+    u32 thunk_area_end = rt_blob ? (cfg_off + XCFG_SIZE_E + vf_area + lsd_area + strenc_area) : (u32)blob_len;
     u32 n_iat_sites = 0, n_iat_funcs_skip = 0;
     if (opt.iat_prot) {
         std::map<u32, ImpSlot> by_rva;
@@ -1189,10 +1196,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg = sdk_rva.count(c.f->rva) != 0;
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
@@ -1379,10 +1386,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg2 = sdk_rva.count(c.f->rva) != 0;
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         memcpy(&secimg[so], st.data(), st.size());
     }
@@ -1603,6 +1610,113 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     }
 
     if (!pe.add_section(".vmp0", secimg, chars, vmp_rva)) { L("[HATA] section eklenemedi"); return 1; }
+
+    // ============================================================
+    // 1.2.2-A18: STRING ENCRYPTION — orijinal .rdata sifreleme
+    // Kural (UO 1:1): bir stringin .text'teki TUM referanslari VM/lift
+    // icindeyse orijinal diskte CFB-sifrelenir; runtime ilk kapida
+    // yerinde cozer. Native referansi olan string DOKUNULMAZ (dogruluk).
+    // ============================================================
+    u32 strenc_rva_final = 0;
+    if (strenc_area) {
+        std::map<u32, u32> total_refs, lifted_refs;
+        Section* text2 = pe.secbyname(".text");
+        if (text2) {
+            bool oktr = false;
+            u32 traw2 = pe.rva2raw(text2->va, &oktr);
+            if (oktr) {
+                for (u32 i = 0; i + 12 <= text2->vsz; i++) {
+                    const u8* p = &pe.buf[traw2 + i];
+                    u32 tn = text2->va + i;
+                    u32 tgt = 0, adv = 1;
+                    int hit = 0;
+                    if ((p[0] == 0x48 || p[0] == 0x4c) && (p[1] == 0x8d || p[1] == 0x8b) && (p[2] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 3, 4);
+                        tgt = tn + 7 + d; adv = 7; hit = 1;
+                    } else if (p[0] == 0x0F && (p[1] == 0xB6 || p[1] == 0xB7 || p[1] == 0xBE || p[1] == 0xBF)
+                               && (p[2] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 3, 4);
+                        tgt = tn + 7 + d; adv = 7; hit = 1;
+                    } else if (p[0] == 0x8d && (p[1] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 2, 4);
+                        tgt = tn + 6 + d; adv = 6; hit = 1;
+                    } else if (p[0] == 0x8b && (p[1] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 2, 4);
+                        tgt = tn + 6 + d; adv = 6; hit = 1;
+                    } else if ((p[0] == 0x38 || p[0] == 0x3a || p[0] == 0x88 || p[0] == 0x89 ||
+                                p[0] == 0x8a || p[0] == 0x8b) && (p[1] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 2, 4);
+                        tgt = tn + 6 + d; adv = 6; hit = 1;
+                    } else if ((p[0] == 0x80 || p[0] == 0x83 || p[0] == 0xc6) && (p[1] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 2, 4);
+                        tgt = tn + 7 + d; adv = 7; hit = 1;   /* disp32 + imm8 */
+                    } else if (p[0] == 0xc7 && (p[1] & 0xC7) == 0x05) {
+                        u32 d; memcpy(&d, p + 2, 4);
+                        tgt = tn + 10 + d; adv = 10; hit = 1; /* disp32 + imm32 */
+                    } else if ((p[0] & 0xF8) == 0x48 && p[1] >= 0xB8 && p[1] <= 0xBF) {
+                        u64 d; memcpy(&d, p + 2, 8);
+                        tgt = (u32)(d - pe.imagebase); adv = 10; hit = 1; /* mov r64,imm64 */
+                    }
+                    if (hit && tgt) {
+                        for (auto& s : strings)
+                            if (tgt >= s.rva && tgt < s.rva + s.len)
+                                total_refs[s.rva]++;
+                    }
+                    if (adv > 1) i += adv - 1;
+                }
+            }
+        }
+        for (auto& c2 : comps) {
+            snprintf(b, sizeof b, "[STRENC-dbg] comp rva=0x%06X ty=%u str_refs=%zu",
+                     c2.f->rva, c2.ty, c2.v.str_refs.size());
+            L(b);
+            for (u32 ref : c2.v.str_refs)
+                for (auto& s : strings)
+                    if (ref >= s.rva && ref < s.rva + s.len)
+                        lifted_refs[s.rva]++;
+        }
+        std::vector<RStr> enc_orig;
+        for (auto& s : strings) {
+            u32 t = total_refs.count(s.rva) ? total_refs[s.rva] : 0;
+            u32 l = lifted_refs.count(s.rva) ? lifted_refs[s.rva] : 0;
+            if (l > 0) {
+                snprintf(b, sizeof b, "[STRENC-dbg] rva=0x%06X len=%u total=%u lifted=%u%s",
+                         s.rva, s.len, t, l, (t == l) ? " -> SIFRELE" : " -> atla");
+                L(b);
+            }
+            if (l > 0 && t == l && t <= 64) enc_orig.push_back(s);
+        }
+        if (!enc_orig.empty()) {
+            u32 cnt = 0;
+            std::vector<u8> tbl;
+            auto p32 = [&](std::vector<u8>& v, u32 x) { v.push_back((u8)(x & 0xFF)); v.push_back((u8)((x >> 8) & 0xFF));
+                                                        v.push_back((u8)((x >> 16) & 0xFF)); v.push_back((u8)((x >> 24) & 0xFF)); };
+            for (auto& s : enc_orig) {
+                bool oko = false;
+                u32 praw = pe.rva2raw(s.rva, &oko);
+                if (!oko || (u64)praw + s.len > pe.buf.size()) continue;
+                xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(s.rva),
+                       &pe.buf[praw], s.len, 0);
+                p32(tbl, s.rva); p32(tbl, s.len);
+                cnt++;
+            }
+            if (cnt) {
+                /* 'XSTR' tablosu: [u32 N][N x (rva,len)] — CFB k0/k1, nonce=strenc_rva */
+                std::vector<u8> rawtbl;
+                p32(rawtbl, cnt);
+                rawtbl.insert(rawtbl.end(), tbl.begin(), tbl.end());
+                rawtbl.resize(strenc_area, 0);
+                xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(strenc_rva), rawtbl.data(), (u32)rawtbl.size(), 0);
+                bool okw = false;
+                u32 wraw = pe.rva2raw(strenc_rva, &okw);
+                if (okw && (u64)wraw + strenc_area <= pe.buf.size())
+                    memcpy(&pe.buf[wraw], rawtbl.data(), strenc_area);
+                strenc_rva_final = strenc_rva;
+                snprintf(b, sizeof b, "[STRENC] orijinal sifrelendi: %u string (tablo RVA=0x%X)", cnt, strenc_rva);
+                L(b);
+            }
+        }
+    }
     snprintf(b, sizeof b, "[SECTION] .vmp0 RVA=0x%06X boyut=0x%06X | VM blob %dB | vm_entry RVA=0x%06X",
              vmp_rva, (u32)secimg.size(), blob_len, vmp_rva + (pe.is64 ? VM_BLOB64_ENTRY_OFF : VM_BLOBX86_ENTRY_OFF));
     L(b);
@@ -1644,10 +1758,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             bool isreg3 = sdk_rva.count(f.rva) != 0;
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                             (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                             (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
@@ -1859,6 +1973,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (opt.memprot)    fl |= 0x20;   /* 1.2.2-A11: IC memory protection */
         if (vf_area)         fl |= 0x40;   /* 1.2.2-A16: Virtual Files tek-kurulum */
         if (vf_has_reg)      fl |= 0x80;   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
+        if (strenc_rva_final) fl |= 0x100;  /* 1.2.2-A18: String Encryption */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);
@@ -1883,6 +1998,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         cwr(0x40, pack_rva);                    // 0.6.0: XPK1 blok RVA (.vmp1)
         cwr(0x44, seh_unw_rva);                 // 0.8.0: dinamik unwind tablo RVA
         cwr(0x48, seh_unw_cnt);                 // 0.8.0: dinamik unwind kayit sayisi
+        cwr(0x60, strenc_rva_final);            // 1.2.2-A18: strenc tablo RVA (0=yok)
         // 0.8.0 SectionCryptor: flag + maskeli anahtarlar (xr_cipher.h sozlesmesi)
         u8 scf = (opt.sectcrypt && pack_rva) ? 1 : 0;
         u64 kmask = XRC_KEYMASK(cfg_rva);

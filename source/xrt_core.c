@@ -45,6 +45,7 @@ typedef unsigned long long u64;
 #define XCFG_OFF_CFGRVA  0x3C
 #define XCFG_OFF_PACKRVA 0x40   // 0.6.0: XPK1 paket bilgi blok RVA (.vmp1)
 #define XCFG_OFF_UNWRVA  0x44   // 0.8.0: dinamik unwind tablo RVA (.vmp0 icinde)
+#define XCFG_OFF_STRENC 0x60   /* u32: strenc tablo RVA (A18; 0 = yok) */
 #define XCFG_OFF_UNWCNT  0x48   // 0.8.0: dinamik unwind kayit sayisi
 // 0.8.0 SectionCryptor alanlari (xr_cipher.h ile ayni): flag 0x4C, anahtar 0x50/0x58
 #define XCFG_SIZE        0x60
@@ -58,6 +59,7 @@ typedef unsigned long long u64;
 #define XFLAG_MEMPROT 0x20   /* 1.2.2-A11: IC memory protection (VEH yazma-guvesi) */
 #define XFLAG_VFILES 0x40   /* 1.2.2-A16: Virtual Files (tek-kurulum kilidi) */
 #define XFLAG_VREG   0x80   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
+#define XFLAG_STRENC 0x100  /* 1.2.2-A18: String Encryption (orijinal .rdata sifreli) */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -1633,6 +1635,53 @@ static void xrt_vreg_install(const u8* base, u64 k32) {
     xvf_dbg(k32, 'I', 'T', (char)('0' + (xvr_npatch < 10 ? xvr_npatch : 9)));
 }
 
+
+/* ============================================================
+   1.2.2-A18: STRING ENCRYPTION (XFLAG_STRENC) — UO/VMP 1:1 semantik:
+   korumali kodun TUM referanslari VM'de olan .rdata stringleri diskte
+   CFB-sifreli; runtime ILK KAPIDA (CRC sonrasi) VirtualProtect RW +
+   yerinde cozer. Motor: 'XSTR' tablosu (cfg+0x60 RVA; CFB k0/k1,
+   nonce=tabloRVA): [u32 N][N x (u32 rva, u32 len)]. String anahtari:
+   xr_cfb(k0,k1,nonce(rva)) — motor ile birebir.
+   ============================================================ */
+static void xrt_strenc(u8* cfg, u64 k32, const u8* base) {
+    u32 trva = ld32(cfg + XCFG_OFF_STRENC);
+    if (!trva) return;
+    u32 cfg_rva = ld32(cfg + XCFG_OFF_CFGRVA);
+    u64 va_alloc = find_export(k32, XH_VIRTUALALLOC);
+    u64 vp = find_export(k32, XH_VIRTUALPROTECT);
+    if (!va_alloc) return;
+    {
+        /* tabloyu scratch'te coz (.vmp0 yazilabilir olmayabilir) */
+        u64 scratch = api4(va_alloc, 0, 0x1000u, 0x3000u, 0x04u);
+        if (!scratch) return;
+        u8* sp = (u8*)(unsigned long)scratch;
+        u32 k;
+        for (k = 0; k < 0x1000u; k++) sp[k] = base[trva + k];
+        xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(trva), sp, 0x1000u, 1);
+        u32 count = ld32(sp);
+        if (count > 512u) { api1(find_export(k32, XH_VIRTUALFREE), scratch); return; }
+        u32 i;
+        for (i = 0; i < count; i++) {
+            u32 rva = ld32(sp + 4 + i * 8);
+            u32 len = ld32(sp + 4 + i * 8 + 4);
+            if (!len || len > 4096u) continue;
+            {
+                u32 oldp = 0;
+                if (vp && api4(vp, (u64)(unsigned long)(base + rva), (u64)len, 0x04u, (u64)(unsigned long)&oldp)) {
+                    xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(rva),
+                           (u8*)(unsigned long)(base + rva), len, 1);
+                    { u32 tmp2 = 0;
+                      api4(vp, (u64)(unsigned long)(base + rva), (u64)len,
+                           oldp ? oldp : 0x20u, (u64)(unsigned long)&tmp2); }
+                }
+            }
+        }
+        { u64 vf2 = find_export(k32, XH_VIRTUALFREE);
+          if (vf2) api1(vf2, scratch); }
+    }
+}
+
 /* XVF1 blogunu işle — xrt_entry sonunda BİR KEZ çağrılır */
 #ifdef XVF_TRACE
 #define XVF_TRACE_ON 1
@@ -1640,7 +1689,7 @@ static void xrt_vreg_install(const u8* base, u64 k32) {
 #define XVF_TRACE_ON 0
 #endif
 static void xrt_vfiles(u8* cfg, u64 k32) {
-    u8* hdr = cfg + 0x60;                                     /* VF bloğu = cfg'den hemen sonra */
+    u8* hdr = cfg + 0x68;                                     /* VF blogu = cfg'den sonra (A18: cfg 0x68) */
     u32 count, i;
 #if defined(XVF_TRACE)
     {   /* DEBUG-PROBE (A16) — ENTER işareti, stack-string (PIC-güvenli);
@@ -1965,7 +2014,11 @@ u32 xrt_entry(void* cfgp) {
         return err;
     }
 
-    /* 1.2.2-A16: VIRTUAL FILES — ilk kurulumda yükle (XVF1 cfg+0x60) */
+    /* 1.2.2-A18: STRING ENCRYPTION — CRC'ler disk-gorseli uzerinden
+       dogrulandi (sifreli); SIMDI yerinde coz (tum kullanici kodundan once) */
+    if (flags & XFLAG_STRENC) xrt_strenc(cfg, k32, base);
+
+    /* 1.2.2-A16: VIRTUAL FILES — ilk kurulumda yükle (XVF1 cfg+0x68) */
     xrt_vfiles(cfg, k32);
     return 0;
 }
