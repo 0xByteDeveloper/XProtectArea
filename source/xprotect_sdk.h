@@ -44,6 +44,8 @@
   #define XProtectBeginVirtualization() do { __asm { mov eax, 0x9C37E1B5h } __asm { mov eax, 1 } } while (0)
   #define XProtectBeginMutation()       do { __asm { mov eax, 0x9C37E1B5h } __asm { mov eax, 2 } } while (0)
   #define XProtectBeginUltra()          do { __asm { mov eax, 0x9C37E1B5h } __asm { mov eax, 3 } } while (0)
+  #define XProtectBeginUltraLockByKey()          do { __asm { mov eax, 0x9C37E1B5h } __asm { mov eax, 4 } } while (0)
+  #define XProtectBeginVirtualizationLockByKey() do { __asm { mov eax, 0x9C37E1B5h } __asm { mov eax, 5 } } while (0)
   #define XProtectEnd()                 do { __asm { mov eax, 0x3D7A2C8Eh } } while (0)
   #define XP_API_DECL static
 #elif defined(XPROTECT_NO_SDK)
@@ -71,6 +73,10 @@
   #define XProtectBeginMutation()       XP_SDK_BEG(2)
   #define XProtectBeginUltra()          XP_SDK_BEG(3)
   #define XProtectEnd()                 XP_SDK_END()
+  /* 1.2.2-A20: UO/VMP birebir LockByKey varyantlari (ty 4/5) —
+     bolge U/V olarak derlenir; anahtar baglama proje-lisans LSD ile */
+  #define XProtectBeginUltraLockByKey()          XP_SDK_BEG(4)
+  #define XProtectBeginVirtualizationLockByKey() XP_SDK_BEG(5)
   #define XP_API_DECL static __attribute__((noinline))
 #endif
 

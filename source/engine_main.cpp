@@ -164,7 +164,7 @@ static void scan_sdk(const PEFile& pe, std::vector<ManFn>& out, std::vector<std:
             u32 mg; memcpy(&mg, p + i + 1, 4);
             if (mg == SDK_BEG_MAGIC && p[i + 5] == 0xB8) {
                 u32 ty; memcpy(&ty, p + i + 6, 4);
-                if (ty >= 1 && ty <= 3) {
+                if (ty >= 1 && ty <= 5) {   /* 1.2.2-A20: +LockByKey (4=UL, 5=VL) */
                     // kapanis isaretini ara
                     u32 j = i + 10;
                     u32 end_at = 0;
@@ -180,15 +180,20 @@ static void scan_sdk(const PEFile& pe, std::vector<ManFn>& out, std::vector<std:
                         u32 endr = t->va + end_at;
                         if (endr > beg + 7 && endr - beg <= 0x40000) {
                             ManFn m;
-                            m.rva = beg; m.size = endr - beg; m.ty = (int)ty - 1;
-                            m.is_region = true;   /* 0.5.1: SDK isareti = bolge */
-                            m.name = (ty == 1 ? "SDK_V" : (ty == 2 ? "SDK_M" : "SDK_U"));
+                            m.rva = beg; m.size = endr - beg;
+                            /* A20: ty 4 = UltraLockByKey (U), 5 = VirtualizationLockByKey (V);
+                               anahtar baglama proje-lisans LSD ile (runtime serial gate) */
+                            m.ty = (ty <= 3) ? (int)ty - 1 : (ty == 4 ? 2 : 0);
+                            m.is_region = true;
+                            m.name = (ty == 1 ? "SDK_V" : (ty == 2 ? "SDK_M" : (ty == 3 ? "SDK_U" :
+                                              (ty == 4 ? "SDK_UL" : "SDK_VL"))));
                             m.name += "_0x" + hex32(beg);
                             out.push_back(m);
                             found++;
                             log.push_back("[SDK] isaret bulundu: " + m.name +
                                           " boyut=0x" + hex32(m.size) +
-                                          " tip=" + (ty == 1 ? "V" : (ty == 2 ? "M" : "U")));
+                                          " tip=" + (ty == 1 ? "V" : (ty == 2 ? "M" :
+                                                        (ty == 3 ? "U" : (ty == 4 ? "U+LockByKey" : "V+LockByKey")))));
                         }
                         i = end_at + 5;
                         continue;
@@ -587,6 +592,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     u32 rdata_rva = rdata ? rdata->va : 0;
     u32 rdata_sz  = rdata ? rdata->vsz : 0;
     std::vector<RStr> strings;
+    std::vector<u32> sdk_str_forced;   /* 1.2.2-A20: SDK DecryptString arg stringleri */
     if (opt.strenc) {
         scan_strings(pe, strings);
         snprintf(b, sizeof b, "[STRENC] .rdata'da %zu string tespit", strings.size());
@@ -964,6 +970,52 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 : build_api_stub_x86(st.beg_rva, st.fnid, lsd_rva, xrt_sdk_rva, st.span);
             memcpy(&pe.buf[sraw], sb.data(), st.span);
             n_apis++;
+            if ((st.fnid == 8 || st.fnid == 9) && opt.strenc) {
+                L("[SDK-API-dbg] fnid-8/9 kolu: beg=0x" + hex32(st.beg_rva) + " fnid=" + std::to_string(st.fnid));
+                /* 1.2.2-A20: DecryptStringA/W — SDK stub fn ADRESINI bul, .text'te
+                   E8 cagrilariini tara, cagri-basindaki lea/mov rcx string'ini
+                   ZORLA sifrele (A18 tablosuna girer; runtime gate yerinde cozer) */
+                /* A20: fn-girisi fnames'ten gelmeyebilir (COFF yok) — pencere:
+                   cagri hedefi [st.beg_rva-64, st.beg_rva] araliginda (stub
+                   govdesindeki marker konumu; giris marker'dan once gelir) */
+                {
+                    const Section* tt = pe.secbyname_c(".text");
+                    if (tt) {
+                        bool okt2 = false;
+                        u32 traw3 = pe.rva2raw(tt->va, &okt2);
+                        if (okt2) {
+                            for (u32 q = 0; q + 5 <= tt->vsz; q++) {
+                                if (pe.buf[traw3 + q] != 0xE8) continue;
+                                i32 rel; memcpy(&rel, &pe.buf[traw3 + q + 1], 4);
+                                u32 tgt = tt->va + q + 5 + (u32)rel;
+                                if (tgt + 64 < st.beg_rva || tgt > st.beg_rva) continue;
+                                /* geriye 24B: lea rcx,[rip+d] (48 8d 0d) | mov rcx,imm64 (48 b9) */
+                                for (int back = 7; back <= 24; back++) {
+                                    if ((int)q < back) break;
+                                    const u8* w = &pe.buf[traw3 + q - back];
+                                    u32 sva = 0;
+                                    if (w[0] == 0x48 && w[1] == 0x8d && (w[2] & 0xC7) == 0x05) {
+                                        i32 d; memcpy(&d, w + 3, 4);
+                                        sva = (u32)((tt->va + q - back) + 7 + d);
+                                    } else if (w[0] == 0x48 && w[1] == 0xb9) {
+                                        u64 d64; memcpy(&d64, w + 2, 8);
+                                        if (d64 >= pe.imagebase && d64 < (u64)pe.imagebase + pe.sizeofimage)
+                                            sva = (u32)(d64 - pe.imagebase);
+                                    }
+                                    if (!sva) continue;
+                                    for (auto& s2 : strings)
+                                        if (sva >= s2.rva && sva < s2.rva + s2.len) {
+                                            sdk_str_forced.push_back(s2.rva);
+                                            L("[SDK-API] DecryptString string zorla-sifrelenecek: rva=0x" + hex32(s2.rva));
+                                            break;
+                                        }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         if (!apis.empty()) {
             snprintf(b, sizeof b, "[SDK-API] %zu isaret / %u API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)",
@@ -1039,7 +1091,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 lsize = f.size;
         int jl;
         MutFn mkeep;                            // U: istatistik/kayit tut
-        if (ty == 2) {
+        if (ty == 2 && !is_region) {
+            /* 1.2.2-A20: BOLGE-modu U mutasyona GIRMEZ — mutasyon fixup
+               motoru bolge-ici jcc hedeflerini cozemiyor (sdk_kanit kaniti:
+               "fixup hedefi yok" — ilk kez exercises edilen yol). Bolgeler
+               saf V lifter'ina dusuyor (vfstr_p7 ile ayni guvenli yol).
+               Fonksiyon-kipi U (D7610/E96D0) mutasyona devam eder. */
+            L("[ULTRA] bolge kipi: mutasyon atlandi -> saf V (A20)");
+        }
+        if (ty == 2 && !is_region) {
             MutFn m = mutate_function(&pe.buf[raw], f.rva, f.size, pe.is64,
                                       pe.imagebase, pe.sizeofimage,
                                       true /* 0.4.1: x86 dis-cagri rel32 fixup zaten destekli */,
@@ -1675,7 +1735,45 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                     if (ref >= s.rva && ref < s.rva + s.len)
                         lifted_refs[s.rva]++;
         }
+        /* A20-iz: RELOC kesisme filtresi — string araligina dusen DIR64/
+           HIGHLOW hedefi VARSA string sifreLENMEZ (base!=preferred
+           yuklemelerde loader reloc yazar; decrypt o pointer'i bozar) */
+        std::vector<std::pair<u32, u32>> reloc_tgts;
+        {
+            u32 rr = 0, rs = 0;
+            Section* rc = pe.secbyname(".reloc");
+            if (rc) { rr = rc->va; rs = rc->vsz; }
+            if (rr && rs) {
+                bool okr2 = false;
+                u32 rraw2 = pe.rva2raw(rr, &okr2);
+                if (okr2 && (u64)rraw2 + rs <= pe.buf.size()) {
+                    u32 ro = 0;
+                    while (ro + 8 <= rs) {
+                        u32 page, bsz;
+                        memcpy(&page, &pe.buf[rraw2 + ro], 4);
+                        memcpy(&bsz, &pe.buf[rraw2 + ro + 4], 4);
+                        if (bsz < 8 || ro + bsz > rs) break;
+                        for (u32 j = 8; j < bsz; j += 2) {
+                            u16 e; memcpy(&e, &pe.buf[rraw2 + ro + j], 2);
+                            u32 typ = e >> 12, off = e & 0xFFF;
+                            if (typ) reloc_tgts.push_back({ page + off, (typ == 10) ? 8 : 4 });
+                        }
+                        ro += bsz;
+                    }
+                }
+            }
+        }
+        auto reloc_overlaps = [&](u32 rva, u32 len) -> bool {
+            for (auto& t : reloc_tgts)
+                if (t.first + t.second > rva && t.first < rva + len) return true;
+            return false;
+        };
         std::vector<RStr> enc_orig;
+        for (auto& fr : sdk_str_forced) {
+            for (auto& s : strings) {
+                if (s.rva == fr) { enc_orig.push_back(s); break; }
+            }
+        }
         for (auto& s : strings) {
             u32 t = total_refs.count(s.rva) ? total_refs[s.rva] : 0;
             u32 l = lifted_refs.count(s.rva) ? lifted_refs[s.rva] : 0;
@@ -1684,7 +1782,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                          s.rva, s.len, t, l, (t == l) ? " -> SIFRELE" : " -> atla");
                 L(b);
             }
-            if (l > 0 && t == l && t <= 64) enc_orig.push_back(s);
+            bool forced = false;
+            for (u32 fr : sdk_str_forced) if (fr == s.rva) { forced = true; break; }
+            if (reloc_overlaps(s.rva, s.len)) {
+                L("[STRENC] atla (reloc kesismesi): rva=0x" + hex32(s.rva));
+                forced = false;
+            }
+            if (((l > 0 && t == l && t <= 64) || forced) && !reloc_overlaps(s.rva, s.len))
+                enc_orig.push_back(s);
         }
         if (!enc_orig.empty()) {
             u32 cnt = 0;

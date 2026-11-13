@@ -1662,10 +1662,35 @@ static void xrt_strenc(u8* cfg, u64 k32, const u8* base) {
         u32 count = ld32(sp);
         if (count > 512u) { api1(find_export(k32, XH_VIRTUALFREE), scratch); return; }
         u32 i;
+        /* A20-iz2: reloc kesismesi kontrolu — base != preferred yuklemelerde
+           loader reloc yazar; string araligina dusen reloc varsa coZME */
+        u32 rrva = ld32(cfg + XCFG_OFF_RELOCRVA);
+        u32 rsz = ld32(cfg + XCFG_OFF_RELOCSZ);
+        u32 i2;
         for (i = 0; i < count; i++) {
             u32 rva = ld32(sp + 4 + i * 8);
             u32 len = ld32(sp + 4 + i * 8 + 4);
             if (!len || len > 4096u) continue;
+            if (rrva && rsz) {
+                int overlaps = 0;
+                const u8* rp = base + rrva;
+                u32 ro = 0;
+                while (ro + 8 <= rsz) {
+                    u32 page = ld32(rp + ro);
+                    u32 bsz = ld32(rp + ro + 4);
+                    if (bsz < 8 || ro + bsz > rsz) break;
+                    for (i2 = 8; i2 < bsz; i2 += 2) {
+                        u16 e = ld16(rp + ro + i2);
+                        u32 typ = e >> 12, off = e & 0xFFF;
+                        if (!typ) continue;
+                        u32 t2 = page + off, tlen = (typ == 10) ? 8u : 4u;
+                        if (t2 + tlen > rva && t2 < rva + len) { overlaps = 1; break; }
+                    }
+                    if (overlaps) break;
+                    ro += bsz;
+                }
+                if (overlaps) continue;   /* bu string dokunulmaz */
+            }
             {
                 u32 oldp = 0;
                 if (vp && api4(vp, (u64)(unsigned long)(base + rva), (u64)len, 0x04u, (u64)(unsigned long)&oldp)) {

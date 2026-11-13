@@ -484,6 +484,14 @@ std::vector<u8> build_api_stub_x64(u32 site_rva, u32 fnid, u32 lsd_rva,
                                    u32 sdk_entry_rva, u32 span) {
     (void)lsd_rva;                               // LSD dispatch'te imaj taramasıyla bulunur
     std::vector<u8> s;
+    if (fnid == 8 || fnid == 9) {
+        /* 1.2.2-A20: DecryptStringA/W — string A18 gate'inde yerinde
+           çözüldü; stub salt ARGÜMANI döner (dispatch'e girMEZ —
+           freestanding çerçevede SEH-güvenli). mov rax,rcx; ret */
+        put(s, {0x48, 0x89, 0xC8, 0xC3});
+        while (s.size() < span) s.push_back(0x90);
+        return s;
+    }
     put(s, {0x41, 0xBA}); put32(s, fnid);        // mov r10d, fnid
     put(s, {0xE9, 0, 0, 0, 0});                  // jmp xrt_sdk_entry
     i32 rel = (i32)(sdk_entry_rva - (site_rva + 11));
@@ -495,6 +503,12 @@ std::vector<u8> build_api_stub_x86(u32 site_rva, u32 fnid, u32 lsd_rva,
                                    u32 sdk_entry_rva, u32 span) {
     (void)lsd_rva;
     std::vector<u8> s;
+    if (fnid == 8 || fnid == 9) {
+        /* A20: mov eax,[esp+4]; ret 4 — stdcall argu donusu */
+        put(s, {0x8B, 0x44, 0x24, 0x04, 0xC2, 0x04, 0x00});
+        while (s.size() < span) s.push_back(0x90);
+        return s;
+    }
     put(s, {0xB9}); put32(s, fnid);              // mov ecx, fnid
     put(s, {0xE9, 0, 0, 0, 0});                  // jmp xrt_sdk_entry86
     i32 rel = (i32)(sdk_entry_rva - (site_rva + 10));
