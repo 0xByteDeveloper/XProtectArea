@@ -338,6 +338,8 @@ struct Options {
     bool rsrcprot = false;    // 1.2.0-B3: cpResourceProtection
     bool vfiles = false;      // 1.2.0-B4: cpVirtualFiles (faLoad bundler)
     std::vector<std::string> vfile_paths;  // 1.2.0-B4: gomulu dosyalar
+    bool vreg = false;        // 1.2.2-A17: cpVirtualRegistry (UO ftRegistry 1:1)
+    std::vector<std::string> vregs;        // "HIVE\\Path:type:name=HEX|@file"
     bool strenc = false;
     bool memprot = false;
     bool mpveh = false;    // 1.2.2-A11: memprot VEH tamper-kill gate (cfg[0x09])

@@ -4183,6 +4183,12 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                           std::string s; for (wchar_t ch : w) s.push_back((char)(ch & 0xFF));
                           opt.vfile_paths.push_back(s); }
                     }
+                    else if (!wcscmp(argv[j], L"--vreg") && j + 1 < argc) {            /* 1.2.2-A17 */
+                        opt.vreg = true;
+                        { std::wstring w = argv[j + 1]; j++;
+                          std::string s; for (wchar_t ch : w) s.push_back((char)(ch & 0xFF));
+                          opt.vregs.push_back(s); }
+                    }
                     else if (!wcscmp(argv[j], L"--strenc")) opt.strenc = true;
                     else if (!wcscmp(argv[j], L"--memprot")) opt.memprot = true;
                     else if (!wcscmp(argv[j], L"--novmenc")) opt.vmenc = false;

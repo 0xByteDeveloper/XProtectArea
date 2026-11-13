@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp45  (2026-11-13, UTC+8)
+================================================================
+Odak: A17 Virtual Registry: engine store + 17-API IAT hook + PIC-blob kurallari (VF regresyon GREEN, wine cagri-yolu A17.2)
+Zipler: checkpoints/Xprotect_1.2.2_cp45/Xprotect_1.2.2_cp45.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

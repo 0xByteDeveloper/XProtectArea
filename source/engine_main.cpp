@@ -617,7 +617,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
     bool rt_blob = rt_any || opt.iat_prot || opt.pack || lic_any
-                || (opt.vfiles && !opt.vfile_paths.empty());   /* 1.2.2-A16: VF runtime ister */
+                || (opt.vfiles && !opt.vfile_paths.empty())
+                || (opt.vreg && !opt.vregs.empty());   /* 1.2.2-A17: VR ister */
     u32 xrt_len      = pe.is64 ? (u32)XRT_BLOB64_LEN : (u32)XRT_BLOBX86_LEN;
     u32 xrt_code_off = 0, cfg_off = 0;
     u32 xrt_entry_rva = 0, xrt_resolve_rva = 0, cfg_rva = 0, xrt_unpack_rva = 0;
@@ -670,13 +671,78 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // ============================================================
     std::vector<u8> vf_block;
     u32 vf_area = 0;
-    if (opt.vfiles && rt_blob && !opt.vfile_paths.empty()) {
-        size_t vf_n = opt.vfile_paths.size() > (size_t)XVF_MAX_FILES ? (size_t)XVF_MAX_FILES : opt.vfile_paths.size();
-        if (vf_n < opt.vfile_paths.size())
-            L("[VF] en fazla 64 dosya — fazlasi atlandi");
+    bool vf_has_reg = false;
+    {
         struct VfRaw { std::vector<u8> data; u32 action; std::string name; std::string src; };
         std::vector<VfRaw> vfs;
-        for (size_t vfi = 0; vfi < vf_n; vfi++) {
+        // ---- 1.2.2-A17: VIRTUAL REGISTRY store (act=4 "XVFR") ----
+        // Format: 'XVFR' u32 | N u32 | per: [plen][path][nlen][name][type][dlen][data]
+        // spec: "HKCU\\Yol:sz|dword|bin:Ad=HEX" veya "...:Ad=@dosya"
+        if (opt.vreg && rt_blob && !opt.vregs.empty()) {
+            std::vector<u8> store;
+            auto p32 = [](std::vector<u8>& v, u32 x) { v.push_back((u8)(x & 0xFF)); v.push_back((u8)((x >> 8) & 0xFF));
+                                                       v.push_back((u8)((x >> 16) & 0xFF)); v.push_back((u8)((x >> 24) & 0xFF)); };
+            u32 cnt = 0;
+            std::vector<u8> body;
+            for (const std::string& spec : opt.vregs) {
+                // parse: yol:type:ad=veri
+                size_t c1 = spec.find(':');
+                if (c1 == std::string::npos) continue;
+                size_t c2 = spec.find(':', c1 + 1);
+                if (c2 == std::string::npos) continue;
+                size_t eq = spec.find('=', c2 + 1);
+                if (eq == std::string::npos) continue;
+                std::string path = spec.substr(0, c1);
+                std::string typs = spec.substr(c1 + 1, c2 - c1 - 1);
+                std::string vname = spec.substr(c2 + 1, eq - c2 - 1);
+                std::string dats = spec.substr(eq + 1);
+                u32 typ = 1;                                    // REG_SZ
+                std::vector<u8> data;
+                if (typs == "dword") {
+                    typ = 4;
+                    u32 dv = (u32)strtoul(dats.c_str(), nullptr, 0);
+                    data = { (u8)(dv & 0xFF), (u8)((dv >> 8) & 0xFF), (u8)((dv >> 16) & 0xFF), (u8)((dv >> 24) & 0xFF) };
+                } else if (typs == "bin") {
+                    typ = 3;
+                    if (dats.size() > 1 && dats[0] == '@') {
+                        FILE* fp = fopen(dats.c_str() + 1, "rb");
+                        if (fp) { fseek(fp, 0, SEEK_END); long ls = ftell(fp); fseek(fp, 0, SEEK_SET);
+                                  if (ls > 0) { data.resize((size_t)ls); if (fread(data.data(), 1, (size_t)ls, fp) != (size_t)ls) data.clear(); }
+                                  fclose(fp); }
+                    } else {
+                        for (size_t hx = 0; hx + 1 < dats.size(); hx += 2)
+                            data.push_back((u8)strtoul(dats.substr(hx, 2).c_str(), nullptr, 16));
+                    }
+                } else {                                        // sz — ANSI+NUL
+                    typ = 1;
+                    data.assign(dats.begin(), dats.end());
+                    data.push_back(0);
+                }
+                p32(body, (u32)path.size());
+                body.insert(body.end(), path.begin(), path.end());
+                p32(body, (u32)vname.size());
+                body.insert(body.end(), vname.begin(), vname.end());
+                p32(body, typ);
+                p32(body, (u32)data.size());
+                body.insert(body.end(), data.begin(), data.end());
+                cnt++;
+            }
+            if (cnt) {
+                p32(store, 0x52465658u);                        // 'XVFR'
+                p32(store, cnt);
+                store.insert(store.end(), body.begin(), body.end());
+                VfRaw v; v.data = std::move(store); v.action = 4; v.name = "@registry"; v.src = "";
+                vfs.push_back(std::move(v));
+                vf_has_reg = true;
+                L("[VR] registry store gomuldu: " + std::to_string(cnt) + " kayit");
+            }
+        }
+        // ---- 1.2.0-B4/A16: dosya bundler ----
+        if (opt.vfiles && rt_blob && !opt.vfile_paths.empty()) {
+            size_t vf_n = opt.vfile_paths.size() > (size_t)XVF_MAX_FILES ? (size_t)XVF_MAX_FILES : opt.vfile_paths.size();
+            if (vf_n < opt.vfile_paths.size())
+                L("[VF] en fazla 64 dosya — fazlasi atlandi");
+            for (size_t vfi = 0; vfi < vf_n; vfi++) {
             const std::string& p = opt.vfile_paths[vfi];
             u32 act = 1;                                  // faLoad varsayilan
             std::string path = p;
@@ -700,6 +766,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             v.action = act;
             v.src = path;
             vfs.push_back(std::move(v));
+            }
         }
         if (!vfs.empty()) {
             u32 names_off = 16 + (u32)vfs.size() * 16;
@@ -731,6 +798,26 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 std::vector<u8> enc = vfs[fi].data;
                 xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva),
                        xvf_nonce(data_offs[fi]), enc.data(), (u32)enc.size(), 0);
+                {   /* A17-iz: roundtrip dogrulama (yalniz ilk 4B log) */
+                    std::vector<u8> rt = enc;
+                    xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva),
+                           xvf_nonce(data_offs[fi]), rt.data(), (u32)rt.size(), 1);
+                    char dbg3[128]; int dp3 = 0;
+                    dp3 += snprintf(dbg3 + dp3, sizeof(dbg3) - dp3, "[VFDBG] fi=%u enc-ilk: ", (u32)fi);
+                    for (int z = 0; z < 4 && z < (int)enc.size(); z++) dp3 += snprintf(dbg3 + dp3, sizeof(dbg3) - dp3, "%02X ", enc[z]);
+                    dp3 += snprintf(dbg3 + dp3, sizeof(dbg3) - dp3, "| rt-ilk: ");
+                    for (int z = 0; z < 4 && z < (int)rt.size(); z++) dp3 += snprintf(dbg3 + dp3, sizeof(dbg3) - dp3, "%02X ", rt[z]);
+                    dp3 += snprintf(dbg3 + dp3, sizeof(dbg3) - dp3,
+                                    "| k=%016llX k1=%016llX n=%u | P-ilk: %02X %02X %02X %02X | esz=%u",
+                                    (unsigned long long)xvf_k0(cfg_rva), (unsigned long long)xvf_k1(cfg_rva),
+                                    xvf_nonce(data_offs[fi]),
+                                    vfs[fi].data.size() > 0 ? vfs[fi].data[0] : 0,
+                                    vfs[fi].data.size() > 1 ? vfs[fi].data[1] : 0,
+                                    vfs[fi].data.size() > 2 ? vfs[fi].data[2] : 0,
+                                    vfs[fi].data.size() > 3 ? vfs[fi].data[3] : 0,
+                                    (u32)vfs[fi].data.size());
+                    L(std::string(dbg3));
+                }
                 data_blob.insert(data_blob.end(), enc.begin(), enc.end());
                 while (data_blob.size() & 15u) data_blob.push_back(0);
             }
@@ -750,10 +837,19 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             if (vf_block.size() < (size_t)first_data_off) vf_block.resize(first_data_off, 0);
             vf_block.insert(vf_block.end(), data_blob.begin(), data_blob.end());
             vf_area = (u32)vf_block.size();
+            {
+                char dbg[128]; int dp = 0;
+                dp += snprintf(dbg + dp, sizeof(dbg) - dp, "[VFDBG] blok-ilk: ");
+                for (int di2 = 0; di2 < 8 && di2 < (int)vf_block.size(); di2++)
+                    dp += snprintf(dbg + dp, sizeof(dbg) - dp, "%02X ", vf_block[di2]);
+                dp += snprintf(dbg + dp, sizeof(dbg) - dp, "| data-off=%u dsz0=%u", data_offs[0], (u32)vfs[0].data.size());
+                L(std::string(dbg));
+            }
             for (auto& v : vfs) {
                 snprintf(b, sizeof b, "[VF] gomuldu: %s (%uB, fa%s)",
                          v.name.c_str(), (u32)v.data.size(),
-                         v.action == 1 ? "Load" : (v.action == 2 ? "Register" : "Install"));
+                         v.action == 1 ? "Load" : (v.action == 2 ? "Register" :
+                                          (v.action == 3 ? "Install" : "RegStore")));
                 L(b);
             }
         }
@@ -1762,6 +1858,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (opt.rt_exit)    fl |= 0x10;
         if (opt.memprot)    fl |= 0x20;   /* 1.2.2-A11: IC memory protection */
         if (vf_area)         fl |= 0x40;   /* 1.2.2-A16: Virtual Files tek-kurulum */
+        if (vf_has_reg)      fl |= 0x80;   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);

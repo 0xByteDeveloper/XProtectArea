@@ -57,6 +57,7 @@ typedef unsigned long long u64;
 #define XFLAG_EXIT    0x10
 #define XFLAG_MEMPROT 0x20   /* 1.2.2-A11: IC memory protection (VEH yazma-guvesi) */
 #define XFLAG_VFILES 0x40   /* 1.2.2-A16: Virtual Files (tek-kurulum kilidi) */
+#define XFLAG_VREG   0x80   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -901,6 +902,737 @@ static u64 xvf_map_pe(const u8* raw, u32 rawsz, u64 k32) {
     return base;
 }
 
+/* ============================================================
+   1.2.2-A17: VIRTUAL REGISTRY (XFLAG_VREG 0x80) — UO/VMP 1:1 semantik
+   UO: ftRegistry runtime fonksiyonu + roRegistry (core.cc Prepare).
+   XProtect: korumali process icinde Reg* API kesmesi — store'da TANIMLI
+   anahtarlar bellek-icinden servis edilir; digerleri ORIJINAL API'ye gider.
+   - Engine: act=4 (faRegStore) XVF girisi — "XVFR" store blogu.
+   - Runtime: host IAT'u isim-hash ile taranir; Reg* thunk'lari handler'lara
+     repoint, orijinaller kaydedilir. Tablo/store = VirtualAlloc scratch
+     (memprot EXECUTE_READ .vmp0 ile cakisma yok).
+   ============================================================ */
+#define XH_REGOPENKEYEXA   0x0DF6A51Cu  /* "RegOpenKeyExA"   */
+#define XH_REGOPENKEYEXW   0xFBF688C6u  /* "RegOpenKeyExW"   */
+#define XH_REGQUERYVALUEEXA 0x9027EB7Cu /* "RegQueryValueExA"*/
+#define XH_REGQUERYVALUEEXW 0x7E27CF26u /* "RegQueryValueExW"*/
+#define XH_REGCLOSEKEY     0x1242154Au  /* "RegCloseKey"     */
+#define XH_REGENUMKEYEXA   0xE5763A29u  /* "RegEnumKeyExA"   */
+#define XH_REGENUMKEYEXW   0xD776241Fu  /* "RegEnumKeyExW"   */
+#define XH_REGCREATEKEYEXA 0xF6ED1B50u  /* "RegCreateKeyExA" */
+#define XH_REGCREATEKEYEXW 0xECED0B92u  /* "RegCreateKeyExW" */
+#define XH_REGSETVALUEEXA  0xDA5113DCu  /* "RegSetValueExA"  */
+#define XH_REGSETVALUEEXW  0xC850F786u  /* "RegSetValueExW"  */
+#define XH_REGDELETEKEYA   0x429F0FB0u  /* "RegDeleteKeyA"   */
+#define XH_REGQUERYINFOKEYA 0x95CB6FCDu /* "RegQueryInfoKeyA" (A17-iz2) */
+#define XH_REGQUERYINFOKEYW 0x7FCB4D2Bu /* "RegQueryInfoKeyW" (A17-iz2) */
+#define XH_REGDELETEKEYW   0x389EFFF2u  /* "RegDeleteKeyW"   */
+#define XH_REGENUMVALUEA   0x7F1D5040u  /* "RegEnumValueA"   */
+#define XH_REGENUMVALUEW   0x951D72E2u  /* "RegEnumValueW"   */
+
+#define XVR_MAGIC   0x52465658u   /* 'XVFR' */
+#define XVR_HKEY_BASE 0x58F00100u /* sahte HKEY araligi (pid tasiyici) */
+#define XVR_MAXENT    64
+#define XVR_MAXPATH   512
+
+typedef struct {
+    u32 pid;                                  /* path-table indeksi */
+    u32 nlen; const u8* name;                 /* deger adi (ANSI) */
+    u32 type; u32 dlen; const u8* data;
+} XvrEnt;
+
+typedef struct {
+    u32 plen; u8 path[XVR_MAXPATH];           /* tam yol: "HKCU\Software\X" */
+} XvrPath;
+
+static u64*     xvr_orig = 0;                 /* orijinal API adresleri —
+                                                 SCRATCH pointer (adres-alma
+                                                 mutlak-imm32 YASAK) */
+static XvrEnt*  xvr_ent = 0;                  /* SCRATCH icinde (memprot guvenli) */
+static XvrPath* xvr_path = 0;                 /* SCRATCH icinde */
+static u32      xvr_nent = 0, xvr_npath = 0;
+static u64      xvr_mem = 0;                  /* scratch blok */
+static u32      xvr_memsz = 0;
+static int      xvr_iat_done = 0;
+
+#define vr_is_fake(h) ((h) >= (u64)XVR_HKEY_BASE && ((h) - (u64)XVR_HKEY_BASE) < (u64)xvr_npath)
+static u32 vr_plen(const u8* s) { u32 n = 0; while (n < XVR_MAXPATH && s[n]) n++; return n; }
+static u32 vr_alen(const char* s) { u32 n = 0; while (s[n]) n++; return n; }
+
+/* buyuk/kucuk duyarsiz karsilastirma (ANSI) */
+static int vr_nicmp(const u8* a, const u8* b, u32 n) {
+    u32 i;
+    for (i = 0; i < n; i++) {
+        u32 ca = a[i], cb = b[i];
+        if (ca >= 'A' && ca <= 'Z') ca += 32u;
+        if (cb >= 'A' && cb <= 'Z') cb += 32u;
+        if (ca != cb) return (int)(ca - cb);
+    }
+    return 0;
+}
+/* wide -> ansi (ASCII dusus) */
+static u32 vr_wtoa(const u16* w, u32 maxn, char* out, u32 cap) {
+    u32 i;
+    for (i = 0; i < maxn && i + 1 < cap; i++) {
+        u16 c = w[i];
+        if (!c) break;
+        out[i] = (char)(c & 0xFF);
+    }
+    out[i] = 0;
+    return i;
+}
+
+/* pid bul (yoksa 0xFFFFFFFF) */
+static u32 vr_path_pid(const u8* path, u32 plen) {
+    u32 i;
+    for (i = 0; i < xvr_npath; i++)
+        if (xvr_path[i].plen == plen && !vr_nicmp(xvr_path[i].path, path, plen))
+            return i;
+    return 0xFFFFFFFFu;
+}
+static u32 vr_path_add(const u8* path, u32 plen) {
+    u32 p = vr_path_pid(path, plen);
+    if (p != 0xFFFFFFFFu) return p;
+    if (xvr_npath >= XVR_MAXENT || plen >= XVR_MAXPATH) return 0xFFFFFFFFu;
+    {
+        u32 i;
+        for (i = 0; i < plen; i++) xvr_path[xvr_npath].path[i] = path[i];
+        xvr_path[xvr_npath].path[plen] = 0;
+        xvr_path[xvr_npath].plen = plen;
+        xvr_npath++;
+        return xvr_npath - 1;
+    }
+}
+/* pid'e KOK yol dizisi (yalniz okuma) */
+static const u8* vr_pid_path(u32 pid, u32* plen) {
+    if (pid >= xvr_npath) return 0;
+    *plen = xvr_path[pid].plen;
+    return xvr_path[pid].path;
+}
+
+/* hKey (kok sabiti YA DA sahte HKEY) + subkey -> tam yol */
+static u32 vr_join(u64 hKey, const char* sub, u8* out) {
+    /* A17-iz FIX: statik-const dizi (hives[]) -fno-pie'da degisken-index'te
+       mutlak-disp32 uretir -> YASAK (rodata kurali). Kok adi VP4 ile. */
+    u32 n = 0, i;
+    u32 root = (u32)(hKey & 0xFFFFFFFFull);      /* x64: gercek kok sabiti
+                                                    0xFFFFFFFF80000001 —
+                                                    alt-32 normalizasyonu */
+    if (vr_is_fake(hKey)) {
+        u32 pl = 0;
+        const u8* pp = vr_pid_path((u32)(hKey - (u64)XVR_HKEY_BASE), &pl);
+        if (!pp) return 0;
+        for (i = 0; i < pl && n + 1 < XVR_MAXPATH; i++) out[n++] = pp[i];
+    } else {
+        char hn[8]; u32 hl = 0;
+        switch (root) {
+        case 0x80000000u: VP4(hn, 0, A4('H','K','C','R')); hn[4] = 0; hl = 4; break;
+        case 0x80000001u: VP4(hn, 0, A4('H','K','C','U')); hn[4] = 0; hl = 4; break;
+        case 0x80000002u: VP4(hn, 0, A4('H','K','L','M')); hn[4] = 0; hl = 4; break;
+        case 0x80000003u: VP4(hn, 0, A4('H','K','U',0));   hn[4] = 0; hl = 3; break;
+        case 0x80000005u: VP4(hn, 0, A4('H','K','C','C')); hn[4] = 0; hl = 4; break;
+        default: return 0;
+        }
+        for (i = 0; i < hl && n + 1 < XVR_MAXPATH; i++) out[n++] = (u8)hn[i];
+    }
+    if (sub && sub[0]) {
+        if (n + 1 < XVR_MAXPATH) out[n++] = '\\';
+        for (i = 0; sub[i] && n + 1 < XVR_MAXPATH; i++) out[n++] = (u8)sub[i];
+    }
+    out[n] = 0;
+    return n;
+}
+
+/* (pid, deger-adi) -> giris; defval: NULL/"" = varsayilan deger */
+static u32 vr_find(u32 pid, const char* name) {
+    u32 i;
+    u32 nl = name ? vr_alen(name) : 0;
+    for (i = 0; i < xvr_nent; i++) {
+        if (xvr_ent[i].pid != pid) continue;
+        if (xvr_ent[i].nlen != nl) continue;
+        if (nl && vr_nicmp(xvr_ent[i].name, (const u8*)name, nl)) continue;
+        return i;
+    }
+    return 0xFFFFFFFFu;
+}
+
+/* orijinal cagri (stdcall/x64 c-cast) */
+#define VRCALL(idx, ...) ((u32 (*)(u64, ...))xvr_orig[idx])(__VA_ARGS__)
+
+/* ---------- handler'lar ---------- */
+static void vr_dbgq(u64 k32, u64 v) {
+    xvf_dbg(k32, (char)('0' + ((v >> 4) & 15)), (char)('0' + (v & 15)), '.');
+    xvf_dbg(k32, (char)('0' + ((v >> 36) & 15)), (char)('0' + ((v >> 32) & 15)), '.');
+}
+static u32 vr_RegOpenKeyExA(u64 hKey, const char* sub, u32 opt, u32 sam, u64 phk) {
+    (void)opt; (void)sam;
+    {   /* A17-iz3: sub pointer 32-36 bit nibble izi */
+        u64 k32p = peb_module(XH_KERNEL32);
+        if (k32p && sub) {
+            xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 4) & 15)),
+                    (char)('0' + (((unsigned long)(unsigned long long)sub >> 0) & 15)));
+            xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 36) & 15)),
+                    (char)('0' + (((unsigned long)(unsigned long long)sub >> 32) & 15)));
+        }
+    }
+    if (xvr_mem && sub) {
+        u8 fp[XVR_MAXPATH];
+        u32 fl = vr_join(hKey, sub, fp);
+        if (fl) {
+            u32 pi = vr_path_pid(fp, fl);
+            if (pi == 0xFFFFFFFFu) {
+                /* alt anahtar tanimli mi? (path+\\ oneki) */
+                u32 i, sl = fl;
+                for (i = 0; i < xvr_npath; i++) {
+                    if (xvr_path[i].plen > sl + 1 &&
+                        !vr_nicmp(xvr_path[i].path, fp, sl) &&
+                        xvr_path[i].path[sl] == '\\') { pi = vr_path_add(fp, fl); break; }
+                }
+            }
+            if (pi != 0xFFFFFFFFu && phk) {
+                *(u32*)(unsigned long)phk = (u32)(XVR_HKEY_BASE + pi);
+                return 0;                                     /* ERROR_SUCCESS */
+            }
+        }
+    }
+    return (u32)VRCALL(0, hKey, (u64)(unsigned long)(void*)sub, (u64)opt, (u64)sam, phk);
+}
+static u32 vr_RegOpenKeyExW(u64 hKey, const u16* sub, u32 opt, u32 sam, u64 phk) {
+    (void)opt; (void)sam;
+    if (xvr_mem && sub) {
+        char sa[256];
+        if (vr_wtoa(sub, 255, sa, 256)) return vr_RegOpenKeyExA(hKey, sa, opt, sam, phk);
+    }
+    return (u32)VRCALL(1, hKey, (u64)(unsigned long)(void*)sub, (u64)opt, (u64)sam, phk);
+}
+static u32 vr_RegQueryValueExA(u64 hKey, const char* vname, u64 res, u64 ptype, u64 pdata, u64 pcb) {
+    (void)res;
+    if (xvr_mem && vr_is_fake(hKey)) {
+        u32 pi = (u32)(hKey - (u64)XVR_HKEY_BASE);
+        u32 ei = vr_find(pi, vname);
+        if (ei != 0xFFFFFFFFu) {
+            u32 t = xvr_ent[ei].type, d = xvr_ent[ei].dlen;
+            if (ptype) *(u32*)(unsigned long)ptype = t;
+            if (pcb) {
+                u32 cap = *(u32*)(unsigned long)pcb;
+                *(u32*)(unsigned long)pcb = d;
+                if (pdata && cap >= d) {
+                    u8* dst = (u8*)(unsigned long)pdata;
+                    const u8* src = xvr_ent[ei].data;
+                    u32 k;
+                    for (k = 0; k < d; k++) dst[k] = src[k];
+                    return 0;
+                }
+            }
+            return 234u;                                       /* ERROR_MORE_DATA */
+        }
+        if (hKey >= (u64)XVR_HKEY_BASE && vname) return 2u;    /* ERROR_FILE_NOT_FOUND */
+    }
+    return (u32)VRCALL(2, hKey, (u64)(unsigned long)(void*)vname, res, ptype, pdata, pcb);
+}
+static u32 vr_RegQueryValueExW(u64 hKey, const u16* vname, u64 res, u64 ptype, u64 pdata, u64 pcb) {
+    if (xvr_mem && vr_is_fake(hKey)) {
+        char sa[256];
+        vr_wtoa(vname, 255, sa, 256);
+        return vr_RegQueryValueExA(hKey, sa, res, ptype, pdata, pcb);
+    }
+    return (u32)VRCALL(3, hKey, (u64)(unsigned long)(void*)vname, res, ptype, pdata, pcb);
+}
+static u32 vr_RegCloseKey(u64 hKey) {
+    if (xvr_mem && vr_is_fake(hKey))
+        return 0;
+    return (u32)VRCALL(4, hKey);
+}
+static u32 vr_RegQueryInfoKeyA(u64 hKey, char* cls, u64 pc, u64 res, u64 pn, u64 pm, u64 pmx, u64 pv, u64 pvx, u64 pd, u64 pf) {
+    (void)cls; (void)pc; (void)res; (void)pm; (void)pmx; (void)pvx; (void)pf;
+    if (xvr_mem && vr_is_fake(hKey)) {
+        u32 pi = (u32)(hKey - (u64)XVR_HKEY_BASE), pl = 0;
+        const u8* pp = vr_pid_path(pi, &pl);
+        u32 nsub = 0, nval = 0, i;
+        if (pp) {
+            for (i = 0; i < xvr_npath; i++) {
+                u32 j;
+                if (xvr_path[i].plen <= pl + 1) continue;
+                if (vr_nicmp(xvr_path[i].path, pp, pl)) continue;
+                if (xvr_path[i].path[pl] != '\\') continue;
+                {   /* ayrik alt-segment sayimi */
+                    int dup = 0;
+                    for (j = 0; j < i; j++) {
+                        u32 s2 = pl + 1;
+                        if (xvr_path[j].plen <= pl + 1) continue;
+                        if (vr_nicmp(xvr_path[j].path, pp, pl)) continue;
+                        if (xvr_path[j].path[pl] != '\\') continue;
+                        while (s2 < xvr_path[j].plen && xvr_path[j].path[s2] != '\\') s2++;
+                        if (!vr_nicmp(xvr_path[j].path + pl + 1, xvr_path[i].path + pl + 1, s2 - pl - 1)) { dup = 1; break; }
+                    }
+                    if (!dup) nsub++;
+                }
+            }
+            for (i = 0; i < xvr_nent; i++) if (xvr_ent[i].pid == pi) nval++;
+            if (pn) *(u32*)(unsigned long)pn = nsub;
+            if (pv) *(u32*)(unsigned long)pv = nval;
+            return 0;
+        }
+        return 2u;
+    }
+    return (u32)VRCALL(15, hKey, (u64)(unsigned long)(void*)cls, pc, res, pn, pm, pmx, pv, pvx, pd, pf);
+}
+static u32 vr_RegQueryInfoKeyW(u64 hKey, u16* cls, u64 pc, u64 res, u64 pn, u64 pm, u64 pmx, u64 pv, u64 pvx, u64 pd, u64 pf) {
+    if (xvr_mem && vr_is_fake(hKey)) {
+        char ca[8];
+        u32 r = vr_RegQueryInfoKeyA(hKey, ca, pc, res, pn, pm, pmx, pv, pvx, pd, pf);
+        (void)ca;
+        return r;
+    }
+    return (u32)VRCALL(16, hKey, (u64)(unsigned long)(void*)cls, pc, res, pn, pm, pmx, pv, pvx, pd, pf);
+}
+static u32 vr_RegCreateKeyExA(u64 hKey, const char* sub, u32 res, char* cls, u32 opt, u32 sam, u64 sa, u64 phk, u64 pd) {
+    (void)res; (void)cls; (void)opt; (void)sam; (void)sa;
+    if (xvr_mem && sub) {
+        u8 fp[XVR_MAXPATH];
+        u32 fl = vr_join(hKey, sub, fp);
+        if (fl) {
+            u32 pi = vr_path_add(fp, fl);                      /* sanal olustur */
+            if (pi != 0xFFFFFFFFu) {
+                if (phk) *(u32*)(unsigned long)phk = (u32)(XVR_HKEY_BASE + pi);
+                if (pd) *(u32*)(unsigned long)pd = 1u;         /* REG_CREATED_NEW_KEY */
+                return 0;
+            }
+        }
+    }
+    return (u32)VRCALL(5, hKey, (u64)(unsigned long)(void*)sub, (u64)res, (u64)(unsigned long)(void*)cls,
+                       (u64)opt, (u64)sam, sa, phk, pd);
+}
+static u32 vr_RegCreateKeyExW(u64 hKey, const u16* sub, u32 res, u16* cls, u32 opt, u32 sam, u64 sa, u64 phk, u64 pd) {
+    if (xvr_mem && sub) {
+        char sa2[256];
+        if (vr_wtoa(sub, 255, sa2, 256)) {
+            char sc2[128];
+            if (cls) vr_wtoa(cls, 127, sc2, 128);
+            return vr_RegCreateKeyExA(hKey, sa2, res, cls ? sc2 : 0, opt, sam, sa, phk, pd);
+        }
+    }
+    return (u32)VRCALL(6, hKey, (u64)(unsigned long)(void*)sub, (u64)res, (u64)(unsigned long)(void*)cls,
+                       (u64)opt, (u64)sam, sa, phk, pd);
+}
+static u32 vr_RegSetValueExA(u64 hKey, const char* vname, u32 res, u32 type, u64 data, u32 cb) {
+    (void)res;
+    if (xvr_mem && vr_is_fake(hKey)) {
+        u32 pi = (u32)(hKey - (u64)XVR_HKEY_BASE);
+        u32 ei = vr_find(pi, vname);
+        if (ei != 0xFFFFFFFFu && cb && cb <= xvr_ent[ei].dlen) {
+            u8* dst = (u8*)(unsigned long)(void*)xvr_ent[ei].data;
+            const u8* src = (const u8*)(unsigned long)data;
+            u32 k;
+            for (k = 0; k < cb; k++) dst[k] = src[k];
+            xvr_ent[ei].type = type;
+            xvr_ent[ei].dlen = cb;                             /* yerinde guncelle */
+            return 0;
+        }
+        return 0;                                              /* sanal yazi yutulur */
+    }
+    return (u32)VRCALL(7, hKey, (u64)(unsigned long)(void*)vname, (u64)res, (u64)type, data, (u64)cb);
+}
+static u32 vr_RegSetValueExW(u64 hKey, const u16* vname, u32 res, u32 type, u64 data, u32 cb) {
+    if (xvr_mem && vr_is_fake(hKey)) {
+        char sa[256];
+        vr_wtoa(vname, 255, sa, 256);
+        return vr_RegSetValueExA(hKey, sa, res, type, data, cb);
+    }
+    return (u32)VRCALL(8, hKey, (u64)(unsigned long)(void*)vname, (u64)res, (u64)type, data, (u64)cb);
+}
+static u32 vr_RegEnumKeyExA(u64 hKey, u32 idx, char* name, u64 pcb, u64 res, char* cls, u64 pcbc, u64 ft) {
+    (void)res; (void)cls; (void)pcbc; (void)ft;
+    if (xvr_mem && vr_is_fake(hKey)) {
+        u32 pi = (u32)(hKey - (u64)XVR_HKEY_BASE), pl = 0;
+        const u8* pp = vr_pid_path(pi, &pl);
+        if (pp) {
+            /* pi yolunun ayrik alt-segmentleri */
+            u32 i, cur = 0;
+            for (i = 0; i < xvr_npath; i++) {
+                u32 j;
+                if (xvr_path[i].plen <= pl + 1) continue;
+                if (vr_nicmp(xvr_path[i].path, pp, pl)) continue;
+                if (xvr_path[i].path[pl] != '\\') continue;
+                /* seg = path[pl+1 .. sonraki \\|son] */
+                {
+                    u32 seg = pl + 1, seglen;
+                    while (seg < xvr_path[i].plen && xvr_path[i].path[seg] != '\\') seg++;
+                    seglen = seg - (pl + 1);
+                    /* ayriklik: ayni segment daha once mi? (mini tarama) */
+                    {
+                        int dup = 0;
+                        for (j = 0; j < i; j++) {
+                            u32 s2 = pl + 1, s2len;
+                            if (xvr_path[j].plen <= pl + 1) continue;
+                            if (vr_nicmp(xvr_path[j].path, pp, pl)) continue;
+                            if (xvr_path[j].path[pl] != '\\') continue;
+                            while (s2 < xvr_path[j].plen && xvr_path[j].path[s2] != '\\') s2++;
+                            s2len = s2 - (pl + 1);
+                            if (s2len == seglen && !vr_nicmp(xvr_path[j].path + pl + 1,
+                                                             xvr_path[i].path + pl + 1, seglen)) { dup = 1; break; }
+                        }
+                        if (dup) continue;
+                        if (cur == idx) {
+                            if (name && pcb) {
+                                u32 cap = *(u32*)(unsigned long)pcb;
+                                *(u32*)(unsigned long)pcb = seglen;
+                                if (cap > seglen) {
+                                    u32 k;
+                                    for (k = 0; k < seglen; k++) name[k] = (char)xvr_path[i].path[pl + 1 + k];
+                                    name[seglen] = 0;
+                                    return 0;
+                                }
+                                return 122u;                   /* ERROR_INSUFFICIENT_BUFFER */
+                            }
+                        }
+                        cur++;
+                    }
+                }
+            }
+            return 259u;                                       /* ERROR_NO_MORE_ITEMS */
+        }
+    }
+    return (u32)VRCALL(9, hKey, (u64)idx, (u64)(unsigned long)(void*)name, pcb, res,
+                       (u64)(unsigned long)(void*)cls, pcbc, ft);
+}
+static u32 vr_RegEnumKeyExW(u64 hKey, u32 idx, u16* name, u64 pcb, u64 res, u16* cls, u64 pcbc, u64 ft) {
+    if (xvr_mem && vr_is_fake(hKey)) {
+        char sa[256];
+        if (vr_RegEnumKeyExA(hKey, idx, sa, (u64)(unsigned long)(void*)&sa[250], res, 0, 0, 0) == 0) {
+            u32 n = 0;
+            while (sa[n] && n < 248) { name[n] = (u16)(u8)sa[n]; n++; }
+            name[n] = 0;
+            if (pcb) *(u32*)(unsigned long)pcb = n * 2u;
+            return 0;
+        }
+        return 259u;
+    }
+    return (u32)VRCALL(10, hKey, (u64)idx, (u64)(unsigned long)(void*)name, pcb, res,
+                       (u64)(unsigned long)(void*)cls, pcbc, ft);
+}
+static u32 vr_RegEnumValueA(u64 hKey, u32 idx, char* name, u64 pcb, u64 res, u64 ptype, u64 pdata, u64 pcbd) {
+    (void)res;
+    if (xvr_mem && vr_is_fake(hKey)) {
+        u32 pi = (u32)(hKey - (u64)XVR_HKEY_BASE);
+        /* pid'in degerleri sirala (giris ekleme sirasi) */
+        u32 k = 0, i;
+        for (i = 0; i < xvr_nent; i++) {
+            if (xvr_ent[i].pid != pi) continue;
+            if (k == idx) {
+                if (name && pcb) {
+                    u32 cap = *(u32*)(unsigned long)pcb;
+                    *(u32*)(unsigned long)pcb = xvr_ent[i].nlen;
+                    if (cap > xvr_ent[i].nlen) {
+                        u32 q;
+                        for (q = 0; q < xvr_ent[i].nlen; q++) name[q] = (char)xvr_ent[i].name[q];
+                        name[xvr_ent[i].nlen] = 0;
+                    } else return 122u;
+                }
+                if (ptype) *(u32*)(unsigned long)ptype = xvr_ent[i].type;
+                if (pdata && pcbd) {
+                    u32 cap = *(u32*)(unsigned long)pcbd;
+                    u8* dst = (u8*)(unsigned long)pdata;
+                    u32 q;
+                    *(u32*)(unsigned long)pcbd = xvr_ent[i].dlen;
+                    for (q = 0; q < xvr_ent[i].dlen && q < cap; q++) dst[q] = xvr_ent[i].data[q];
+                }
+                return 0;
+            }
+            k++;
+        }
+        return 259u;
+    }
+    return (u32)VRCALL(11, hKey, (u64)idx, (u64)(unsigned long)(void*)name, pcb, res, ptype, pdata, pcbd);
+}
+static u32 vr_RegEnumValueW(u64 hKey, u32 idx, u16* name, u64 pcb, u64 res, u64 ptype, u64 pdata, u64 pcbd) {
+    if (xvr_mem && vr_is_fake(hKey)) {
+        char sa[256];
+        if (vr_RegEnumValueA(hKey, idx, sa, (u64)(unsigned long)(void*)&sa[250], res, ptype, pdata, pcbd) == 0) {
+            u32 n = 0;
+            while (sa[n] && n < 248) { name[n] = (u16)(u8)sa[n]; n++; }
+            name[n] = 0;
+            if (pcb) *(u32*)(unsigned long)pcb = n * 2u;
+            return 0;
+        }
+        return 259u;
+    }
+    return (u32)VRCALL(12, hKey, (u64)idx, (u64)(unsigned long)(void*)name, pcb, res, ptype, pdata, pcbd);
+}
+static u32 vr_RegDeleteKeyA(u64 hKey, const char* sub) {
+    if (xvr_mem && vr_is_fake(hKey))
+        return 0;                                              /* sanal silme yutulur */
+    return (u32)VRCALL(13, hKey, (u64)(unsigned long)(void*)sub);
+}
+static u32 vr_RegDeleteKeyW(u64 hKey, const u16* sub) {
+    if (xvr_mem && vr_is_fake(hKey))
+        return 0;
+    return (u32)VRCALL(14, hKey, (u64)(unsigned long)(void*)sub);
+}
+
+#if defined(XRT_IS_X86)
+#define VR_STDCALL __attribute__((stdcall))
+typedef u32 vru;        /* x86: win32 stack-arg 4B — u64 param YANLIS okur */
+/* A17-iz3 FIX: pointer arg x86'da 32-bit, x64'te 64-bit KALMALI —
+   (unsigned int)(u32) cast'i x64'te pointer'i KESIYORDI (0x14002A0F0 ->
+   0x2A0F0 -> kernelbase fault). */
+#define VRPTR(v) ((unsigned long)(unsigned int)(u32)(v))
+#else
+#define VR_STDCALL
+typedef u64 vru;
+#define VRPTR(v) ((unsigned long)(unsigned long long)(v))
+#endif
+/* wrapper'lar VRPTR(...) kullanir */
+
+/* app stdcall -> handler: yigin-duzeni mimariye gore (vru) */
+static u32 VR_STDCALL vr_h_OpenA(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
+static u32 VR_STDCALL vr_h_OpenW(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
+static u32 VR_STDCALL vr_h_QueryA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
+static u32 VR_STDCALL vr_h_QueryW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
+static u32 VR_STDCALL vr_h_Close(vru h) { return vr_RegCloseKey((u64)h); }
+static u32 VR_STDCALL vr_h_CreateA(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)r, (char*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
+static u32 VR_STDCALL vr_h_CreateW(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)r, (u16*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
+static u32 VR_STDCALL vr_h_SetA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
+static u32 VR_STDCALL vr_h_SetW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
+static u32 VR_STDCALL vr_h_EnumKeyA(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (char*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
+static u32 VR_STDCALL vr_h_EnumKeyW(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u16*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
+static u32 VR_STDCALL vr_h_EnumValA(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
+static u32 VR_STDCALL vr_h_EnumValW(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
+static u32 VR_STDCALL vr_h_DelA(vru h, vru s) { return vr_RegDeleteKeyA((u64)h, (const char*)(unsigned long)(unsigned long long)(s)); }
+static u32 VR_STDCALL vr_h_DelW(vru h, vru s) { return vr_RegDeleteKeyW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s)); }
+static u32 VR_STDCALL vr_h_InfoA(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyA((u64)h, (char*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
+static u32 VR_STDCALL vr_h_InfoW(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyW((u64)h, (u16*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
+
+/* ---------- store cozme (act=4 XVF girisi) ---------- */
+static void xvr_load(const u8* blob, u32 blen, u64 k32) {
+    u32 i, off;
+    xvf_dbg(k32, 'L', '.', '.');
+    if (blen < 8 || ld32(blob) != XVR_MAGIC) {
+        xvf_dbg(k32, 'H', (char)('0' + ((blob[0] >> 4) & 15)), (char)('0' + (blob[0] & 15)));
+        xvf_dbg(k32, 'H', (char)('0' + ((blob[1] >> 4) & 15)), (char)('0' + (blob[1] & 15)));
+        xvf_dbg(k32, 'H', (char)('0' + ((blob[2] >> 4) & 15)), (char)('0' + (blob[2] & 15)));
+        xvf_dbg(k32, 'H', (char)('0' + ((blob[3] >> 4) & 15)), (char)('0' + (blob[3] & 15)));
+        xvf_dbg(k32, 'L', 'M', '!');
+        return;
+    }
+    xvr_nent = ld32(blob + 4);
+    if (xvr_nent > XVR_MAXENT) { xvf_dbg(k32, 'L', 'C', '!'); return; }
+    {
+        /* scratch: blob + isimler(256/giris) + tablolar — tek RWX blok */
+        u32 need = blen + 256 * XVR_MAXENT + 24 * 8 +
+                   sizeof(XvrEnt) * XVR_MAXENT + sizeof(XvrPath) * XVR_MAXENT + 64;
+        u64 va = find_export(peb_module(XH_KERNEL32), XH_VIRTUALALLOC);
+        if (!va) return;
+        xvr_mem = api4(va, 0, (u64)((need + 0xFFF) & ~0xFFFu), 0x3000u, 0x40u);
+        if (!xvr_mem) return;
+        xvr_memsz = blen;
+        {
+            u8* sp = (u8*)(unsigned long)xvr_mem;
+            u32 k;
+            for (k = 0; k < blen; k++) sp[k] = blob[k];        /* blob kopyasi */
+            for (k = 0; k < need - blen; k++) sp[blen + k] = 0;
+            xvr_ent  = (XvrEnt*)(unsigned long)(xvr_mem + blen + 256 * XVR_MAXENT);
+            xvr_path = (XvrPath*)(unsigned long)(xvr_mem + blen + 256 * XVR_MAXENT +
+                                                 sizeof(XvrEnt) * XVR_MAXENT);
+            xvr_orig = (u64*)(unsigned long)(xvr_mem + blen + 256 * XVR_MAXENT +
+                                             sizeof(XvrEnt) * XVR_MAXENT +
+                                             sizeof(XvrPath) * XVR_MAXENT);
+            { u32 zq;
+              for (zq = 0; zq < 24; zq++) xvr_orig[zq] = 0; }
+        }
+    }
+    off = 8;
+    for (i = 0; i < xvr_nent && off + 8 <= blen; i++) {
+        u32 pl = ld32(blob + off); off += 4;
+        if (off + pl > blen) return;
+        {
+            u32 nl, ty, dl;
+            u32 pid = vr_path_add(blob + off, pl);
+            off += pl;
+            if (off + 4 > blen) return;
+            nl = ld32(blob + off); off += 4;
+            if (off + nl > blen) return;
+            {
+                u32 j, dpos = off;
+                u8* np = (u8*)(unsigned long)(xvr_mem + blen);       /* isim alani */
+                for (j = 0; j < nl && j < 250; j++) np[(unsigned long)i * 256 + j] = blob[off + j];
+                np[(unsigned long)i * 256 + (nl < 250 ? nl : 249)] = 0;
+                off += nl;
+                if (off + 8 > blen) return;
+                ty = ld32(blob + off); off += 4;
+                dl = ld32(blob + off); off += 4;
+                if (off + dl > blen) return;
+                xvr_ent[i].pid = pid;
+                xvr_ent[i].nlen = (nl < 250 ? nl : 249);
+                xvr_ent[i].name = np + (unsigned long)i * 256;
+                xvr_ent[i].type = ty;
+                xvr_ent[i].dlen = dl;
+                xvr_ent[i].data = (const u8*)(unsigned long)(xvr_mem + dpos);  /* scratch kopyasi */
+                off += dl;
+            }
+        }
+    }
+    xvf_dbg(k32, 'V', 'R', (char)('0' + (xvr_nent < 10 ? xvr_nent : 9)));
+    xvf_dbg(k32, 'V', 'P', (char)('0' + (xvr_npath < 10 ? xvr_npath : 9)));
+}
+
+/* ---------- host IAT repoint ---------- */
+/* A17-iz FIX: statik-const tablo YASAK (mutlak-disp32). Hash + adres
+   switch fonksiyonlari; adresler asm lea rip-relative ("p" constraint). */
+static u32 vr_hook_hash(u32 k) {
+    /* A17-iz FIX: switch -> GCC CSWTCH rodata tablosu (mutlak-disp32 YASAK).
+       if-zinciri + derleyici-donusum engeli. */
+    u32 h = 0;
+    h ^= (k == 0)  ? XH_REGOPENKEYEXA   : 0;
+    h ^= (k == 1)  ? XH_REGOPENKEYEXW   : 0;
+    h ^= (k == 2)  ? XH_REGQUERYVALUEEXA : 0;
+    h ^= (k == 3)  ? XH_REGQUERYVALUEEXW : 0;
+    h ^= (k == 4)  ? XH_REGCLOSEKEY     : 0;
+    h ^= (k == 5)  ? XH_REGCREATEKEYEXA : 0;
+    h ^= (k == 6)  ? XH_REGCREATEKEYEXW : 0;
+    h ^= (k == 7)  ? XH_REGSETVALUEEXA  : 0;
+    h ^= (k == 8)  ? XH_REGSETVALUEEXW  : 0;
+    h ^= (k == 9)  ? XH_REGENUMKEYEXA   : 0;
+    h ^= (k == 10) ? XH_REGENUMKEYEXW   : 0;
+    h ^= (k == 11) ? XH_REGENUMVALUEA   : 0;
+    h ^= (k == 12) ? XH_REGENUMVALUEW   : 0;
+    h ^= (k == 13) ? XH_REGDELETEKEYA   : 0;
+    h ^= (k == 14) ? XH_REGDELETEKEYW   : 0;
+    h ^= (k == 15) ? XH_REGQUERYINFOKEYA : 0;
+    h ^= (k == 16) ? XH_REGQUERYINFOKEYW : 0;
+    return h;
+}
+#define VRSYM(NM) __asm__ volatile ("lea %a1, %0" : "=r"(p) : "p"(&vr_h_##NM))
+static u64 vr_hook_addr(u32 k) {
+    u64 p = 0;
+    switch (k) {
+    case 0:  VRSYM(OpenA);    break;
+    case 1:  VRSYM(OpenW);    break;
+    case 2:  VRSYM(QueryA);   break;
+    case 3:  VRSYM(QueryW);   break;
+    case 4:  VRSYM(Close);    break;
+    case 5:  VRSYM(CreateA);  break;
+    case 6:  VRSYM(CreateW);  break;
+    case 7:  VRSYM(SetA);     break;
+    case 8:  VRSYM(SetW);     break;
+    case 9:  VRSYM(EnumKeyA); break;
+    case 10: VRSYM(EnumKeyW); break;
+    case 11: VRSYM(EnumValA); break;
+    case 12: VRSYM(EnumValW); break;
+    case 13: VRSYM(DelA);     break;
+    case 14: VRSYM(DelW);     break;
+    case 15: VRSYM(InfoA);    break;
+    case 16: VRSYM(InfoW);    break;
+    }
+    return p;
+}
+
+static u32 xvr_npatch = 0;
+static void xrt_vreg_install(const u8* base, u64 k32) {
+    u32 pe_off, nsec, optsz, ddir_off, imp_rva;
+    u64 vp;
+    if (xvr_iat_done || !xvr_mem) return;
+    xvr_iat_done = 1;
+    xvf_dbg(k32, 'I', 'N', '.');
+    if (ld16(base) != 0x5A4D) { xvf_dbg(k32, 'G', '1', '.'); return; }
+    pe_off = ld32(base + 0x3C);
+    if (ld32(base + pe_off) != 0x4550) { xvf_dbg(k32, 'G', '2', '.'); return; }
+#if defined(XRT_IS_X64)
+    ddir_off = pe_off + 24 + 112;
+#else
+    ddir_off = pe_off + 24 + 96;
+#endif
+    nsec  = ld16(base + pe_off + 6);
+    optsz = ld16(base + pe_off + 20);
+    imp_rva = ld32(base + ddir_off + 1 * 8);
+    vp = find_export(k32, XH_VIRTUALPROTECT);
+    if (!imp_rva) { xvf_dbg(k32, 'G', '3', '.'); return; }
+    if (!vp) { xvf_dbg(k32, 'G', '4', '.'); return; }
+    {
+        u8* ip = (u8*)(unsigned long)(base + imp_rva);
+        u32 di = 0;
+        xvf_dbg(k32, 'W', '.', '.');
+        for (;;) {
+            u32 oft, name_rva, ft;
+            if (di >= 512) break;
+            oft = ld32(ip + di * 20 + 0);
+            name_rva = ld32(ip + di * 20 + 12);
+            ft = ld32(ip + di * 20 + 16);
+            if (!oft && !name_rva && !ft) break;
+            {
+                u8* tsrc = (u8*)(unsigned long)(base + (oft ? oft : ft));
+                u8* tdst = (u8*)(unsigned long)(base + ft);
+                u32 ti = 0;
+                xvf_dbg(k32, 'W', (char)('0' + (di < 10 ? di : 9)), (char)('0' + (ti < 10 ? ti : 9)));
+                for (;;) {
+#if defined(XRT_IS_X64)
+                    u64 te; int k2;
+                    for (k2 = 0, te = 0; k2 < 8; k2++) te |= ((u64)tsrc[(u64)ti * 8 + k2]) << (8 * k2);
+                    xvf_dbg(k32, 'R', (char)('0' + (ti < 10 ? ti : 9)), (char)('0' + ((te >> 8) & 15)));
+                    if (!te) break;
+                    if (!(te & 0x8000000000000000ull)) {
+                        u32 hh = fnv_a((const char*)(unsigned long)(base + (u32)te + 2));
+                        xvf_dbg(k32, 'T', '.', (char)('0' + (ti < 10 ? ti : 9)));
+                        u32 k;
+                        /* A17-iz FIX: degisken-indexli statik erisim mutlak-disp32
+                           uretir (blob .vmp0'da unmapped AV) -> pointer-walk */
+                        u64* op = xvr_orig;
+                        for (k = 0; k < 17; k++, op++) {
+                            if (vr_hook_hash(k) == hh) {
+                                u32 oldp = 0;
+                                u8* slot = tdst + (u64)ti * 8;
+                                if (*op) break;                /* zaten kayitli */
+                                /* orijinal adres IAT slotundan (cozulmus) —
+                                   INT'teki te name-RVA'dir, ADRES DEGIL! */
+                                { u64 cur = 0; int q2;
+                                  for (q2 = 0; q2 < 8; q2++) cur |= ((u64)slot[q2]) << (8 * q2);
+                                  *op = cur; }
+                                if (api4(vp, (u64)(unsigned long)slot, 8, 0x40u, (u64)(unsigned long)&oldp)) {
+                                    xvf_wr64(slot, (u64)(unsigned long)vr_hook_addr(k));
+                                    if (oldp && oldp != 0x40u)
+                                        api4(vp, (u64)(unsigned long)slot, 8, oldp, (u64)(unsigned long)&oldp);
+                                    xvr_npatch++;
+                                    xvf_dbg(k32, 'P', 'T', (char)('0' + (k < 10 ? k : 9)));
+                                }
+                                break;
+                            }
+                        }
+                        xvf_dbg(k32, 'K', '.', (char)('0' + (ti < 10 ? ti : 9)));
+                    }
+#else
+                    u32 te = ld32(tsrc + (u64)ti * 4);
+                    if (!te) break;
+                    if (!(te & 0x80000000u)) {
+                        u32 hh = fnv_a((const char*)(unsigned long)(base + te + 2));
+                        u32 k;
+                        u64* op = xvr_orig;
+                        for (k = 0; k < 17; k++, op++) {
+                            if (vr_hook_hash(k) == hh) {
+                                u32 oldp = 0;
+                                u8* slot = tdst + (u64)ti * 4;
+                                if (*op) break;
+                                *op = ld32(slot);              /* cozulmus IAT degeri */
+                                if (api4(vp, (u64)(unsigned long)slot, 4, 0x40u, (u64)(unsigned long)&oldp)) {
+                                    xvf_wr32(slot, (u32)(unsigned long)vr_hook_addr(k));
+                                    if (oldp && oldp != 0x40u)
+                                        api4(vp, (u64)(unsigned long)slot, 4, oldp, (u64)(unsigned long)&oldp);
+                                    xvr_npatch++;
+                                }
+                                break;
+                            }
+                        }
+                    }
+#endif
+                    ti++;
+                    if (ti > 0x8000) break;
+                }
+            }
+            di++;
+        }
+    }
+    xvf_dbg(k32, 'I', 'T', (char)('0' + (xvr_npatch < 10 ? xvr_npatch : 9)));
+}
+
 /* XVF1 blogunu işle — xrt_entry sonunda BİR KEZ çağrılır */
 #ifdef XVF_TRACE
 #define XVF_TRACE_ON 1
@@ -933,8 +1665,9 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
         }
     }
 #endif
-    if (ld32(hdr) != XVF_HDR_MAGIC) return;                    /* 'XVF1' yok → VF yok */
+    if (ld32(hdr) != XVF_HDR_MAGIC) { xvf_dbg(k32, 'M', 'X', '.'); return; }   /* 'XVF1' yok */
     count = ld32(hdr + 4);
+    xvf_dbg(k32, 'M', 'C', (char)('0' + (count < 10 ? count : 9)));
     if (count > XVF_MAX_FILES) return;
     {
         u32 cfg_rva = ld32(cfg + XCFG_OFF_CFGRVA);
@@ -957,6 +1690,7 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
             xvf_memcpy((u8*)(unsigned long)buf, hdr + datao, dsz);   /* şifreli ham kopya */
             xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(datao),
                    (u8*)(unsigned long)buf, dsz, 1);                 /* yerinde çöz */
+            xvf_dbg(k32, 'D', (char)('0' + (act < 10 ? act : 9)), (char)('0' + (dsz < 10 ? dsz : (dsz > 99 ? 9 : (dsz / 10)))));
             if (act == 1 || act == 2) {
                 /* faLoad (+ faRegister: A17'de DllRegisterServer tam bağlanır) */
                 u64 mapret = xvf_map_pe((const u8*)(unsigned long)buf, dsz, k32);
@@ -983,6 +1717,9 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
                 }
 #endif
                 (void)mapret;
+            } else if (act == 4) {
+                /* 1.2.2-A17: VIRTUAL REGISTRY store — scratch'e kopyala+parse */
+                xvr_load((const u8*)(unsigned long)buf, dsz, k32);
             } else if (act == 3) {                              /* faInstall */
                 u64 gtp = find_export(k32, XH_GETTEMPPATHA);
                 u64 cfa = find_export(k32, XH_CREATEFILEA);
@@ -1013,6 +1750,10 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
             if (va_free) api1(va_free, buf);                   /* ham tamponu bırak */
         }
     }
+    /* 1.2.2-A17: Virtual Registry IAT kesmesi — store kurulduysa BIR KEZ */
+    if (ld32(cfg + XCFG_OFF_FLAGS) & XFLAG_VREG)
+        xrt_vreg_install((const u8*)(unsigned long)((u64)(unsigned long)cfg -
+                         (u64)ld32(cfg + XCFG_OFF_CFGRVA)), k32);
 }
 
 u32 xrt_entry(void* cfgp) {

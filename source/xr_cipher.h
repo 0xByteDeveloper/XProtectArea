@@ -58,7 +58,9 @@ static void xr_cfb(unsigned long long k0, unsigned long long k1,
         if (m > 8) m = 8;
         for (q = 0; q < 8; q++) {
             kb[q] = (unsigned char)(ks >> (8 * q));
-            sv[q] = p[off + q];              /* XOR öncesi (giriş) */
+            /* A17-iz FIX: kismi son-blokta p[off+q] HEAP-DISI okurdu (UB —
+               optimizasyonda akis sapmasi). Simde korumali okuma: */
+            sv[q] = (off + q < n) ? p[off + q] : 0;   /* XOR öncesi (giriş) */
         }
         for (j = 0; j < m; j++) p[off + j] ^= kb[j];
         {   /* geribesleme = sifreli blok: sifrelemede cikis, cozmede giris */
