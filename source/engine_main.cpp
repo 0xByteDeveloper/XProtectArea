@@ -616,7 +616,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // 0.7.0: lisans API'leri xrt dispatch ister
     bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
-    bool rt_blob = rt_any || opt.iat_prot || opt.pack || lic_any;
+    bool rt_blob = rt_any || opt.iat_prot || opt.pack || lic_any
+                || (opt.vfiles && !opt.vfile_paths.empty());   /* 1.2.2-A16: VF runtime ister */
     u32 xrt_len      = pe.is64 ? (u32)XRT_BLOB64_LEN : (u32)XRT_BLOBX86_LEN;
     u32 xrt_code_off = 0, cfg_off = 0;
     u32 xrt_entry_rva = 0, xrt_resolve_rva = 0, cfg_rva = 0, xrt_unpack_rva = 0;
@@ -660,8 +661,106 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // İLK bytecode'un ilk 8 baytını EZİYORDU -> VM çöp opcode okuyor,
     // fonksiyon sessizce no-op'a düşüyor (crash YOK, yanlış sonuç VAR).
     u32 lsd_area = (lic_any && rt_blob) ? (LSD_SIZE_E + LSD_CACHE_E) : 0;
-    if (lsd_area) lsd_rva = cfg_rva + XCFG_SIZE_E;
-    u32 thunk_area_end = rt_blob ? (cfg_off + XCFG_SIZE_E + lsd_area) : (u32)blob_len;
+
+    // ============================================================
+    // 1.2.2-A16: VIRTUAL FILES — cfg'den sonra XVF1 blogu (xr_cipher.h sozlesmesi)
+    // Gomulu dosyalar: isim UO InternalFile::WriteName 1:1 rotl/xor; veri CFB-64.
+    // cpVirtualFiles kutusu + --vfile <yol> (faLoad) / reg:<yol> / install:<yol>.
+    // Runtime: ilk korumali kapida xrt_vfiles bellekte manuel-PE yukler.
+    // ============================================================
+    std::vector<u8> vf_block;
+    u32 vf_area = 0;
+    if (opt.vfiles && rt_blob && !opt.vfile_paths.empty()) {
+        size_t vf_n = opt.vfile_paths.size() > (size_t)XVF_MAX_FILES ? (size_t)XVF_MAX_FILES : opt.vfile_paths.size();
+        if (vf_n < opt.vfile_paths.size())
+            L("[VF] en fazla 64 dosya — fazlasi atlandi");
+        struct VfRaw { std::vector<u8> data; u32 action; std::string name; std::string src; };
+        std::vector<VfRaw> vfs;
+        for (size_t vfi = 0; vfi < vf_n; vfi++) {
+            const std::string& p = opt.vfile_paths[vfi];
+            u32 act = 1;                                  // faLoad varsayilan
+            std::string path = p;
+            if (path.size() > 5 && path.compare(0, 5, "reg:") == 0) { act = 2; path = path.substr(5); }
+            else if (path.size() > 8 && path.compare(0, 8, "install:") == 0) { act = 3; path = path.substr(8); }
+            FILE* fp = fopen(path.c_str(), "rb");
+            if (!fp) { L(std::string("[VF] acilamadi (atlandi): ") + path); continue; }
+            fseek(fp, 0, SEEK_END); long sz = ftell(fp); fseek(fp, 0, SEEK_SET);
+            if (sz < 0 || (unsigned long long)sz > XVF_MAX_SIZE) {
+                L(std::string("[VF] boyut siniri (atlandi): ") + path);
+                fclose(fp); continue;
+            }
+            VfRaw v; v.data.resize((size_t)sz);
+            if (sz && fread(v.data.data(), 1, (size_t)sz, fp) != (size_t)sz) {
+                L(std::string("[VF] okunamadi (atlandi): ") + path);
+                fclose(fp); continue;
+            }
+            fclose(fp);
+            size_t sl = path.find_last_of("/\\");
+            v.name = (sl == std::string::npos) ? path : path.substr(sl + 1);
+            v.action = act;
+            v.src = path;
+            vfs.push_back(std::move(v));
+        }
+        if (!vfs.empty()) {
+            u32 names_off = 16 + (u32)vfs.size() * 16;
+            std::vector<u8> names_blob;
+            std::vector<u32> name_offs;
+            for (size_t fi = 0; fi < vfs.size(); fi++) {
+                // UTF-16 isim + L'\0'; UO WriteName 1:1: w[i] ^ (rotl32(key,i)+i)
+                std::wstring w(vfs[fi].name.begin(), vfs[fi].name.end());  // ASCII guvenli
+                u32 nk = xvf_namekey(cfg_rva, (u32)fi);
+                name_offs.push_back(names_off + (u32)names_blob.size());
+                for (size_t i = 0; i <= w.size(); i++) {
+                    u16 c = (i == w.size()) ? 0 : (u16)w[i];
+                    u32 ro = ((nk << ((u32)(i & 31))) | (nk >> ((32u - (u32)(i & 31)) & 31)));
+                    u16 e = (u16)(c ^ (u16)((ro + (u32)i) & 0xFFFF));
+                    names_blob.push_back((u8)(e & 0xFF));
+                    names_blob.push_back((u8)(e >> 8));
+                }
+            }
+            // 1.2.2-A16 duzeltildi: yerlesim hatasi — veri isimlerden SONRA
+            // hizalanir (names_off degil blok-sonu); hdr data_off = ILK veri
+            // baslangici (dongu sonu degil); data_blob ici padding YOK —
+            // hizalama blok resize ile yapilir.
+            u32 blk_end = names_off + (u32)names_blob.size();
+            u32 first_data_off = (blk_end + 15) & ~15u;
+            std::vector<u8> data_blob;
+            std::vector<u32> data_offs;
+            for (size_t fi = 0; fi < vfs.size(); fi++) {
+                data_offs.push_back(first_data_off + (u32)data_blob.size());
+                std::vector<u8> enc = vfs[fi].data;
+                xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva),
+                       xvf_nonce(data_offs[fi]), enc.data(), (u32)enc.size(), 0);
+                data_blob.insert(data_blob.end(), enc.begin(), enc.end());
+                while (data_blob.size() & 15u) data_blob.push_back(0);
+            }
+            // blok kur: [hdr 16][entries][isimler][pad][veri]
+            vf_block.resize(16 + vfs.size() * 16, 0);
+            wrv32(vf_block, 0, XVF_HDR_MAGIC);
+            wrv32(vf_block, 4, (u32)vfs.size());
+            wrv32(vf_block, 8, names_off);
+            wrv32(vf_block, 12, first_data_off);
+            for (size_t fi = 0; fi < vfs.size(); fi++) {
+                wrv32(vf_block, 16 + (u32)fi * 16 + 0, name_offs[fi]);
+                wrv32(vf_block, 16 + (u32)fi * 16 + 4, data_offs[fi]);
+                wrv32(vf_block, 16 + (u32)fi * 16 + 8, (u32)vfs[fi].data.size());
+                wrv32(vf_block, 16 + (u32)fi * 16 + 12, vfs[fi].action);
+            }
+            vf_block.insert(vf_block.end(), names_blob.begin(), names_blob.end());
+            if (vf_block.size() < (size_t)first_data_off) vf_block.resize(first_data_off, 0);
+            vf_block.insert(vf_block.end(), data_blob.begin(), data_blob.end());
+            vf_area = (u32)vf_block.size();
+            for (auto& v : vfs) {
+                snprintf(b, sizeof b, "[VF] gomuldu: %s (%uB, fa%s)",
+                         v.name.c_str(), (u32)v.data.size(),
+                         v.action == 1 ? "Load" : (v.action == 2 ? "Register" : "Install"));
+                L(b);
+            }
+        }
+    }
+
+    if (lsd_area) lsd_rva = cfg_rva + XCFG_SIZE_E + vf_area;   // 1.2.2-A16: VF blogu cfg ile LSD arasinda
+    u32 thunk_area_end = rt_blob ? (cfg_off + XCFG_SIZE_E + vf_area + lsd_area) : (u32)blob_len;
     u32 n_iat_sites = 0, n_iat_funcs_skip = 0;
     if (opt.iat_prot) {
         std::map<u32, ImpSlot> by_rva;
@@ -994,10 +1093,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg = sdk_rva.count(c.f->rva) != 0;
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
@@ -1109,6 +1208,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         const u8* xblob = pe.is64 ? XRT_BLOB64 : XRT_BLOBX86;
         secimg.insert(secimg.end(), xblob, xblob + xrt_len);
         secimg.resize(cfg_off + XCFG_SIZE_E, 0);   // cfg (0.6.1: 0x48 — 0x40 rezervi bc ezdi!)
+        if (vf_area)   // 1.2.2-A16: XVF1 blogu — cfg'den hemen sonra (LSD oncesi)
+            secimg.insert(secimg.end(), vf_block.begin(), vf_block.end());
     }
     while (secimg.size() < (size_t)state_off - (nstate ? 0 : 0)) secimg.push_back(0);
     secimg.resize(cache_off + (u32)thunk_slots.size() * psz, 0);
@@ -1182,10 +1283,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg2 = sdk_rva.count(c.f->rva) != 0;
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
         memcpy(&secimg[so], st.data(), st.size());
     }
@@ -1447,10 +1548,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             bool isreg3 = sdk_rva.count(f.rva) != 0;
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                             rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                             rt_any ? xrt_entry_rva : 0, rt_any ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area) ? xrt_entry_rva : 0, (rt_any || vf_area) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
@@ -1630,7 +1731,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     text = pe.secbyname(".text");   // add_section realloc -> tazele
     rdata = pe.secbyname(".rdata");
 
-    if (rt_any || opt.pack) {
+    if (rt_any || opt.pack || vf_area) {   /* 1.2.2-A16: VF da cfg yazar */
         // 0.6.0: pack-only derlemede bile cfg YAZILMALI (xrt_unpack cfg
         // okur; magic yoksa unpack hic calismaz -> .text sikisik kalir).
         // --- file CRC: FINAL dosya (CheckSum alani + .vmp0 ham araligi atla) ---
@@ -1660,6 +1761,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (opt.rt_msg)     fl |= 0x08;
         if (opt.rt_exit)    fl |= 0x10;
         if (opt.memprot)    fl |= 0x20;   /* 1.2.2-A11: IC memory protection */
+        if (vf_area)         fl |= 0x40;   /* 1.2.2-A16: Virtual Files tek-kurulum */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);

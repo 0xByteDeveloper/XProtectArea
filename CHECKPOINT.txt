@@ -1,6 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp43  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp44  (2026-11-13, UTC+8)
 ================================================================
-Odak: A15 Check Kernel Debugger ayri gate (K5/K6 bit2 + UO oto-kural) + K7b CheckVM zamanlama — KD1-KD5 kanitli (KD4: KVM'de GERCEK tespit)
-Zipler: checkpoints/Xprotect_1.2.2_cp43/Xprotect_1.2.2_cp43.zip (tam kaynak + ikililer)
+Odak: A16 Virtual Files faLoad GREEN — api-set scan-all + RWX map (NEDEN-2 fix, vf_p74 vf_loaded=1)
+Zipler: checkpoints/Xprotect_1.2.2_cp44/Xprotect_1.2.2_cp44.zip (tam kaynak + ikililer)
 Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

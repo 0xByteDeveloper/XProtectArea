@@ -56,6 +56,7 @@ typedef unsigned long long u64;
 #define XFLAG_MSG     0x08
 #define XFLAG_EXIT    0x10
 #define XFLAG_MEMPROT 0x20   /* 1.2.2-A11: IC memory protection (VEH yazma-guvesi) */
+#define XFLAG_VFILES 0x40   /* 1.2.2-A16: Virtual Files (tek-kurulum kilidi) */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -74,6 +75,13 @@ static u32 crc_up(u32 c, u8 b) {
 static u32 fnv_a(const char* s) {
     u32 h = 2166136261u;
     while (*s) { h ^= (u8)*s++; h *= 16777619u; }
+    return h;
+}
+/* A16-iz2: BÜYÜK/küçük duyarsız ANSI hash — PEB fnv_w ile ASCII'de birebir
+   eşleşir (import "KERNEL32.dll" vs PEB "KERNEL32.dll" her yazımda bul). */
+static u32 fnv_al(const char* s) {
+    u32 h = 2166136261u;
+    while (*s) { u32 c = (u8)*s++; if (c >= 'A' && c <= 'Z') c += 32u; h ^= c; h *= 16777619u; }
     return h;
 }
 static u32 fnv_w(const u16* s, u32 n) {
@@ -104,6 +112,10 @@ static u32 fnv_w(const u16* s, u32 n) {
 #define XH_NTDLL          0xA62A3B3Bu  // "ntdll.dll" (wide, kucuk-harf)
 #define XH_RTLADDFT       0x38791528u  // "RtlAddFunctionTable"
 #define XH_ADDVECTEH      0xAFAC650Du  // "AddVectoredExceptionHandler" (1.2.2-A11)
+#define XH_GETPROCADDRESS 0xF8F45725u  // "GetProcAddress" (1.2.2-A16)
+#define XH_GETTEMPPATHA   0x5F59CFF1u  // "GetTempPathA" (1.2.2-A16)
+#define XH_WRITEFILE      0x7F07C44Au  // "WriteFile" (1.2.2-A16)
+#define XH_SETFILEPOINTER 0xB7F5E1C2u  // "SetFilePointer" (A16-iz)
 
 // volatile 4-karakter yazisi — GCC bunlari memcpy'ye cevireMEZ (PIC guvenli)
 #define VP4(d, off, w) do { \
@@ -289,6 +301,32 @@ static u64 peb_module(u32 want) {
         if (nbuf && nlen && nlen < 128) {
             u32 h = fnv_w((const u16*)(unsigned long)nbuf, nlen >> 1);
             if (h == want) return LDPTR((const u8*)(unsigned long)(ent + ENT_DLLBASE_OFF));
+        }
+        cur = LDPTR((const u8*)(unsigned long)cur);
+    }
+    return 0;
+}
+
+/* A16-iz2: api-set (api-ms-win-*) DLL'ler PEB adıyla EŞLEŞMEZ (gerçek ad
+   ucrtbase/kernelbase'tir) ve LoadLibraryA freestanding çerçeveden çağrıldı-
+   ğında wine SEH-unwind'i (unwind-info'suz blob frame'leri) patlatıyor.
+   ÇÖZÜM: import hash'ini TÜM yüklü modüllerin export tablolarında ara —
+   ucrtbase zaten PEB'dedir (host api-ms-* import ediyorsa). */
+static u64 find_export(u64 kbase, u32 want);
+static u64 find_export_any(u32 want) {
+    u64 peb = peb_addr();
+    if (!peb) return 0;
+    u64 ldr = LDPTR((const u8*)(unsigned long)(peb + PEB_LDR_OFF));
+    if (!ldr) return 0;
+    u64 head = ldr + LDR_INMEM_OFF;
+    u64 cur = LDPTR((const u8*)(unsigned long)head);
+    int guard = 0;
+    while (cur && cur != head && guard++ < 96) {
+        u64 ent = cur - ENT_INMEM_OFF;
+        u64 db = LDPTR((const u8*)(unsigned long)(ent + ENT_DLLBASE_OFF));
+        if (db) {
+            u64 a = find_export(db, want);
+            if (a) return a;
         }
         cur = LDPTR((const u8*)(unsigned long)cur);
     }
@@ -577,6 +615,406 @@ static long __attribute__((stdcall)) mp_veh(u8* ep) {
 }
 #endif
 
+// ============================================================
+// 1.2.2-A16 — VIRTUAL FILES (cpVirtualFiles): XVF1 bloğu = cfg + 0x60
+// UO davranışı (core.cc InternalFile + runtime loader):
+//   faLoad(1):     bellekte MANUEL PE haritası — VirtualAlloc + bölüm
+//                  kopyala + reloc + import (hash/GetProcAddress) +
+//                  DllMain(PROCESS_ATTACH). Diskte hiç iz yok.
+//   faRegister(2): yükle + DllRegisterServer (A17'de tam)
+//   faInstall(3):  %TEMP%\isim'e çöz + LoadLibraryA
+// Anahtar/isim sözleşmesi: xr_cipher.h (xvf_k0/k1/nonce/namekey).
+// ============================================================
+static u32 xvf_rotl(u32 k, u32 i) {
+    i &= 31;
+    return (k << i) | (k >> ((32u - i) & 31));
+}
+static void xvf_wr32(u8* p, u32 v) {
+    volatile u8* q = (volatile u8*)p;
+    q[0] = (u8)v; q[1] = (u8)(v >> 8); q[2] = (u8)(v >> 16); q[3] = (u8)(v >> 24);
+}
+static void xvf_wr64(u8* p, u64 v) {
+    volatile u8* q = (volatile u8*)p; int i;
+    for (i = 0; i < 8; i++) q[i] = (u8)(v >> (8 * i));
+}
+static void xvf_memcpy(u8* d, const u8* s, u32 n) {
+    volatile u8* dd = (volatile u8*)d; const volatile u8* ss = (const volatile u8*)s;
+    while (n--) *dd++ = *ss++;
+}
+/* UO InternalFile::WriteName tersi: w[i] ^ (rotl32(key,i)+i) → ANSI */
+static u32 xvf_name_dec(const u8* hdr, u32 name_off, u32 nk, char* out, u32 cap) {
+    u32 n = 0;
+    while (n + 1 < cap) {
+        u16 e = (u16)((u16)hdr[name_off + n * 2] | ((u16)hdr[name_off + n * 2 + 1] << 8));
+        u16 c = (u16)(e ^ (u16)((xvf_rotl(nk, n) + n) & 0xFFFF));
+        if (!c) break;
+        out[n] = (char)(c & 0xFF);
+        n++;
+    }
+    out[n] = 0;
+    return n;
+}
+
+/* --- manuel PE haritası (faLoad çekirdeği) --- */
+/* A16-iz: APPEND modu — OPEN_ALWAYS + SetFilePointer(FILE_END); her işaret
+   dosyaya EKLENİR (üstüne yazmaz), böylece tam crash konumu görünür.
+   ÜRETİMDE XVF_TRACE tanımlı değilse NO-OP (hiç dosya-yazımı yok). */
+#ifdef XVF_TRACE
+static void xvf_dbg(u64 k32, char a, char b2, char c3) {
+    char pn[16]; volatile char* pp = pn;
+    pp[0]='C';pp[1]=':';pp[2]='\\';pp[3]='v';pp[4]='f';pp[5]='r';pp[6]='t';
+    pp[7]='.';pp[8]='t';pp[9]='x';pp[10]='t';pp[11]=0;
+    {
+        u64 cfa_ = find_export(k32, XH_CREATEFILEA);
+        u64 wf_ = find_export(k32, XH_WRITEFILE);
+        u64 sf_ = find_export(k32, XH_SETFILEPOINTER);
+        u64 ch_ = find_export(k32, XH_CLOSEHANDLE);
+        if (cfa_ && wf_ && ch_) {
+            u64 fh = api7(cfa_, (u64)(unsigned long)(void*)pn, 0x40000000u, 0, 0, 4, 0, 0);
+            if (fh && fh != (u64)(unsigned long)-1) {
+                char mk[4]; volatile char* mp = mk;
+                mp[0]=a; mp[1]=b2; mp[2]=c3; mp[3]='\n';
+                u32 wr = 0;
+                if (sf_) api4(sf_, fh, 0, 0, 2 /*FILE_END*/);
+                api5(wf_, fh, (u64)(unsigned long)(void*)mk, 4, (u64)(unsigned long)&wr, 0);
+                api1(ch_, fh);
+            }
+        }
+    }
+}
+#else
+static void xvf_dbg(u64 k32, char a, char b2, char c3) { (void)k32; (void)a; (void)b2; (void)c3; }
+#endif
+static u64 xvf_map_pe(const u8* raw, u32 rawsz, u64 k32) {
+    u32 pe_off, machine, nsec, optsz, ep_rva, img_sz, hdr_sz, ddir_off;
+    u64 base, delta;
+    u64 va_alloc, ep;
+    const u8* sh;
+    u32 i;
+
+    if (rawsz < 0x100) return 0;
+    if (ld16(raw) != 0x5A4D) return 0;                       /* 'MZ' */
+    pe_off = ld32(raw + 0x3C);
+    if ((u64)pe_off + 24 + 240 > rawsz) return 0;
+    if (ld32(raw + pe_off) != 0x4550) return 0;               /* 'PE\0\0' */
+    machine = ld16(raw + pe_off + 4);
+#if defined(XRT_IS_X64)
+    if (machine != 0x8664) return 0;
+    ddir_off = pe_off + 24 + 112;                             /* PE32+ data-dizisi */
+#else
+    if (machine != 0x014C) return 0;
+    ddir_off = pe_off + 24 + 96;                              /* PE32 data-dizisi */
+#endif
+    nsec  = ld16(raw + pe_off + 6);
+    optsz = ld16(raw + pe_off + 20);
+    if (!nsec || nsec > 96) return 0;
+    ep_rva = ld32(raw + pe_off + 24 + 16);                    /* opt+16 girişi */
+    img_sz = ld32(raw + pe_off + 24 + 56);                    /* opt+56 SizeOfImage */
+    hdr_sz = ld32(raw + pe_off + 24 + 60);                    /* opt+60 SizeOfHeaders */
+    if (img_sz < hdr_sz || img_sz > 0x40000000u || hdr_sz > rawsz) return 0;
+    sh = raw + pe_off + 24 + optsz;                           /* bölüm tablosu */
+    va_alloc = find_export(k32, XH_VIRTUALALLOC);
+    if (!va_alloc) return 0;
+    /* A16-iz3: RWX — manuel-map görseline KOD ÇALIŞTIRMA izni şart (yoksa
+       DllMain ilk çalıştırmada NXfault; import veri-yazıları RW'de sorunsuzdu) */
+    base = api4(va_alloc, 0, (u64)img_sz, 0x3000u, 0x40u);    /* RESERVE|COMMIT RWX */
+    if (!base) return 0;
+    xvf_dbg(k32, 'V', 'A', '.');
+    xvf_memcpy((u8*)(unsigned long)base, raw, hdr_sz);
+    xvf_dbg(k32, 'H', 'D', '.');
+    for (i = 0; i < nsec; i++) {
+        u32 so = (u32)(pe_off + 24 + optsz) + i * 40;
+        u32 vsz = ld32(raw + so + 8);
+        u32 vrva = ld32(raw + so + 12);
+        u32 rsz = ld32(raw + so + 16);
+        u32 rraw = ld32(raw + so + 20);
+        if (!vsz || !vrva) continue;
+        if ((u64)vrva + vsz > img_sz) continue;
+        if ((u64)rraw + rsz > rawsz) continue;
+        xvf_memcpy((u8*)(unsigned long)(base + vrva), raw + rraw, rsz);
+    }
+#if defined(XRT_IS_X64)
+    delta = (u64)(unsigned long)base - ld64(raw + pe_off + 24 + 24);   /* opt+24 ImageBase */
+#else
+    delta = (u64)(unsigned long)base - (u64)ld32(raw + pe_off + 24 + 28); /* opt+28 ImageBase */
+#endif
+    xvf_dbg(k32, 'S', 'E', '.');
+    {   /* --- reloc (data-dizisi 5) --- */
+        u32 rel_rva = ld32(raw + ddir_off + 5 * 8);
+        u32 rel_sz = ld32(raw + ddir_off + 5 * 8 + 4);
+        if (rel_rva && rel_sz && delta) {
+            u8* rp = (u8*)(unsigned long)(base + rel_rva);
+            u32 ro = 0;
+            while (ro + 8 <= rel_sz) {
+                u32 page = ld32(rp + ro);
+                u32 bsz = ld32(rp + ro + 4);
+                u32 j;
+                if (bsz < 8 || (u64)ro + bsz > rel_sz) break;
+                for (j = 8; j < bsz; j += 2) {
+                    u16 e = ld16(rp + ro + j);
+                    u32 typ = (u32)(e >> 12);
+                    u32 off = (u32)(e & 0xFFF);
+                    u8* tgt;
+                    if (!typ) continue;                        /* 0 = padding */
+                    if ((u64)page + off + 8 > img_sz) continue;
+                    tgt = (u8*)(unsigned long)(base + page + off);
+#if defined(XRT_IS_X64)
+                    if (typ == 10) {                          /* DIR64 */
+                        u64 v = 0; int k2;
+                        for (k2 = 0; k2 < 8; k2++) v |= ((u64)tgt[k2]) << (8 * k2);
+                        xvf_wr64(tgt, v + delta);
+                    }
+#else
+                    if (typ == 3) {                            /* HIGHLOW */
+                        xvf_wr32(tgt, ld32(tgt) + (u32)delta);
+                    }
+#endif
+                }
+                ro += bsz;
+            }
+        }
+    }
+    xvf_dbg(k32, 'R', 'E', '.');
+    {   /* --- import (data-dizisi 1) --- */
+        u32 imp_rva = ld32(raw + ddir_off + 1 * 8);
+        if (imp_rva) {
+            u8* ip = (u8*)(unsigned long)(base + imp_rva);
+            u32 di = 0;
+            u64 gpa = find_export(k32, XH_GETPROCADDRESS);
+            for (;;) {
+                u32 oft, name_rva, ft;
+                if (di >= 4096) break;
+                oft = ld32(ip + di * 20 + 0);
+                name_rva = ld32(ip + di * 20 + 12);
+                ft = ld32(ip + di * 20 + 16);
+                if (!oft && !name_rva && !ft) break;
+                {
+                    xvf_dbg(k32, 'I', 'D', (char)('0' + (di < 10 ? di : 9)));
+                    char dll[128];
+                    u32 q = 0;
+                    u8* np = (u8*)(unsigned long)(base + name_rva);
+                    while (q < 127 && np[q]) { dll[q] = (char)np[q]; q++; }
+                    dll[q] = 0;
+                    xvf_dbg(k32, 'N', '.', (char)('0' + (di < 10 ? di : 9)));
+                    if (q) {
+                        /* A16-iz2: 1) PEB case-insensitive eşleşme; 2) hmod yoksa
+                           THUNK'LARI scan-all (find_export_any) ile çöz — api-ms-*
+                           ucrtbase/kernelbase'te zaten var; LoadLibraryA SON ÇARE
+                           (yalnız scan-all başarısızsa; freestanding çerçevede
+                           wine SEH-unwind'ini bozabildiği için son adımda). */
+                        u64 hmod = peb_module(fnv_al(dll));
+                        xvf_dbg(k32, 'P', hmod ? '1' : '0', (char)('0' + (di < 10 ? di : 9)));
+                        u32 nfail = 0;
+                        u8* tsrc = (u8*)(unsigned long)(base + (oft ? oft : ft));
+                        u8* tdst = (u8*)(unsigned long)(base + ft);
+                        u32 ti = 0;
+                        for (;;) {
+                            u64 addr = 0;
+#if defined(XRT_IS_X64)
+                            u64 te = 0; int k2;
+                            for (k2 = 0; k2 < 8; k2++) te |= ((u64)tsrc[(u64)ti * 8 + k2]) << (8 * k2);
+                            if (!te) break;
+                            if (te & 0x8000000000000000ull) {
+                                if (hmod && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(te & 0xFFFFu));
+                            } else {
+                                u8* in = (u8*)(unsigned long)(base + (u32)te + 2);
+                                u32 hh = fnv_a((const char*)in);
+                                addr = hmod ? find_export(hmod, hh) : 0;
+                                if (!addr) addr = find_export_any(hh);
+                                if (!addr && hmod && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(unsigned long)(void*)in);
+                            }
+                            if (!addr) nfail++;
+                            if (!addr) xvf_dbg(k32, 'Z', '!', (char)('0' + (ti < 10 ? ti : 9)));
+                            xvf_wr64(tdst + (u64)ti * 8, addr);
+#else
+                            u32 te = ld32(tsrc + (u64)ti * 4);
+                            if (!te) break;
+                            if (te & 0x80000000u) {
+                                if (hmod && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(te & 0xFFFFu));
+                            } else {
+                                u8* in = (u8*)(unsigned long)(base + te + 2);
+                                u32 hh = fnv_a((const char*)in);
+                                addr = hmod ? find_export(hmod, hh) : 0;
+                                if (!addr) addr = find_export_any(hh);
+                                if (!addr && hmod && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(unsigned long)(void*)in);
+                            }
+                            if (!addr) nfail++;
+                            if (!addr) xvf_dbg(k32, 'Z', '!', (char)('0' + (ti < 10 ? ti : 9)));
+                            xvf_wr32(tdst + (u64)ti * 4, (u32)addr);
+#endif
+                            ti++;
+                            if (ti > 0x10000) break;
+                        }
+                        xvf_dbg(k32, 'S', (nfail ? 'F' : '0'), (char)('0' + (nfail < 10 ? nfail : 9)));
+                        if (nfail && !hmod) {
+                            /* SON ÇARE: gerçek LoadLibraryA (gerçek DLL/Windows
+                             yolunda sorunsuz; scan-all çözemediyse) + yeniden */
+                            u64 lla = find_export(k32, XH_LOADLIBRARYA);
+                            if (lla) hmod = (u64)(unsigned long)api1(lla, (u64)(unsigned long)(void*)dll);
+                            xvf_dbg(k32, 'L', hmod ? '1' : '0', (char)('0' + (di < 10 ? di : 9)));
+                            if (hmod) {
+                                ti = 0;
+                                for (;;) {
+                                    u64 addr = 0;
+#if defined(XRT_IS_X64)
+                                    u64 te = 0; int k2;
+                                    for (k2 = 0; k2 < 8; k2++) te |= ((u64)tsrc[(u64)ti * 8 + k2]) << (8 * k2);
+                                    if (!te) break;
+                                    if (te & 0x8000000000000000ull) {
+                                        if (gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(te & 0xFFFFu));
+                                    } else {
+                                        u8* in = (u8*)(unsigned long)(base + (u32)te + 2);
+                                        addr = find_export(hmod, fnv_a((const char*)in));
+                                        if (!addr && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(unsigned long)(void*)in);
+                                    }
+                                    xvf_wr64(tdst + (u64)ti * 8, addr);
+#else
+                                    u32 te = ld32(tsrc + (u64)ti * 4);
+                                    if (!te) break;
+                                    if (te & 0x80000000u) {
+                                        if (gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(te & 0xFFFFu));
+                                    } else {
+                                        u8* in = (u8*)(unsigned long)(base + te + 2);
+                                        addr = find_export(hmod, fnv_a((const char*)in));
+                                        if (!addr && gpa) addr = (u64)(unsigned long)api2(gpa, hmod, (u64)(unsigned long)(void*)in);
+                                    }
+                                    xvf_wr32(tdst + (u64)ti * 4, (u32)addr);
+#endif
+                                    ti++;
+                                    if (ti > 0x10000) break;
+                                }
+                            }
+                        }
+                    }
+                }
+                di++;
+            }
+        }
+    }
+    xvf_dbg(k32, 'I', 'M', '.');
+    /* DllMain(base, DLL_PROCESS_ATTACH, NULL) */
+    if (ep_rva) {
+        ep = (u64)(unsigned long)(base + ep_rva);
+        api3(ep, (u64)(unsigned long)base, 1, 0);
+    }
+    xvf_dbg(k32, 'D', 'M', '.');
+    return base;
+}
+
+/* XVF1 blogunu işle — xrt_entry sonunda BİR KEZ çağrılır */
+#ifdef XVF_TRACE
+#define XVF_TRACE_ON 1
+#else
+#define XVF_TRACE_ON 0
+#endif
+static void xrt_vfiles(u8* cfg, u64 k32) {
+    u8* hdr = cfg + 0x60;                                     /* VF bloğu = cfg'den hemen sonra */
+    u32 count, i;
+#if defined(XVF_TRACE)
+    {   /* DEBUG-PROBE (A16) — ENTER işareti, stack-string (PIC-güvenli);
+           YALNIZCA XVF_TRACE derlemesinde (üretimde dosya-yazımı YOK) */
+        char pn[16]; volatile char* pp = pn;
+        pp[0]='C';pp[1]=':';pp[2]='\\';pp[3]='v';pp[4]='f';pp[5]='r';pp[6]='t';
+        pp[7]='.';pp[8]='t';pp[9]='x';pp[10]='t';pp[11]=0;
+        {
+            u64 cfa_ = find_export(k32, XH_CREATEFILEA);
+            u64 wf_ = find_export(k32, XH_WRITEFILE);
+            u64 ch_ = find_export(k32, XH_CLOSEHANDLE);
+            if (cfa_ && wf_ && ch_) {
+                u64 fh = api7(cfa_, (u64)(unsigned long)(void*)pn, 0x40000000u, 0, 0, 2, 0, 0);
+                if (fh && fh != (u64)(unsigned long)-1) {
+                    char mk[4]; volatile char* mp = mk;
+                    mp[0]='E'; mp[1]='N'; mp[2]='\n'; mp[3]=0;
+                    u32 wr = 0;
+                    api5(wf_, fh, (u64)(unsigned long)(void*)mk, 3, (u64)(unsigned long)&wr, 0);
+                    api1(ch_, fh);
+                }
+            }
+        }
+    }
+#endif
+    if (ld32(hdr) != XVF_HDR_MAGIC) return;                    /* 'XVF1' yok → VF yok */
+    count = ld32(hdr + 4);
+    if (count > XVF_MAX_FILES) return;
+    {
+        u32 cfg_rva = ld32(cfg + XCFG_OFF_CFGRVA);
+        u64 va_alloc = find_export(k32, XH_VIRTUALALLOC);
+        u64 va_free  = find_export(k32, XH_VIRTUALFREE);
+        if (!va_alloc) return;
+        for (i = 0; i < count; i++) {
+            u32 eno = 16 + i * 16;
+            u32 name_off = ld32(hdr + eno + 0);
+            u32 datao = ld32(hdr + eno + 4);
+            u32 dsz = ld32(hdr + eno + 8);
+            u32 act = ld32(hdr + eno + 12);
+            char name[128];
+            u32 nk = xvf_namekey(cfg_rva, i);
+            u64 buf;
+            xvf_name_dec(hdr, name_off, nk, name, 127);
+            if (!dsz || dsz > (u32)XVF_MAX_SIZE) continue;
+            buf = api4(va_alloc, 0, (u64)dsz, 0x3000u, 0x04u);
+            if (!buf) continue;
+            xvf_memcpy((u8*)(unsigned long)buf, hdr + datao, dsz);   /* şifreli ham kopya */
+            xr_cfb(xvf_k0(cfg_rva), xvf_k1(cfg_rva), xvf_nonce(datao),
+                   (u8*)(unsigned long)buf, dsz, 1);                 /* yerinde çöz */
+            if (act == 1 || act == 2) {
+                /* faLoad (+ faRegister: A17'de DllRegisterServer tam bağlanır) */
+                u64 mapret = xvf_map_pe((const u8*)(unsigned long)buf, dsz, k32);
+#if defined(XVF_TRACE)
+                {   /* DEBUG-PROBE (A16) — stack-string (PIC-güvenli) */
+                    char pn[16]; volatile char* pp = pn;
+                    pp[0]='C';pp[1]=':';pp[2]='\\';pp[3]='v';pp[4]='f';pp[5]='r';pp[6]='t';
+                    pp[7]='.';pp[8]='t';pp[9]='x';pp[10]='t';pp[11]=0;
+                    u64 cfa_ = find_export(k32, XH_CREATEFILEA);
+                    u64 wf_ = find_export(k32, XH_WRITEFILE);
+                    u64 ch_ = find_export(k32, XH_CLOSEHANDLE);
+                    if (cfa_ && wf_ && ch_) {
+                        u64 fh = api7(cfa_, (u64)(unsigned long)(void*)pn,
+                                      0x40000000u, 0, 0, 4, 0, 0);
+                        if (fh && fh != (u64)(unsigned long)-1) {
+                            char mk[4]; volatile char* mp = mk;
+                            mp[0] = mapret ? 'K' : 'F'; mp[1] = 'M'; mp[2] = '\n'; mp[3] = 0;
+                            u32 wr = 0;
+                            api5(wf_, fh, (u64)(unsigned long)(void*)mk, 3,
+                                 (u64)(unsigned long)&wr, 0);
+                            api1(ch_, fh);
+                        }
+                    }
+                }
+#endif
+                (void)mapret;
+            } else if (act == 3) {                              /* faInstall */
+                u64 gtp = find_export(k32, XH_GETTEMPPATHA);
+                u64 cfa = find_export(k32, XH_CREATEFILEA);
+                u64 wf  = find_export(k32, XH_WRITEFILE);
+                u64 ch  = find_export(k32, XH_CLOSEHANDLE);
+                u64 lla = find_export(k32, XH_LOADLIBRARYA);
+                char path[300];
+                if (gtp && cfa && wf && ch && lla) {
+                    u32 tl = (u32)api3(gtp, 260, (u64)(unsigned long)(void*)path, 0);
+                    if (tl && tl < 240) {
+                        u32 q = 0;
+                        while (q < 60 && name[q]) { path[tl + q] = name[q]; q++; }
+                        path[tl + q] = 0;
+                        {
+                            u64 fh = api7(cfa, (u64)(unsigned long)(void*)path,
+                                          0x40000000u, 0, 0, 2, 0, 0); /* CREATE_ALWAYS */
+                            if (fh && fh != (u64)(unsigned long)-1) {
+                                u32 written = 0;
+                                api5(wf, fh, (u64)(unsigned long)buf, dsz,
+                                     (u64)(unsigned long)(void*)&written, 0);
+                                api1(ch, fh);
+                                api1(lla, (u64)(unsigned long)(void*)path);
+                            }
+                        }
+                    }
+                }
+            }
+            if (va_free) api1(va_free, buf);                   /* ham tamponu bırak */
+        }
+    }
+}
+
 u32 xrt_entry(void* cfgp) {
     u8* cfg = (u8*)cfgp;
     u32 flags;
@@ -586,6 +1024,32 @@ u32 xrt_entry(void* cfgp) {
     u64 k32;
     u32 err = 0;
 
+#if defined(XVF_TRACE)
+    {   /* DEBUG-PROBE-ENTRY (A16): xrt_entry cagrildi mi? stack-string PIC;
+           YALNIZCA XVF_TRACE derlemesinde — üretimde dosya-yazımı YOK */
+        u64 k32p = peb_module(XH_KERNEL32);
+        if (k32p) {
+            char pn[16]; volatile char* pp = pn;
+            pp[0]='C';pp[1]=':';pp[2]='\\';pp[3]='v';pp[4]='f';pp[5]='r';pp[6]='t';
+            pp[7]='.';pp[8]='t';pp[9]='x';pp[10]='t';pp[11]=0;
+            u64 cfa_ = find_export(k32p, XH_CREATEFILEA);
+            u64 wf_ = find_export(k32p, XH_WRITEFILE);
+            u64 ch_ = find_export(k32p, XH_CLOSEHANDLE);
+            if (cfa_ && wf_ && ch_) {
+                u64 fh = api7(cfa_, (u64)(unsigned long)(void*)pn, 0x40000000u, 0, 0, 4, 0, 0);
+                if (fh && fh != (u64)(unsigned long)-1) {
+                    u64 poslo = 0; /* OPEN_ALWAYS + WriteFile at FILE_END atlanir — kisaca yazi */
+                    char mk[4]; volatile char* mp = mk;
+                    mp[0]='X'; mp[1]='R'; mp[2]='T'; mp[3]=0;
+                    u32 wr = 0;
+                    (void)poslo;
+                    api5(wf_, fh, (u64)(unsigned long)(void*)mk, 3, (u64)(unsigned long)&wr, 0);
+                    api1(ch_, fh);
+                }
+            }
+        }
+    }
+#endif
     if (ld32(cfg + XCFG_OFF_MAGIC) != XCFG_MAGIC) return 0;
     flags = ld32(cfg + XCFG_OFF_FLAGS);
     if (ld32(cfg + XCFG_OFF_STATE)) return 0;
@@ -670,7 +1134,8 @@ u32 xrt_entry(void* cfgp) {
                  mp_old ? mp_old : 0x20u, (u64)(unsigned long)&tmp2);
         }
     }
-    else if (flags & (XFLAG_SELFCRC | XFLAG_TEXTCRC | XFLAG_FILECRC)) {
+    else if (flags & (XFLAG_SELFCRC | XFLAG_TEXTCRC | XFLAG_FILECRC | XFLAG_VFILES)) {
+        /* 1.2.2-A16: VF de tek-kurulum — her kapida yeniden map edilmesin */
         cfg[XCFG_OFF_STATE]     = 1;
         cfg[XCFG_OFF_STATE + 1] = 0;
         cfg[XCFG_OFF_STATE + 2] = 0;
@@ -758,6 +1223,9 @@ u32 xrt_entry(void* cfgp) {
         rt_fatal(k32, err, flags);   /* 0.5.1: cikis 0x70+hatakodu */
         return err;
     }
+
+    /* 1.2.2-A16: VIRTUAL FILES — ilk kurulumda yükle (XVF1 cfg+0x60) */
+    xrt_vfiles(cfg, k32);
     return 0;
 }
 

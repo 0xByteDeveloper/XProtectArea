@@ -87,4 +87,38 @@ static void xr_cfb(unsigned long long k0, unsigned long long k1,
 #define XRC_CFG_KEY1   0x58    /* u64 maskeli */
 #define XRC_HDR_FLAG   12      /* XPK1 header +12 (eski 'rezerve'): 1 = şifreli */
 
+/* ============================================================
+ * 1.2.2-A16: Virtual Files (cpVirtualFiles) — ortak sözleşme.
+ * Düzen: cfg'nin hemen ardından (cfg+0x60):
+ *   [0]  u32 magic 'XVF1' (0x31565658)
+ *   [4]  u32 count
+ *   [8]  u32 names_off  (bloğa göre)
+ *   [12] u32 data_off    (bloğa göre)
+ *   [16] entries: count × 16B {name_off, data_off, size, action}
+ *         action: 1=faLoad (bellekte yükle) 2=faRegister 3=faInstall
+ *   [...] isimler: UTF-16LE, UO InternalFile::WriteName 1:1:
+ *         w[i] ^ (u16)(_rotl32(key, i) + i), key = xvf_namekey(cfg,idx)
+ *   [...] veri: xr_cfb(k0,k1,nonce) ile şifreli dosya baytları
+ * Anahtarlar cfg_rva'dan türetilir (motor ve runtime aynı formül).
+ * ============================================================ */
+#define XVF_HDR_MAGIC 0x31565658u               /* 'XVF1' */
+#define XVF_MAX_FILES 64
+#define XVF_MAX_SIZE  0x04000000ull             /* dosya başına 64MB */
+
+static unsigned long long xvf_k0(unsigned int cfg_rva) {
+    return xr_mix64((unsigned long long)cfg_rva ^ 0xA5A5A5A5A5A5A5A5ull);
+}
+static unsigned long long xvf_k1(unsigned int cfg_rva) {
+    return xr_mix64((unsigned long long)cfg_rva ^ 0x5A5A5A5A5A5A5A5Aull);
+}
+static unsigned long long xvf_nonce(unsigned int data_off) {
+    return xr_mix64((unsigned long long)data_off ^ 0xC0FFEE00ull);
+}
+/* isim anahtarı: cfg + indeks karışımı (her iki taraf aynı) */
+static unsigned int xvf_namekey(unsigned int cfg_rva, unsigned int idx) {
+    return (unsigned int)xr_mix64(((unsigned long long)cfg_rva << 32)
+                                   ^ ((unsigned long long)(idx + 1) * 0x9E3779B9ull)
+                                   ^ 0x1B873593D5ull);
+}
+
 #endif /* XR_CIPHER_H */

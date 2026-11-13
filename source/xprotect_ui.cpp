@@ -2708,7 +2708,9 @@ static void start_compile() {
     opt.strip_debug  = (g_proj.options & cpStripDebugInfo) != 0;
     // 1.2.0-B3: cpResourceProtection — .rsrc paket-akisina katilir
     opt.rsrcprot     = (g_proj.options & cpResourceProtection) != 0;
-    // 1.2.2-A13: cpIncludeWatermark — proje watermark listesi motora
+    // 1.2.2-A16: cpVirtualFiles — motor gomme (dosyalar CLI --vfile ile ya da
+    // UI'dan eklenir; kutu isaretsizse --vfile bile olsa gomme yapilmaz)
+    opt.vfiles = (g_proj.options & cpVirtualFiles) != 0;
     // (UO: proje watermark_name'i options.watermark olarak gecer; XProtect
     // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
     if (g_proj.options & cpIncludeWatermark)
