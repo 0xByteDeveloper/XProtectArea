@@ -1,0 +1,18 @@
+== T1: yalniz E96D0 ULTRA (kullanicinin rc=3 senaryosu) ==
+[MANUEL] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 tip=U
+[ULTRA] on-mutasyon RED: dolayli cagri/atlamasi (IAT korumasi ile E8'e cevrilir) -> saf V ye dusuluyor
+[LIFT] 1/1 secili fonksiyon | V=1 M=0 U=0 (U-mutdus=1)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00C758 | VM blob 50650B | vm_entry RVA=0x54DFD0
+T1: FAIL
+T1: bilinmeyen-islem RED'i YOK PASS
+== T2: COKLU D7610 + E96D0 ULTRA (kullanicinin coklu-fonksiyon istegi) ==
+[MANUEL] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C tip=U
+[MANUEL] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 tip=U
+[ULTRA] on-mutasyon RED: dolayli cagri/atlamasi (IAT korumasi ile E8'e cevrilir) -> saf V ye dusuluyor
+[LIFT] 2/2 secili fonksiyon | V=1 M=0 U=1 (U-mutdus=1)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00CA58 | VM blob 50650B | vm_entry RVA=0x54DFD0
+T2: FAIL
+== T3: cikti PE koruma dogrulama ==
+m2_E96D0_U.exe bolumler= ['.text', '.rdata', '.data', '.data1', '.rsrc', '.reloc', '.vmp0'] vmp0= (5513216, 51200)
+m2_coklu_U.exe bolumler= ['.text', '.rdata', '.data', '.data1', '.rsrc', '.reloc', '.vmp0'] vmp0= (5513216, 52224)
+== BITTI ==

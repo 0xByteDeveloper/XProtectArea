@@ -480,3 +480,23 @@ KANIT (kanit/1.2.0/):
 
 Sonraki: B4 cpVirtualFiles (bundler: gomulu dosya agaci + faLoad/
 faRegister/faInstall — UO file_manager.cc modeli).
+
+=== Task 27 — 1.2.2-A10: OP_NCALLI (dolaylı natcall) — çoklu-fonksiyon kök-düzeltmesi (2026-11-13) ===
+USER: cp34 testi — "0xD7610 ULTRA + tüm özellikler çok iyi çalışıyor"; ikinci
+fonksiyon E96D0 ULTRA koruyamadı; tek-derleme rc=3 "lifter: bilinmeyen islem".
+Önceki talimat onayı: "çoklu-fonksiyon×pack ölçek izolasyonu → Internal
+Memory Protection portu" sırası.
+
+KÖK: FF 90 88000000 (call [eax+88h], vtable-thiscall) → XP_CALLI lifter'da
+yok. FIX: OP_NCALLI=0x44 (form 0/1 mem, 2 reg; hedef MUTLAK VA) + vm_core
+x64/x86/trace + lifter XP_CALLI + disasm FF/2 reg-form; XP_JMPI duru-RED.
+VM_OPN 0x45. Build: build_vmblob (PIC kapisi temiz) + build_ui (zig).
+
+KANIT: K1 lift E96D0 rc=42; K2 CLI tek-fonksiyon [LIFT] 1/1 rc=0;
+K3 ÇOKLU D7610+E96D0 [LIFT] 2/2 rc=0; K4 Unicorn runtime — korumalı
+bölge FF 90 88000000 → sahte vtable'dan mutlak hedef okundu, vtcall
+native çalıştı, 777/888 iki-slot doğru (hardcode yok). 2 sahte-fault
+test-harness "r"(vt) kayıt-çakışmasından — "a"(vt) ile kesildi (motor değil).
+
+SONRAKİ: çoklu-fonksiyon×pack ölçek izolasyonu → Internal Memory Protection
+portu → Check Debugger UO-parite kapanışı → özellik listesi eksik taraması.

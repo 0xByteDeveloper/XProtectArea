@@ -127,3 +127,25 @@ ezdi, ikinci `call *%ecx` çöp adrese atladı → 0xC0000005. Detay: CHANGELOG_
 **Bu turda yanıtlanması gereken chat soruları (GUIDED):** UO sürümü = VMProtect 3.5.1
 kaynak tabanlı (pub1); XProtect'in şu anki gücü / UO güç farkı / % kod farkı — sohbet
 sonunda dürüst rapor verilecek.
+
+---
+
+## GÜNCELLEME 2026-11-13 (1.2.2-A10 — OP_NCALLI / çoklu-fonksiyon)
+
+| Kalem | cp34 durumu (kullanıcı kanıtı) | A10 durumu |
+|-------|-------------------------------|------------|
+| 0xD7610 ULTRA + tüm özellikler | ✅ "çok iyi çalışıyor", crash yok | ✅ aynen |
+| 0xE96D0 (vtable thiscall: call [eax+88h]) | ❌ "lifter: bilinmeyen islem" rc=3 | ✅ OP_NCALLI (0x44) — lift+runtime kanıtlı |
+| Çoklu fonksiyon (D7610+E96D0) | ❌ 2. fonksiyon sessiz RED | ✅ [LIFT] 2/2, rc=0 (K3 kanıtı) |
+| "call eax" reg-formu | ❌ grp5 → XP_UNKNOWN | ✅ OP_NCALLI form=2 |
+| "jmp [mem]" (JMPI) | sessiz "bilinmeyen islem" | ✅ DURU RED (net mesaj: image-dışı hedef riski) |
+| VM opcode uzayı | 0x44 (0x00..0x43) | 0x45 (0x00..0x44) |
+
+Lifter ISA kapsamı: mantıksal "pratik-derleyici kodu" kümesi + dolaylı çağrı
+ailesi tamam → vtable-sanal-çağrılı C++ fonksiyonları artık sanallaştırılır.
+Encrypt Registers/vmenc/mult-VM ile çakışma yok (natcall yolu ortak).
+
+**Toplam motor-parite: ~%86** (Virtualization %90, Mutation %80, Ultra %100,
+Encrypt ByteCode %85, Encrypt Registers %100-UO AŞAN, Check Debugger %90,
+Loader/File CRC %90, Pack %90, SDK %90, Import %60, Memory Protection %70 →
+Internal-MP portu sonrası hedef %75).

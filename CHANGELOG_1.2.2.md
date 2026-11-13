@@ -100,3 +100,62 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
 2. mult-VM(vmadv) × antidebug birlikte SEH istisnası (1.2.0 bilinen sınır)
 3. UO tam kapsam portlama devamı: Encrypt ByteCode/Registers paritesi
    %100 (A9 zaten işlevsel) + özellik listesi eksik taraması
+
+## 1.2.2-K9 (2026-11-12) — File CRC çökmesi kök-neden düzeltmesi
+- KULLANICI: "File CRC True → oyunda damage atınca çöküyor" (errorlog:
+  0xC0000005 @ 0x010e093d, edx=0x002a0028) + metin2client_vmp_FileCrc.exe.
+- KÖK NEDEN: xrt_core.c x86 `ENT_FULLBUF_OFF=0x2C` → FullDllName.Buffer
+  (+0x28) yerine BaseDllName.Length+MaxLen (0x002A0028) işaretçi sanıldı;
+  peb_path_for_base geniş→ANSI döngüsü AV. (EIP RVA 0x55093D = .vmp0
+  xrt-blob; ASLR base 0x00B90000 ebp'ten okundu.)
+- DÜZELTME: ENT_FULLBUF_OFF 0x2C→0x28 (tek satır + belge blok).
+- KANIT: Unicorn A/B (eski blob: AV@0x2A0028 birebir reprodüksiyon; yeni:
+  yol+CRC+tamper ExitProcess 0x73) + wine64 regresyon R1=42 R2=115
+  R2b=42 R3-statik=0x28 yerinde R4-determinizm.
+- İKİLİLER: XProtectUI.exe 1.290.752B, XProtectUI32.exe 1.340.928B.
+
+## 1.2.2-A10 (2026-11-13) — OP_NCALLI: dolaylı doğal çağrı (çoklu-fonksiyon RED'i kök-düzeltmesi)
+- KULLANICI (cp34 raporu): 0xD7610 ULTRA + tüm özellikler = sorunsuz, çoğu çalışıyor.
+  İkinci fonksiyon 0xE96D0 ULTRA eklendi → koruyamadı; tek başına derlendiğinde
+  rc=3: "[RED] sub_e96d0 @0x000E96D0: RED: lifter: bilinmeyen islem".
+- KÖK NEDEN: metin2 E96D0 gövdesindeki `FF 90 88000000`
+  (call dword ptr [eax+00000088] — vtable-thiscall, C++ sanal çağrısı)
+  disasm'da XP_CALLI üretiyordu; lifter switch'inde XP_CALLI case'i YOKTU →
+  default → "bilinmeyen islem" RED. (VM'de yalnız OP_NCALL = sabit base+rva
+  hedef vardı; çalışma-zamanı hedefi taşıyacak opcode hiç yoktu.)
+- DÜZELTME (3 dosya, tek opcode):
+  1) vm_opcodes.h: OP_NCALLI=0x44, VM_OPN 0x44→0x45. Kodlama:
+     u8 form (0=u32 mem, 1=u64 mem, 2=u8 reg-idx) [+ mem/reg operand];
+     hedef MUTLAK VA — base EKLENMEZ (OP_NCALL'den tek farkı bu).
+  2) vm_core.c: OP_NCALLI işleyicisi — mem_addr ile hedef belleği/kaydı oku,
+     x64: vm_natcall(tgt,ncr), x86: vm_natcall86(ncr86,(u32)tgt,...);
+     Encrypt Registers yolu OP_NCALL ile birebir (çözülmüş kopya çağrısı,
+     dönüş kayıtçileri yeniden şifreli). VM_TRACE harness sahte-dönüş yolu da var.
+  3) engine_lift.cpp: case XP_CALLI — mem-form (form 0/1, L.emem ile birebir)
+     + reg-form (form 2, "call eax" — FF D0). allow_call politikası aynen.
+     engine_disasm.cpp: FF /2 reg-form artık XP_CALLI üretir (eski: "grp5").
+     XP_JMPI (jmp [mem]): DURU RED — natgt base+rva matematği image-dışı
+     hedefte (IAT thunk) yanlış atama üretir ("sessiz yanlış-sonuç yerine
+     duru RED" geleneği; 607 RED'in bir kısmı artık bu net mesajla).
+- KANITLAR (hepsi yeni ikililerle):
+  K1 lift: test_e96d0.cpp — E96D0'nun 0x40 baytı (kullanıcının ChatDrn
+  dökümü birebir) lift PASS rc=42; trace: "call em] (ncalli sz4) @0xE96E4";
+  çift ret 0x4 + retimm=4 doğru.
+  K2 CLI: XProtectUI.exe --cli metin2client.exe --add E96D0:E9710:U →
+  [LIFT] 1/1, rc=0, m2_E96D0_U.exe kaydedildi (RED YOK; Ultra ön-mutasyon
+  dolaylı-çağrıyı RED edip saf V'ye düşüyor — tasarım gereği).
+  K3 ÇOKLU: --add D7610:D766C:U --add E96D0:E9710:U → [LIFT] 2/2, rc=0,
+  m2_coklu_U.exe — kullanıcının çoklu-fonksiyon isteği YOLDA.
+  K4 RUNTIME (Unicorn x86): test_calli_rt.c (SDK-V bölge içinde FF 90
+  88000000 + FF 90 8C000000) korundu (tcalli0_p.exe, [LIFT] 183/790,
+  VM_OPN=0x45) → ncalli_unicorn.py: korumalı bölge OP_NCALLI ile sahte
+  vtable'dan MUTLAK hedefi okudu; vtcall VA native ÇALIŞTI; do_calli=777
+  slot-0x88, do_calli2=888 slot-0x8C → hedef bellekten okunuyor (hardcode
+  yok), doğru dönüş değeri, bölge-native geçişi temiz.
+- DERS: inline-asm "r"(vt) kısıtı GCC'nin ESI seçimini çakıştırabiliyor
+  (test kodunda 2 sahte-fault üretti); "a"(vt) + "=a"(out) ile kesildi —
+  motor hatası DEĞİLDİ, test harness hatasıydı (bulgular log'da).
+- İKİLİLER: XProtectUI.exe 1.292.800B, XProtectUI32.exe 1.342.976B;
+  vm_blob 428.533B (x64 vm_entry=30960, x86=49104).
+- SONRAKİ: çoklu-fonksiyon×pack ölçek izolasyonu → Internal Memory
+  Protection portu → Check Debugger UO-parite %'sine kalanlar.

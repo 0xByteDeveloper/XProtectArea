@@ -155,6 +155,12 @@
 #define OP_JCCEXT    0x42   // cc rva32 : sartli disari kuyruk-jmp
 #define OP_CHKRET    0x43   // (arg yok) : donus-adresi int3/uzun-int3/ud2 kontrolu —
                            //  UO AddCheckBreakpointSection (intel.cc:9305) 1:1
+#define OP_NCALLI    0x44   // u8 form(0=u32 mem,1=u64 mem,2=u8 reg) [mem] :
+                           //  DOLAYLI dogal cagri (FF /2 call [mem] + FF D0
+                           //  call reg) — hedef VA bellekten/kayittan okunur
+                           //  (vtable/girdi-isaretci; MUTLAK VA, base
+                           //  EKLENMEZ). OP_NCALL'in dinamik-hedef kardesi.
+                           //  metin2 E96D0 "call [eax+88h]" vtable-thiscall dahil.
 
 // Advanced command-cryptor: 4-byte kaba periyot (VM_KS 8-byte'in kardesi;
 // baska sabit ailesi — vtAdvanced osDWord komut-sifreleyici karsiligi)
@@ -329,7 +335,7 @@
 // fonksiyondan turer -> tablo tasimaya gerek yok (stub yalniz tohumu
 // ctx->scratch[3]'e yazar). Tohum 0 = kimlik degil, gecerli permütasyon
 // (determinizm iki tarafta da ayni fonksiyondan).
-#define VM_OPN 0x44   // opcode uzayi (0x00..0x43) — 1.2.0-A8: 0x43 -> 0x44 (OP_CHKRET)
+#define VM_OPN 0x45   // opcode uzayi (0x00..0x44) — 1.2.2-A10: 0x44 -> 0x45 (OP_NCALLI)
 static void vm_perm_tab(unsigned int seed, unsigned char* t, int dec) {
     unsigned char p[VM_OPN]; int i, j;
     for (i = 0; i < VM_OPN; i++) p[i] = (unsigned char)i;

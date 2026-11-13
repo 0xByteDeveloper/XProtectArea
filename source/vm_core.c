@@ -1143,6 +1143,48 @@ static void vm_run(VMContext* c) {
 #endif
 #endif /* VM_TRACE */
 
+        } else if (op == OP_NCALLI) {
+            /* 1.2.2-A10: DOLAYLI dogal cagri (FF /2 call dword ptr [mem] VE
+               FF D0 call reg). Lifter XP_CALLI karsiligi — vtable/girdi-
+               isaretcisi aracili cagilar (metin2 E96D0 "call dword ptr
+               [eax+00000088]" vtable-thiscall dahil). OP_NCALL'den TEK farki:
+               hedef sabit base+rva DEGIL, bellekten/KAYITTAN okunan MUTLAK VA
+               (base eklenmez). Kodlama: u8 form (0=u32 mem, 1=u64 mem,
+               2=u8 reg-idx) + mem operandi (mem_addr kendi form baytini
+               okur — lifter L.emem sirasi ile birebir). Encrypt Registers
+               yolu OP_NCALL ile ayni: cozulmus yerel kopya ile cagrilir,
+               donus kayitcilari yeniden sifreli yazilir. */
+            int tf = sf8(&s);
+            u64 ta = 0, tgt = 0;
+            if (tf == 2) tgt = rdec(c, sf8(&s));
+            else { ta = mem_addr(&s, c); tgt = mrd(ta, tf ? 8 : 4); }
+#ifdef VM_TRACE
+            /* harness modu: native cagri YOK — sahte donus (rax=gumus),
+               akis devam eder (mem/SIB teshisi icin). */
+            if (vm_trace_on) tputn("[ncalli] hedef=", tgt, rdec(c, REG_RSP));
+            renc(c, 0, 0);
+#else
+#ifdef VM_IS_X64
+            {
+                u64 ncr[16]; int nci;
+                for (nci = 0; nci < 16; nci++) ncr[nci] = rdec(c, nci);
+                renc(c, 0, vm_natcall(tgt, ncr));
+            }
+#else
+            {
+                u64 nret = 0, nesp = 0;
+                u64 ncr86[16]; int nci;
+                for (nci = 0; nci < 16; nci++) ncr86[nci] = rdec(c, nci);
+                vm_natcall86(ncr86, (u32)tgt,
+                             (u32)(rdec(c, REG_RSP) - (u64)VM_DELTA), &nret, &nesp);
+                renc(c, REG_RSP, nesp + (u64)VM_DELTA);
+                renc(c, 0, ncr86[0]);
+                renc(c, 1, ncr86[1]);
+                renc(c, 2, ncr86[2]);
+            }
+#endif
+#endif /* VM_TRACE */
+
         } else if (op == OP_RET) {
             c->done = 1;
 

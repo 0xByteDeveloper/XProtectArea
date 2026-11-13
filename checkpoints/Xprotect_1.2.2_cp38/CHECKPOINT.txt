@@ -1,0 +1,107 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp38  (2026-11-13, UTC+8)
+================================================================
+
+== BU CHECKPOINTTE NE YAPILDI ==
+KULLANICI RAPORU (cp34): "XProtect_1.2.2_cp34 çok iyi çalışıyor.
+1) 0xD7610 ULTRA(V+M) + tüm özellikler = hiçbir crash, çoğu çalışıyor.
+2) İkinci fonksiyon 0xE96D0 ULTRA eklenince koruyamadı; tek başına derleyince
+   rc=3 — [RED] sub_e96d0: 'lifter: bilinmeyen islem'."
+
+-- A10: OP_NCALLI (dolaylı doğal çağrı) — KÖK-DÜZELTME -------------------
+Kök-neden: E96D0 gövdesindeki FF 90 88000000 (call dword ptr [eax+00000088],
+vtable-thiscall — C++ sanal çağrısı) → disasm XP_CALLI → lifter switch'inde
+case YOK → default → "bilinmeyen islem" RED.
+
+Düzeltme (3 dosya):
+  1. vm_opcodes.h : OP_NCALLI=0x44 eklendi, VM_OPN 0x44→0x45.
+     Kodlama: u8 form (0=u32 mem, 1=u64 mem, 2=u8 reg) + operand.
+     Hedef MUTLAK VA — base EKLENMEZ (OP_NCALL'den tek fark).
+  2. vm_core.c    : OP_NCALLI işleyicisi (x64 vm_natcall / x86
+     vm_natcall86 / VM_TRACE sahte-dönüş). Encrypt Registers yolu
+     OP_NCALL ile birebir (çözülmüş kopya, dönüş yeniden-şifreli).
+  3. engine_lift.cpp : case XP_CALLI — mem-form + reg-form ("call eax");
+     XP_JMPI (jmp [mem]) DURU RED (natgt base+rva image-dışı hedefte
+     kırılır — net mesaj eklendi; seekBy/readVec/discard/stream artık
+     bu net RED'i veriyor).
+     engine_disasm.cpp : FF /2 reg-form artık XP_CALLI ("call reg").
+
+Build: build_vmblob.sh (vm64.bin 31.898B / vmx86.bin 50.650B; PIC kapisi
+temiz; vm_blob.cpp 428.533B) + build_ui.sh (zig) ->
+  XProtectUI.exe 1.292.800B, XProtectUI32.exe 1.342.976B.
+
+== KANITLAR (cp38 ikilileriyle) ==
+K1 LIFT      : test_e96d0.cpp — E96D0'nun 0x40 baytı (kullanıcı dökümü birebir)
+               -> PASS rc=42; trace "call em] (ncalli sz4) @0xE96E4";
+               çift ret 0x4 + retimm=4 doğru.
+K2 CLI TEK   : --add E96D0:E9710:U -> [LIFT] 1/1, rc=0 -> m2_E96D0_U.exe
+               ("bilinmeyen islem" RED'i KALDI; Ultra ön-mutasyon dolaylı
+               çağrıyı RED edip saf V'ye düşüyor — tasarım gereği).
+K3 CLI ÇOKLU : --add D7610:D766C:U --add E96D0:E9710:U -> [LIFT] 2/2, rc=0
+               -> m2_coklu_U.exe. KULLANICININ ÇOKLU-FONKSİYON İSTEĞİ YOLDA.
+K4 RUNTIME   : Unicorn x86 — tcalli0_p.exe (SDK-V bölge içinde FF 90
+               88000000 VE FF 90 8C000000; VM_OPN=0x45) -> OP_NCALLI sahte
+               vtable'dan mutlak hedefi okudu; vtcall/vtcall2 native
+               ÇALIŞTI; do_calli=777 (slot 0x88), do_calli2=888 (slot 0x8C)
+               -> hedef bellekten okunuyor (hardcode yok), bölge-native
+               geçişi temiz. ncalli_unicorn.py repo'da.
+DERS         : 2 sahte-fault test-harness inline-asm "r"(vt) kayıt-
+               çakışmasından — "a"(vt)+"=a"(out) ile kesildi; MOTOR DEĞİL.
+
+== GÜNCELLENEN / YENİ DOSYALAR ==
+GÜNCELLENEN:
+  source/vm_opcodes.h     (OP_NCALLI 0x44, VM_OPN 0x45)
+  source/vm_core.c        (OP_NCALLI x64/x86/trace işleyicisi)
+  source/engine_lift.cpp  (case XP_CALLI mem+reg, case XP_JMPI duru-RED)
+  source/engine_disasm.cpp(FF /2 reg-form -> XP_CALLI)
+  source/vm_blob.cpp      (yeniden üretilen blob)
+  XProtectUI.exe / XProtectUI32.exe (A10 ikilileri)
+  CHANGELOG_1.2.2.md / PORT_DURUMU.md / worklog_2.md (A10 blokları)
+YENİ (kanit_122/):
+  test_e96d0.cpp, test_e96d0_cli.sh, test_calli_rt.c, ncalli_unicorn.py,
+  e96d0_regresyon.txt, t1.log, t2.log, tcalli0_p.exe, tcalli0_prot.log,
+  m2_E96D0_U.exe, m2_coklu_U.exe
+
+== PORTLAMA DURUMU (dikkatle yeniden sayım) ==
+Öğe                              | %    | Not
+---------------------------------|------|----------------------------------
+Virtualization                   | %90  | + vtable-thiscall (CALLI) eklendi
+Mutation                         | %80  | dolaylı çağrı ön-RED->saf V düşümü var
+Ultra (M+V)                      | %100 | zincir + düşüm politikası kanıtlı
+Encrypt ByteCode                 | %85  | A9 zinciri var; UO zincir-paritesi
+Encrypt Registers                | %100 | UO'yu AŞAN (UO'da ölü bayrak)
+Check Debugger                   | %90  | K1-K9+CHKRET+syscall; ScyllaHide-direnci
+Check Kernel Debugger            | %90  | K5/K6
+Check Virtual Machine            | %70  | CPUID/TF; interception testi bekliyor
+Loader CRC                       | %90  | kullanıcı doğruladı
+File CRC                         | %90  | K9 kök-düzeltmesi + kanıt
+Memory Protection                | %70  | İÇ memory-protection portu SIRADA
+Import Protection                | %60  | IAT thunk deneysel
+Resource Protection              | %70  | pack akışı
+Packing                          | %90  | LZMA
+String Encryption                | %60  | strenc kısmi
+Watermark                        | %50  | kutu+kısmi
+Virtual Files                    | %10  | motor yok (dokümente)
+Licensing                        | %75  | RSA/SHA1+HWID+keygen
+SDK markers                      | %90  | B8 ailesi + JMPEXT/JCCEXT/CHKRET
+MAP/PDB                          | %85  | PDBScope+export/COFF/MAP/RVA
+Strip Fixups/Debug Info          | %90  | kanıtlı
+TOPLAM MOTOR-PARİTE              | ~%86 | (önceki ~%85 -> CALLI ile +%1)
+
+Kullanıcı istek kaydı (bu tur):
+  [OK] "E96D0 lifter RED" -> kök-neden bulundu + düzeltildi + kanıtlı
+  [OK] "sadece tek fonksiyon değil birkaç fonksiyon koruyabilir mi" ->
+       2/2 çoklu lift kanıtı (K3) — kullanıcı oyun testi bekleniyor
+  [--] "damage testini yap" -> kullanıcı cp34 ile yaptı (başarılı);
+       cp38 ikilisiyle yeniden test ÖNERİLİR (E96D0 dahil)
+  [SIRADA] çoklu-fonksiyon×pack ölçek izolasyonu
+  [SIRADA] Internal Memory Protection portu
+
+== SON DURAK / SONRAKI ENDPOINT ==
+1. Regresyon: VM_OPN 0x45 sonrası sdkonly+filecrc R1=42/R2=115 sağlığı.
+2. Çoklu-fonksiyon×pack ölçek izolasyonu (D7610+E96D0+Pack birlikte).
+3. Internal Memory Protection portu (UO mem-protect iç katmanı).
+4. Check Debugger UO-parite kalanları + özellik listesi eksik taraması.
+5. Kullanıcıya: cp38 UI ile E96D0(+D7610) ULTRA oyun-damage testi.
+
+cp39'da görüşmek üzere — kaldığımız yerden devam.

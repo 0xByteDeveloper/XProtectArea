@@ -1,0 +1,118 @@
+[PE] Z:\home\z\my-project\scripts\xp122_test\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[MANUEL] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C tip=U
+[MANUEL] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 tip=U
+[ULTRA] on-mutasyon RED: dolayli cagri/atlamasi (IAT korumasi ile E8'e cevrilir) -> saf V ye dusuluyor
+[LIFT] 2/2 secili fonksiyon | V=1 M=0 U=1 (U-mutdus=1)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00CA58 | VM blob 50650B | vm_entry RVA=0x54DFD0
+[YAMA] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C | bc=565B key=0x41C3AAC94364C407 | stubRVA=0x54E8E0 retimm=8 (trampoline)
+  [ULTRA] on-mutasyon: ikame=6 junk=13 kapi=5 | 92B->207B (x2.25)
+  000D7610: push ebp
+  000D7611: mov ebp, esp (sz4)
+  000D7613: jmp 0xd761b
+  000D7615: alu0 (sz4)
+  000D761B: alu1 (sz4)
+  000D761E: push esi
+  000D761F: push ecx
+  000D7620: pop esi
+  000D7621: call 0xdc1a0 (ncall)
+  000D7626: jmp 0xd7635
+  000D7628: mov ecx, imm=0x71efdae4
+  000D762D: alu6 (sz4)
+  000D762F: push 0x926db1c8
+  000D7634: pop ecx
+  000D7635: or-rr KAPI-dekompoze (sz1)
+  000D7637: jcc5 0xd765f
+  000D763D: mov eax, imm=0x1
+  000D763F: push 0x88ce88e2
+  000D7644: pop ecx
+  000D7645: pop esi
+  000D7646: mov esp, ebp (sz4)
+  000D7648: mov ecx, imm=0xea1f574d
+  000D764D: alu0 (sz4)
+  000D7653: pop ebp
+  000D7654: ret 0x8
+  000D7657: mov ecx, imm=0x2ccdd24e
+  000D765C: lea ecx, [mem]
+  000D765F: mov eax, [mem] (sz1)
+  000D7662: mov [mem], eax (sz1)
+  000D7665: jmp 0xd767b
+  000D7667: mov ecx, imm=0x92d5c349
+  000D766C: alu0 (sz4)
+  000D7672: lea ecx, [mem]
+  000D7675: push 0x515aef34
+  000D767A: pop ecx
+  000D767B: mov eax, [mem] (sz4)
+  000D767E: mov [mem], eax (sz4)
+  000D7681: lea eax, [mem]
+  000D7684: push eax
+  000D7685: push ecx
+  000D7686: lea ecx, [mem]
+  000D7689: mov ecx, esi (sz4)
+  000D768B: mov [mem], imm8=0x2
+  000D768F: call 0xd7670 (ncall)
+  000D7694: jmp 0xd76a7
+  000D7696: alu0 (sz4)
+  000D769C: alu0 (sz4)
+  000D76A2: mov ecx, imm=0xafe3c9da
+  000D76A7: or-rr KAPI-dekompoze (sz1)
+  000D76A9: jcc5 0xd76cf
+  000D76AF: push 0x8033bc
+  000D76B4: call 0x141660 (ncall)
+  000D76B9: alu1 (sz4)
+  000D76BC: alu1 (sz1)
+  000D76BE: pop esi
+  000D76BF: jmp 0xd76c6
+  000D76C1: mov ecx, imm=0x11ae142
+  000D76C6: mov esp, ebp (sz4)
+  000D76C8: pop ebp
+  000D76C9: lea ecx, [mem]
+  000D76CC: ret 0x8
+  000D76CF: push esi
+  000D76D0: pop ecx
+  000D76D1: call 0x152520 (ncall)
+  000D76D6: pop esi
+  000D76D7: mov ecx, imm=0xd907998a
+  000D76DC: mov esp, ebp (sz4)
+  000D76DE: pop ebp
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 | bc=192B key=0x54460F89F4776CC1 | stubRVA=0x54E9A0 retimm=4 (trampoline)
+  000E96D0: push ebp
+  000E96D1: mov ebp, esp (sz4)
+  000E96D3: push ebx
+  000E96D4: mov ebx, [mem] (sz1)
+  000E96D7: push esi
+  000E96D8: mov esi, ecx (sz4)
+  000E96DA: alu6 (sz1)
+  000E96DC: jcc4 0xe9706
+  000E96DE: mov eax, [mem] (sz4)
+  000E96E1: lea ecx, [mem]
+  000E96E4: call [mem] (ncalli sz4)
+  000E96EA: alu6 (sz4)
+  000E96EC: jcc4 0xe9706
+  000E96EE: mov ecx, eax (sz4)
+  000E96F0: call 0x6c680 (ncall)
+  000E96F5: alu6 (sz4)
+  000E96F7: jcc4 0xe9706
+  000E96F9: mov ecx, esi (sz4)
+  000E96FB: call 0xe8e90 (ncall)
+  000E9700: pop esi
+  000E9701: pop ebx
+  000E9702: pop ebp
+  000E9703: ret 0x4
+  000E9706: mov [mem], ebx (sz1)
+  000E9709: pop esi
+  000E970A: pop ebx
+  000E970B: pop ebp
+  000E970C: ret 0x4
+[RELOC] reloc girdisi silindi: 1, yeni boyut=174132
+[KAYIT] Z:\home\z\my-project\scripts\xp122_test\m2_coklu_U.exe (5268480 bayt)
+[OZET] tipler: V=1 M=0 U=1 (U->V dusus=1) | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

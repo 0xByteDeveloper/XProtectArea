@@ -425,6 +425,41 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
             L.eop(OP_NCALL); L.e32(I.target);
             snprintf(buf, sizeof buf, "call 0x%x (ncall)", I.target); break;
         }
+        case XP_CALLI: {
+            /* 1.2.2-A10: dolayli dogal cagri — FF /2 "call dword ptr [mem]"
+               VE reg-form "call eax". metin2 E96D0 ("call dword ptr
+               [eax+00000088]" — vtable-thiscall) kullanicinin coklu-fonksiyon
+               RED raporunun kok-nedeniydi. Hedef derleme-zamaninda bilinemez:
+               VM OP_NCALLI hedefi bellekten/kayittan MUTLAK VA okur (base
+               eklenmez) ve OP_NCALL'le ayni natcall yolunu kullanir (x86:
+               eax/ecx/edx + esp senkronu; x64: rcx,rdx,r8,r9; Encrypt
+               Registers'la uyumlu). */
+            if (!allow_call) { F.why = "calli desteklenmiyor (x86 yaprak modu)"; return F; }
+            if (I.mem.present) {
+                /* bellek-formu: form=0 (u32) / 1 (u64) — VM mem_addr ile
+                   cozer, hedefi bellekten okur. */
+                L.eop(OP_NCALLI); L.e((u8)(I.sz == 8 ? 1 : 0)); L.emem(I.mem, I);
+                snprintf(buf, sizeof buf, "call [mem] (ncalli sz%d)", I.sz);
+            } else if (I.r1 >= 0) {
+                /* kayit-formu: FF D0 "call eax" — form=2 + reg-idx; VM
+                   hedefi dogrudan VM kayit degerinden okur. */
+                L.eop(OP_NCALLI); L.e((u8)2); L.e((u8)I.r1);
+                snprintf(buf, sizeof buf, "call %s (ncalli reg)", regname(is64, I.r1));
+            } else {
+                F.why = "calli hedef-formu cozulemedi"; return F;
+            }
+            break;
+        }
+        case XP_JMPI: {
+            /* 1.2.2-A10: "jmp dword ptr [mem]" — kuyruk-jmp hedefi calisma-
+               zamaninda okunur. OP_JMPEXT hedefi base+rva'dir; dolayli hedef
+               image-disi olabilir (IAT thunk) -> burada DURU RED: natgt
+               base+rva matematigi image-disi hedefte yanlis atama uretir
+               ("sessiz yanlis sonuc yerine duru RED" gelenegi). */
+            F.why = "jmpi (jmp [mem]) desteklenmiyor — hedef calisma-zamaninda "
+                    "bilinir, natgt base+rva image-disi hedefte kirilir";
+            return F;
+        }
         case XP_LEAVE: // mov rsp,rbp ; pop rbp
             L.eop(OP_MOV_RR); L.e((u8)8); L.ereg(REG_RSP); L.ereg(REG_RBP);
             L.eop(OP_POP_R);  L.ereg(REG_RBP);

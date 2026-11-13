@@ -1,0 +1,46 @@
+[PE] Z:\home\z\my-project\scripts\xp122_test\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[MANUEL] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 tip=U
+[ULTRA] on-mutasyon RED: dolayli cagri/atlamasi (IAT korumasi ile E8'e cevrilir) -> saf V ye dusuluyor
+[LIFT] 1/1 secili fonksiyon | V=1 M=0 U=0 (U-mutdus=1)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00C758 | VM blob 50650B | vm_entry RVA=0x54DFD0
+[YAMA] MANUAL_0xE96D0 @RVA=0x0E96D0 boyut=0x40 | bc=192B key=0x54460F89F4776CC1 | stubRVA=0x54E6A0 retimm=4 (trampoline)
+  000E96D0: push ebp
+  000E96D1: mov ebp, esp (sz4)
+  000E96D3: push ebx
+  000E96D4: mov ebx, [mem] (sz1)
+  000E96D7: push esi
+  000E96D8: mov esi, ecx (sz4)
+  000E96DA: alu6 (sz1)
+  000E96DC: jcc4 0xe9706
+  000E96DE: mov eax, [mem] (sz4)
+  000E96E1: lea ecx, [mem]
+  000E96E4: call [mem] (ncalli sz4)
+  000E96EA: alu6 (sz4)
+  000E96EC: jcc4 0xe9706
+  000E96EE: mov ecx, eax (sz4)
+  000E96F0: call 0x6c680 (ncall)
+  000E96F5: alu6 (sz4)
+  000E96F7: jcc4 0xe9706
+  000E96F9: mov ecx, esi (sz4)
+  000E96FB: call 0xe8e90 (ncall)
+  000E9700: pop esi
+  000E9701: pop ebx
+  000E9702: pop ebp
+  000E9703: ret 0x4
+  000E9706: mov [mem], ebx (sz1)
+  000E9709: pop esi
+  000E970A: pop ebx
+  000E970B: pop ebp
+  000E970C: ret 0x4
+[RELOC] reloc girdisi silindi: 0, yeni boyut=174136
+[KAYIT] Z:\home\z\my-project\scripts\xp122_test\m2_E96D0_U.exe (5267456 bayt)
+[OZET] tipler: V=1 M=0 U=0 (U->V dusus=1) | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0
