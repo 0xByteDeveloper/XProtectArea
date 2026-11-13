@@ -240,19 +240,18 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
          * Gercek-yigin bolge kipi (ozel ctx + yigin degistirmeli stub) 0.8.0
          * kapsamindadir. */
         if (region_mode) {
-            /* 1.2.2-A20: RBP-goreli de eklendi — bolge-modunda VM'nin RBP'si
-               sanaldir; -O0 derlenen bolgeler (yerel degiskenler rbp-goreli)
-               sessiz yanlis-okuma/crash uretiyordu (sdk_kanit kaniti).
-               Fonksiyon-kipi etkilenmez (tutarli-sanal; D7610 kaniti). */
+            /* 1.2.2-A20 NOT: rbp-goreli BOLGE erisimi GERCEKTE calisiyor
+               (vf_p74 kanit: volatile-yerelli region vf_loaded=1) — sdk_kanit
+               -O0 crash'i printf-in-region + mutasyon-fixup'iydi (A20 fix).
+               rbp-RED GERI ALINDI; yalniz rsp-RED kalir (0.6.2 duru). */
             bool rsp_mem   = I.mem.present && !I.mem.riprel && !I.mem.absimage
-                             && (I.mem.base == REG_RSP || I.mem.base == REG_RBP);
+                             && I.mem.base == REG_RSP;
             bool rsp_remap = (I.op == XP_MOV_MR && !I.mem.present
-                              && (I.r1 == REG_RSP || I.r2 == REG_RSP
-                                  || I.r1 == REG_RBP || I.r2 == REG_RBP))
+                              && (I.r1 == REG_RSP || I.r2 == REG_RSP))
                              || (I.op == XP_LEAVE);
             if (rsp_mem || rsp_remap) {
-                F.why = "bolge rsp/rbp-goreli erisim (A20 duru RED — "
-                        "fonksiyon-kipi koruma kullanin; -O1/-O2 derleyin)";
+                F.why = "bolge rsp-goreli erisim (0.6.2 duru RED — "
+                        "fonksiyon-kipi koruma kullanin; gercek-yigin kipi 0.8.0)";
                 return F;
             }
         }

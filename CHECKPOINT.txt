@@ -1,6 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp48  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp49  (2026-11-13, UTC+8)
 ================================================================
-Odak: A20 SDK yuzeyi: LockByKey + DecryptString zorla-sifreleme + semantik dogrulama + bolge kilitleri (sdk_p8 static GREEN)
-Zipler: checkpoints/Xprotect_1.2.2_cp48/Xprotect_1.2.2_cp48.zip (tam kaynak + ikililer)
+Odak: cp49: OZELLIK_DURUM.html (progressbar'lı özellik durumu) + son regresyonlar GREEN (vf/vfstr/iat) + rbp-RED revert
+Zipler: checkpoints/Xprotect_1.2.2_cp49/Xprotect_1.2.2_cp49.zip (tam kaynak + ikililer)
 Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.
