@@ -195,3 +195,16 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
   olmadan) cp38-A10'da da sağlıksızdı (RC=1) — A11 ile ilgisiz; UI fonksiyon-
   seçimi (manuel add / SDK bölgeleri) normal yol. Sonraki checkpoint konusu.
 - İKİLİLER: XProtectUI.exe 1.293.824B, XProtectUI32.exe 1.344.512B.
+
+## 1.2.2-A12 (2026-11-13) — çoklu-fonksiyon×Pack ölçek izolasyonu (kullanıcı yolu)
+- KULLANICI YOLU: "çoklu-fonksiyon×pack ölçek izolasyonu" (cp39 CHECKPOINT madde 1).
+- KANIT S1: metin2client.exe + D7610:D766C:U + E96D0:E9710:U + --pack →
+  [LIFT] 2/2 (V=1 U=1, U-mutdus=1) | [PACK] .text 3.881.472B → LZMA 1.253.548B
+  (%32.3), .data %35.4, .data1 %14.6 | EP 0x239B82 → unpack stub 0x6972E0 (.vmp1)
+  | compaction 5.286.400 → 3.853.824 bayt | rc=0 → m2_coklu_pack.exe.
+- KANIT S3 (tekrar-koşu): aynı komut → [LIFT] 2/2, rc=0, aynı boyut (3.853.824B)
+  → m2_coklu_pack2.exe. (Bayt-özdeşlik BEKLENMEZ: derleme-başına rastgele VM
+  anahtarı tasarım gereği — determinizmden kastedilen akış-sağlığı.)
+- SONUÇ: A10 OP_NCALLI + çoklu-fonksiyon + Pack + LZMA + unpack-tramp zinciri
+  birlikte sağlıklı. Kullanıcının "sadece tek fonksiyon değil birkaç fonksiyon
+  koruyabilme" yolu pack ile de çalışıyor.

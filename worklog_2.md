@@ -514,3 +514,9 @@ v4 VEH'siz rc=42). VEH = --mpveh gate (real-Windows kullanıcı testi).
 DERS: W2/W4 wrapper'lar sağlam; sorun dispatch etkileşimi (wine ayrıntısı).
 KALAN: coklu×pack S1 (wine temizliğinde öldü — yeniden koşuyor), tam-tarama
 kipi sağlıksızlığı (cp38'den beri var — ayrı iş), --mpveh gerçek-Windows testi.
+
+=== Task 29 — 1.2.2-A12: coklu-fonksiyon x pack (2026-11-13) ===
+S1: metin2 D7610+E96D0 ULTRA + --pack -> [LIFT] 2/2, rc=0, .text %32.3 LZMA,
+compaction 5.29MB->3.85MB, EP=.vmp1 unpack stub. S3 tekrar-kosu rc=0 ayni
+boyut (bayt-ozdeslik beklenmez — rastgele VM anahtari tasarim geregi).
+SONUC: A10+A12 zinciri (CALLI + coklu + pack) saglikli. cp40 push.
