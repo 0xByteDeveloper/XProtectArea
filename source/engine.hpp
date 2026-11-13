@@ -339,6 +339,7 @@ struct Options {
     std::vector<std::string> vfile_paths;  // 1.2.0-B4: gomulu dosyalar
     bool strenc = false;
     bool memprot = false;
+    bool mpveh = false;    // 1.2.2-A11: memprot VEH tamper-kill gate (cfg[0x09])
     bool vmenc = true;
     bool vmregs = true;   // 1.2.0-A9: Encrypt Registers (cpEncryptRegs) — VM register dosyasi bellekte sifreli
     std::vector<std::string> funcs;   // isim ya da rva(hex) listesi; bos -> hepsi uygun olanlar

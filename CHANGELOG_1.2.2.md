@@ -159,3 +159,39 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
   vm_blob 428.533B (x64 vm_entry=30960, x86=49104).
 - SONRAKİ: çoklu-fonksiyon×pack ölçek izolasyonu → Internal Memory
   Protection portu → Check Debugger UO-parite %'sine kalanlar.
+
+## 1.2.2-A11 (2026-11-13) — Internal Memory Protection: loader-seviyesi .vmp0 koruması + VEH altyapısı
+- KULLANICI (önceki oturum sorusu): "Memory Protection true yaptım, 0xD7610'da jmp var,
+  jmp'in götürdüğü yerdeki disassembly'i değiştirebiliyorum." — Kök-neden: Memory
+  Protection yalnız .text chars'ını EXECUTE_READ yapıyordu; jmp'in hedefi olan
+  **.vmp0** (VM stub/bc/blob) 0xE0000060 (YAZILABİLİR) idi.
+- DÜZELTME (3 dosya):
+  1) engine_main.cpp: memprot-YALIN kipte (CRC yok) .vmp0 chars = 0x60000020 —
+     **jmp hedefi DISK-seviyesinden yazılamaz**. CRC kipinde .vmp0 yazılabilir
+     kalır (cfg state yazısı çalışır — VEH yine kurulu).
+  2) xrt_core.c: XFLAG_MEMPROT=0x20; xrt_entry A11 penceresi — cfg sayfası
+     geçici RW'ye alınır (VirtualProtect), ilk çağrıda (state==0) kurulum
+     yapılır, state=1 yazılır, eski koruma döner; stub state-kilidi sonraki
+     çağrılarda xrt_entry'yi tamamen atlar (sıfır-maliyet tek-kurulum).
+     mp_veh (x86/x64): 0xC0000005 YAZMA (ExcInfo[0]==1) ve adres bir yüklü
+     modülün KOD bölümündeyse (mp_is_code: PEB modül-yürüyüşü + bölüm tablosu,
+     CNT_CODE) → tamper → ExitProcess(0x75). rt_fatal XFLAG_EXIT ile.
+     ENT_SIZE_OFF (x64 0x40 / x86 0x20) + XH_ADDVECTEH hash eklendi.
+  3) engine.hpp/xprotect_ui.cpp: --mpveh CLI gate; cfg[0x09]=veh-gate baytı.
+- KANITLAR (wine64):
+  W1: memprot-YALIN + .vmp0 RX altında VM DOĞRU hesap: test_mp2.c sdk_v(13,3)
+  = 5142 (zincir: 42^55=127; rol2=508; +0x1234=5168; -26=5142) rc=42 PASS.
+  W2: t42 + sdkonly + memprot temiz koşu rc=42 PASS (A11-final ikilisi).
+  W3: çıktı PE: .text=0x60000020 AND .vmp0=0x60000020 (pefile doğrulama).
+- BİSECT BULGULARI (dürüst kayıt): wine'da VEH kaydı (AddVectoredExceptionHandler)
+  VM akışını bozuyor — BOŞ handler bile (v5: saf return-0) VM çağrısında exit-1
+  üretir (t42_v5.log). v4 (VEH'siz pencere+state+VP.text) rc=42 PASS (t42_v4.log).
+  → VEH kaydı cfg[0x09]-gated: varsayılan KAPALI (wine-güvenli); --mpveh ile
+  gerçek-Windows testi mümkün (kullanıcıya bırakıldı).
+- BİLİNEN SINIRLAR: WPM (WriteProcessMemory) yazımları user-mode'dan
+  savunulamaz (kernel-yolu) — Check Debugger bağlamsalı; VEH katmanı
+  yalnız in-process kullanıcı-modu yazmayı keser (gerçek-Windows'ta --mpveh).
+- NOT: tam-tarama kipi (tüm CRT fonksiyonlarının lift'i — CLI'da --add/sdkonly
+  olmadan) cp38-A10'da da sağlıksızdı (RC=1) — A11 ile ilgisiz; UI fonksiyon-
+  seçimi (manuel add / SDK bölgeleri) normal yol. Sonraki checkpoint konusu.
+- İKİLİLER: XProtectUI.exe 1.293.824B, XProtectUI32.exe 1.344.512B.

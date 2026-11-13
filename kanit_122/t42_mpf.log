@@ -1,0 +1,63 @@
+[PE] Z:\home\z\my-project\scripts\xp122_test\t42.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1510
+  sec .text    RVA=0x001000 VSz=0x027FE6 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x029000 VSz=0x00B6C0 Raw=0x028400 Chars=0x40000040
+  sec .buildid RVA=0x035000 VSz=0x000058 Raw=0x033C00 Chars=0x40000040
+  sec .data    RVA=0x036000 VSz=0x001158 Raw=0x033E00 Chars=0xC0000040
+  sec .pdata   RVA=0x038000 VSz=0x001764 Raw=0x034000 Chars=0x40000040
+  sec .tls     RVA=0x03A000 VSz=0x000010 Raw=0x035800 Chars=0xC0000040
+  sec .reloc   RVA=0x03B000 VSz=0x000060 Raw=0x035A00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=542 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 538 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x00001023 boyut=0x0000001F tip=V
+[SDK] isaret bulundu: SDK_M_0x0000105B boyut=0x00000015 tip=M
+[SDK] isaret bulundu: SDK_U_0x00001089 boyut=0x00000012 tip=U
+[SDK] isaret bulundu: SDK_V_0x000010B5 boyut=0x0000001F tip=V
+[MANUEL] SDK_V_0x00001023 @RVA=0x001023 boyut=0x1F tip=V
+[MANUEL] SDK_M_0x0000105B @RVA=0x00105B boyut=0x15 tip=M
+[MANUEL] SDK_U_0x00001089 @RVA=0x001089 boyut=0x12 tip=U
+[MANUEL] SDK_V_0x000010B5 @RVA=0x0010B5 boyut=0x1F tip=V
+[ULTRA] on-mutasyon RED: ret bulunamadi -> saf V ye dusuluyor (bolge)
+[LIFT] 4/4 secili fonksiyon | V=3 M=1 U=0 (U-mutdus=1)
+[SEH] dinamik unwind: kayit=5 tabloRVA=0x048A00 (xrt ilk kapida RtlAddFunctionTable)
+[SECTION] .vmp0 RVA=0x03C000 boyut=0x00CA5C | VM blob 31898B | vm_entry RVA=0x0438F0
+[YAMA] SDK_V_0x00001023 @RVA=0x001023 boyut=0x1F | bc=96B key=0xB7682CECFA3BB661 | stubRVA=0x0485B0 retimm=4294967295 (trampoline)
+  00001023: mov [mem], imm32=0x39
+  0000102A: mov rax, [mem] (sz4)
+  0000102D: lea rax, [mem]
+  00001030: alu0 (sz4)
+  00001033: mov [mem], rax (sz4)
+  00001036: mov rax, [mem] (sz4)
+  00001039: alu5 (sz4)
+  0000103C: jcc12 0x1042
+  0000103E: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+  [1.1.0-FIX] jcc->bolge-sonu: son OP_RET'e yonlendirildi
+[MUT] SDK_M_0x0000105B @RVA=0x00105B boyut=0x15 | ikame=0 junk=1 kapi=2 (blok=1) | 21B->68B (x3.24) | govde=0x0489B5
+  [BOLGE] sona E9 -> 0x00001070 (region devami)
+[YAMA] SDK_U_0x00001089 @RVA=0x001089 boyut=0x12 | bc=81B key=0xC182A972CB2261E3 | stubRVA=0x0486F0 retimm=4294967295 (trampoline)
+  00001089: mov [mem], imm32=0x2468
+  00001090: alu4 (sz4)
+  00001094: shift[mem] 1
+  00001097: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x000010B5 @RVA=0x0010B5 boyut=0x1F | bc=96B key=0xF30B93DEFA3BB661 | stubRVA=0x048830 retimm=4294967295 (trampoline)
+  000010B5: mov [mem], imm32=0x3a
+  000010BC: mov rax, [mem] (sz4)
+  000010BF: lea rax, [mem]
+  000010C2: alu0 (sz4)
+  000010C5: mov [mem], rax (sz4)
+  000010C8: mov rax, [mem] (sz4)
+  000010CB: alu5 (sz4)
+  000010CE: jcc12 0x10d4
+  000010D0: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+  [1.1.0-FIX] jcc->bolge-sonu: son OP_RET'e yonlendirildi
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[MEMPROT] .text Chars=0x60000020 (yazilamaz)
+[MEMPROT] .vmp0 Chars=0x60000020 (yazilamaz — jmp hedefi korumali; VEH kurulu)
+[XRT] runtime katmani: flags=0x38 | self=0x7BD203CF (50213B) | text=0xD325FE7C (0x27FE6, reloc-atla 96B) | file=0x41FFBAB2 (atla: cksum+208, .vmp0 220160..272384) | pack=0x0
+[XRT] xrt_entry=0x00046480 cfg=0x00048430 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: MessageBoxA + ExitProcess
+[KAYIT] Z:\home\z\my-project\scripts\xp122_test\t42_mpf.exe (272384 bayt)
+[OZET] tipler: V=3 M=1 U=0 (U->V dusus=1) | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=ACIK | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=ACIK(self=0,text=0,file=0) | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

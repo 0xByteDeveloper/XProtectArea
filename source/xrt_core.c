@@ -55,6 +55,7 @@ typedef unsigned long long u64;
 #define XFLAG_FILECRC 0x04
 #define XFLAG_MSG     0x08
 #define XFLAG_EXIT    0x10
+#define XFLAG_MEMPROT 0x20   /* 1.2.2-A11: IC memory protection (VEH yazma-guvesi) */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -102,6 +103,7 @@ static u32 fnv_w(const u16* s, u32 n) {
 #define XH_VIRTUALPROTECT 0x820621F3u  // "VirtualProtect"
 #define XH_NTDLL          0xA62A3B3Bu  // "ntdll.dll" (wide, kucuk-harf)
 #define XH_RTLADDFT       0x38791528u  // "RtlAddFunctionTable"
+#define XH_ADDVECTEH      0xAFAC650Du  // "AddVectoredExceptionHandler" (1.2.2-A11)
 
 // volatile 4-karakter yazisi — GCC bunlari memcpy'ye cevireMEZ (PIC guvenli)
 #define VP4(d, off, w) do { \
@@ -128,6 +130,7 @@ static u64 peb_addr(void) { u64 v; __asm__ volatile ("movq %%gs:0x60, %0" : "=r"
 #define ENT_NAMELEN_OFF 0x58
 #define ENT_FULLBUF_OFF 0x50   /* 1.1.0: FullDllName.Buffer (DLL dosya yolu) */
 #define ENT_FULLLEN_OFF 0x48   /*        FullDllName.Length          */
+#define ENT_SIZE_OFF    0x40   /* 1.2.2-A11: LDR_DATA_TABLE_ENTRY.SizeOfImage */
 #define PEB_LDR_OFF     0x18
 #else
 static u32 peb_addr(void) { u32 v; __asm__ volatile ("movl %%fs:0x30, %0" : "=r"(v)); return v; }
@@ -149,6 +152,7 @@ static u32 peb_addr(void) { u32 v; __asm__ volatile ("movl %%fs:0x30, %0" : "=r"
    FullDllName.Buffer = +0x28. (Kanit: Unicorn A/B + wine regresyon R1-R4.) */
 #define ENT_FULLBUF_OFF 0x28   /* 1.2.2-K9: x86 FullDllName.Buffer */
 #define ENT_FULLLEN_OFF 0x24   /*        FullDllName.Length     */
+#define ENT_SIZE_OFF    0x20   /* 1.2.2-A11: LDR_DATA_TABLE_ENTRY.SizeOfImage */
 #define PEB_LDR_OFF 0x0C
 #endif
 
@@ -481,6 +485,98 @@ static u32 crc_buf_skip(u32 c, const u8* p, u32 n, u32 base,
 // xrt_entry(void* cfg) — her korumali fonksiyon girisinde BIR KEZ
 // Donus: 0 = tamam; 1=self 2=text 3=file 4=ortam — stub zehir yolu
 // ============================================================
+// ---- 1.2.2-A11: IC MEMORY PROTECTION --------------------------------------
+// Tasarim (UO "Internal Memory Protection" es-tanim + loader-parite):
+//   Motor: memprot acikken .text (ve CRC-yoksa .vmp0) bolum charlari
+//          EXECUTE_READ — loader sayfalari yazilamaz map eder.
+//   Runtime: ILK-chance VEH — 0xC0000005 YAZMA (ExcInfo[0]==1) adresi
+//          herhangi bir yuklu modulun KOD bolumundeyse (CNT_CODE) =
+//          tamper -> ExitProcess(0x75). KOD bolumune normal yazma zaten
+//          AV uretir (loader korur); bu katman VEH ile yakalanan her
+//          yazma-girisimini keser. WPM/cekirdek-yolu yazimlar user-mode
+//          kapsam disi (Check Debugger baglamsali).
+//   Durumsuz tek-kurulum:
+//     CRC kipi (cfg yazilabilir): gosterge = cfg state byte (0 -> ilk).
+//     memprot-yalin (cfg YAZILAMAZ — .vmp0 EXECUTE_READ): gosterge =
+//       VirtualProtect eski-koruma okumasi (old != EXEC_READ -> ilk).
+//   xrt_unpack pack yazmalari kurulumdan ONCE (EP sirasi) ve kendi RW
+//   gecisiyle yapilir — cakisma yok.
+static u64 mp_module_of(u64 addr, u64* base_out, u32* imgsz_out) {
+    u64 peb = peb_addr();
+    if (!peb) return 0;
+    u64 ldr = LDPTR((const u8*)(unsigned long)(peb + PEB_LDR_OFF));
+    if (!ldr) return 0;
+    u64 head = ldr + LDR_INMEM_OFF;
+    u64 cur = LDPTR((const u8*)(unsigned long)head);
+    int guard = 0;
+    while (cur && cur != head && guard++ < 96) {
+        u64 ent = cur - ENT_INMEM_OFF;
+        u64 db = LDPTR((const u8*)(unsigned long)(ent + ENT_DLLBASE_OFF));
+        u64 sz = LDPTR((const u8*)(unsigned long)(ent + ENT_SIZE_OFF));
+        if (db && sz && addr >= db && addr < db + sz) {
+            if (base_out) *base_out = db;
+            if (imgsz_out) *imgsz_out = (u32)sz;
+            return 1;
+        }
+        cur = LDPTR((const u8*)(unsigned long)cur);
+    }
+    return 0;
+}
+
+/* adres bir modulun KOD bolumunde mi? (bolum tablosu yuruyusu) */
+static int mp_is_code(u64 addr) {
+    u64 mb = 0; u32 msz = 0;
+    if (!mp_module_of(addr, &mb, &msz)) return 0;
+    {
+        const u8* base = (const u8*)(unsigned long)mb;
+        u32 e_lfanew = ld32(base + 0x3C);
+        u16 nsec = ld16(base + e_lfanew + 6);
+        u16 optsz = ld16(base + e_lfanew + 20);
+        u32 sh = e_lfanew + 24 + optsz;
+        u32 rva = (u32)(addr - mb);
+        u32 i;
+        if (nsec > 96) return 0;
+        for (i = 0; i < nsec; i++) {
+            u32 o = sh + i * 40;
+            u32 va = ld32(base + o + 12);
+            u32 vsz = ld32(base + o + 8);
+            u32 ch = ld32(base + o + 36);
+            if (rva >= va && rva < va + vsz) return (ch & 0x20000000u) ? 1 : 0;
+        }
+    }
+    return 0;
+}
+
+#if defined(XRT_IS_X64)
+static long __attribute__((stdcall)) mp_veh(u8* ep) {
+    u8* er = (u8*)(unsigned long)LDPTR(ep + 0);       /* ExceptionRecord */
+    if (er && ld32(er + 0) == 0xC0000005u && ld32(er + 0x18) >= 2) {
+        u64 w = ld64(er + 0x20);   /* ExcInfo[0]: 0=oku 1=yaz 8=calistir */
+        u64 fa = ld64(er + 0x28);  /* ExcInfo[1]: fault adresi          */
+        if (w == 1 && fa && mp_is_code(fa)) {
+            u64 k = peb_module(XH_KERNEL32);
+            rt_fatal(k, 5, XFLAG_EXIT);                /* ExitProcess(0x75) tamper */
+            for (;;) {}
+        }
+    }
+    return 0;   /* EXCEPTION_CONTINUE_SEARCH */
+}
+#else
+static long __attribute__((stdcall)) mp_veh(u8* ep) {
+    u8* er = (u8*)(unsigned long)LDPTR(ep + 0);
+    if (er && ld32(er + 0) == 0xC0000005u && ld32(er + 0x10) >= 2) {
+        u32 w = ld32(er + 0x14);
+        u32 fa = ld32(er + 0x18);
+        if (w == 1 && fa && mp_is_code((u64)fa)) {
+            u64 k = peb_module(XH_KERNEL32);
+            rt_fatal(k, 5, XFLAG_EXIT);                /* ExitProcess(0x75) tamper */
+            for (;;) {}
+        }
+    }
+    return 0;
+}
+#endif
+
 u32 xrt_entry(void* cfgp) {
     u8* cfg = (u8*)cfgp;
     u32 flags;
@@ -493,10 +589,11 @@ u32 xrt_entry(void* cfgp) {
     if (ld32(cfg + XCFG_OFF_MAGIC) != XCFG_MAGIC) return 0;
     flags = ld32(cfg + XCFG_OFF_FLAGS);
     if (ld32(cfg + XCFG_OFF_STATE)) return 0;
-    cfg[XCFG_OFF_STATE]     = 1;
-    cfg[XCFG_OFF_STATE + 1] = 0;
-    cfg[XCFG_OFF_STATE + 2] = 0;
-    cfg[XCFG_OFF_STATE + 3] = 0;
+    /* 1.2.2-A11-v3: state yazimi ASAGIDAKI MEMPROT penceresinde yapilir —
+       memprot-yalin kipte cfg (.vmp0 EXECUTE_READ, loader) yazilamazdir;
+       cfg sayfasi gecici RW'ye alinir (VirtualProtect), state=1 yazilir,
+       eski koruma dondurulur. Stub'in state kilidi sonraki cagrilarida
+       xrt_entry'yi tamamen atlar (tek-kurulum garantisini STUB verir). */
 
     cfgva = (u64)(unsigned long)cfg;
     cfg_rva = ld32(cfg + XCFG_OFF_CFGRVA);
@@ -524,6 +621,60 @@ u32 xrt_entry(void* cfgp) {
                                (u64)ucnt, (u64)(unsigned long)base);
             }
         }
+    }
+
+    // --- 1.2.2-A11: IC MEMORY PROTECTION kurulumu (tek-sefer, pencere) ---
+    /* Tasarim: memprot-yalin kipte .vmp0 LOADER tarafindan EXECUTE_READ
+       map edilir (engine chars 0x60000020) — kullanici raporundaki
+       "jmp'in gotturdugu yer" (.vmp0 stub) disk-seviyesinde korumali.
+       Runtime: cfg sayfasi gecici RW'ye alinir; state==0 ise (a) ilk-chance
+       VEH kurulur (kod-bolumune YAZMA AV = tamper -> ExitProcess(0x75)),
+       (b) .text sayfalari VirtualProtect ile guclenir, (c) state=1 yazilir,
+       eski koruma dondurulur. Stub state kilidi sonraki cagrilarda
+       xrt_entry'yi hic cagirmaz (sifir-maliyet, tek-kurulum garantisi). */
+    if (flags & XFLAG_MEMPROT) {
+        u64 vp0 = find_export(k32, XH_VIRTUALPROTECT);
+        u32 mp_old = 0;
+        int mp_window = 0;
+        if (vp0) {
+            mp_window = (int)api4(vp0, cfgva & ~(u64)0xFFFULL, 0x1000,
+                                  0x04u /*PAGE_READWRITE*/,
+                                  (u64)(unsigned long)&mp_old);
+        }
+        /* 1.2.2-A11 NOT: VEH kaydi wine-dispatch etkilesiminde patolojik
+           (noop handler ile de VM akisi exit-1 — v5 bisect kaniti);
+           GERCEK WINDOWS'ta beklentiler farkli olabilir -> cfg gate:
+           cfg[XCFG_OFF_STATE+1]=1 yalniz motor --mpveh ile yazilir. */
+        if (ld32(cfg + XCFG_OFF_STATE) == 0 && cfg[XCFG_OFF_STATE + 1] == 1) {
+            u64 av = find_export(k32, XH_ADDVECTEH);
+            if (av) api2(av, 1u, (u64)(unsigned long)(void*)mp_veh);
+            {
+                u64 vp = find_export(k32, XH_VIRTUALPROTECT);
+                if (vp) {
+                    u32 oldp = 0;
+                    u32 tr = ld32(cfg + XCFG_OFF_TEXTRVA);
+                    u32 ts = ld32(cfg + XCFG_OFF_TEXTSZ);
+                    if (tr && ts)
+                        api4(vp, (u64)(unsigned long)(base + tr), (u64)ts, 0x20u,
+                             (u64)(unsigned long)&oldp);
+                }
+            }
+        }
+        cfg[XCFG_OFF_STATE]     = 1;
+        cfg[XCFG_OFF_STATE + 1] = 0;
+        cfg[XCFG_OFF_STATE + 2] = 0;
+        cfg[XCFG_OFF_STATE + 3] = 0;
+        if (mp_window && vp0) {
+            u32 tmp2 = 0;
+            api4(vp0, cfgva & ~(u64)0xFFFULL, 0x1000,
+                 mp_old ? mp_old : 0x20u, (u64)(unsigned long)&tmp2);
+        }
+    }
+    else if (flags & (XFLAG_SELFCRC | XFLAG_TEXTCRC | XFLAG_FILECRC)) {
+        cfg[XCFG_OFF_STATE]     = 1;
+        cfg[XCFG_OFF_STATE + 1] = 0;
+        cfg[XCFG_OFF_STATE + 2] = 0;
+        cfg[XCFG_OFF_STATE + 3] = 0;
     }
 
     // --- SELF CRC ---

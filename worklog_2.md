@@ -500,3 +500,17 @@ test-harness "r"(vt) kayıt-çakışmasından — "a"(vt) ile kesildi (motor de�
 
 SONRAKİ: çoklu-fonksiyon×pack ölçek izolasyonu → Internal Memory Protection
 portu → Check Debugger UO-parite kapanışı → özellik listesi eksik taraması.
+
+=== Task 28 — 1.2.2-A11: Internal Memory Protection (.vmp0 loader-RX + VEH altyapı) (2026-11-13) ===
+USER (önceki): "Memory Protection true; 0xD7610 jmp var ama jmp'in götürdüğü yerdeki
+disassembly değiştirilebiliyor." KÖK: .vmp0 RWX'ti (yalnız .text RX).
+FIX: memprot-yalin .vmp0 = 0x60000020 (loader); xrt XFLAG_MEMPROT=0x20 + cfg-page
+RW penceresi (state=1 yazımı RX cfg altında) + stub state-kilidi tek-kurulum;
+mp_veh x86/x64 (0xC0000005 yazma + KOD bölümü → 0x75); --mpveh cfg gate.
+KANIT: W1 sdk_v=5142 (VM .vmp0 RX altında doğru); W2 t42+memprot rc=42;
+W3 pefile .text+.vmp0=0x60000020.
+BİSECT (dürüst): wine'da VEH kaydı VM akışını bozuyor (noop handler v5 → exit-1;
+v4 VEH'siz rc=42). VEH = --mpveh gate (real-Windows kullanıcı testi).
+DERS: W2/W4 wrapper'lar sağlam; sorun dispatch etkileşimi (wine ayrıntısı).
+KALAN: coklu×pack S1 (wine temizliğinde öldü — yeniden koşuyor), tam-tarama
+kipi sağlıksızlığı (cp38'den beri var — ayrı iş), --mpveh gerçek-Windows testi.

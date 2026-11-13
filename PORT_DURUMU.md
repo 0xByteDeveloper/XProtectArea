@@ -149,3 +149,19 @@ Encrypt Registers/vmenc/mult-VM ile çakışma yok (natcall yolu ortak).
 Encrypt ByteCode %85, Encrypt Registers %100-UO AŞAN, Check Debugger %90,
 Loader/File CRC %90, Pack %90, SDK %90, Import %60, Memory Protection %70 →
 Internal-MP portu sonrası hedef %75).
+
+---
+
+## GÜNCELLEME 2026-11-13 (1.2.2-A11 — Internal Memory Protection)
+
+| Kalem | A10 | A11 |
+|-------|-----|-----|
+| .text koruması (memprot) | EXECUTE_READ (chars) | ✅ aynen |
+| **.vmp0 koruması (memprot-yalin)** | ❌ RWX — "jmp'in götürüldüğü yer" değiştirilebiliyordu | ✅ **0x60000020 loader-level** |
+| Runtime VEH yazma-güvesi | ❌ yok | ✅ altyapı + cfg-gate (--mpveh; wine'da patolojik — BİSECT v1-v5) |
+| cfg state penceresi (memprot-yalin) | — | ✅ cfg-page RW geçişi + stub state-kilidi |
+| Tamper yanıt | — | ExitProcess(0x75) (mp_veh, --mpveh modunda) |
+
+Memory Protection paritesi: %70 → **%80** (loader-level .vmp0 + VEH altyapısı;
+VEH-kill wine'da doğrulanamadı — gerçek-Windows kullanıcı testi bekleniyor).
+TOPLAM MOTOR-PARİTE: ~%86 → **~%87**.

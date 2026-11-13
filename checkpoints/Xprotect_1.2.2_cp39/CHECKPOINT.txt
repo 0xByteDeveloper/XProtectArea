@@ -1,0 +1,102 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp39  (2026-11-13, UTC+8)
+================================================================
+
+== BU CHECKPOINTTE NE YAPILDI ==
+cp38'ten devam — kullanici yol haritasi: "coklu-fonksiyon x pack olcek
+izolasyonu -> Internal Memory Protection portu" (2. madde tamam, 1. madde
+yeni kosta, 3. madde kanitli teslim).
+
+-- A11: INTERNAL MEMORY PROTECTION --------------------------------------
+KULLANICI SORUSU (onceki oturum): "Memory Protection true; 0xD7610'da jmp
+var ama jmp'in gotturdugu yerdeki disassembly degistirilebiliyor."
+KOK-NEDEN: .vmp0 (VM stub/bc/blob — jmp'in HEDEFI) 0xE0000060 RWX idi;
+Memory Protection yalniz .text'i RX yapiyordu.
+
+DUZELTME:
+  1. engine_main.cpp : memprot-YALIN kipte .vmp0 chars = 0x60000020
+     (loader-level) — jmp hedefi DISK-seviyesinden yazilamaz.
+     CRC kipinde .vmp0 yazilabilir kalir (cfg state yazisi calisir).
+  2. xrt_core.c : XFLAG_MEMPROT=0x20; cfg-page RW penceresi (VirtualProtect
+     ile gecici RW, state=1 yazimi, geri donus); stub state-kilidi ile
+     tek-kurulum (sonraki VM cagrilari xrt_entry'yi hic cagirmaz);
+     mp_veh x86/x64: 0xC0000005 YAZMA + KOD bolumu (mp_is_code: PEB modul
+     yuruyusu + CNT_CODE) -> tamper ExitProcess(0x75); ENT_SIZE_OFF +
+     XH_ADDVECTEH hash; --mpveh cfg-gate (cfg[0x09]).
+  3. engine.hpp / xprotect_ui.cpp : opt.mpveh + --mpveh CLI.
+
+KANITLAR (wine64, cp39 ikilileriyle):
+  W1: memprot-yalin + .vmp0 RX altinda VM DOGRU hesap — test_mp2.c
+      sdk_v(13,3)=5142 (42^55=127; rol2=508; +0x1234=5168; -26=5142) rc=42.
+  W2: t42 + sdkonly + memprot temiz kosu rc=42 (A11-final).
+  W3: cikti PE .text=0x60000020 VE .vmp0=0x60000020 (pefile dogrulama) —
+      KULLANICININ RAPOR ETTIGI BOSLUK KAPANDI.
+
+BISECT BULGULARI (durus ve seffafla kaydedildi):
+  v1 loader-RX .vmp0 + guard-oldp     : rc=42 AMA VEH kurulmuyor (eski koruma
+                                        zaten 0x20 -> gosterge hic yanmadi)
+  v2 runtime-VP .vmp0 + VEH           : rc=1 (VM bozuk) — kok: .vmp0 yazilabilir
+                                        kalirsa VM akisi bozuluyor (b3 kontrol)
+  v3 cfg-pencere + VEH                : rc=1
+  v4 cfg-pencere + VEH YOK            : rc=42 PASS  <-- VEH kaydi suclu
+  v5 VEH + NOOP handler (saf ret 0)   : rc=1  <-- handler govdesi DEGIL,
+                                        wine VEH-dispatch etkilesimi
+  KARAR: VEH kaydi cfg[0x09]-gate ile VARSAYILAN KAPALI (wine-guvenli);
+  --mpveh ile gercek-Windows testine acik (kullanici testi bekleniyor).
+
+== GUNCELLENEN / YENI DOSYALAR ==
+GUNCELLENEN:
+  source/xrt_core.c       (A11 penceresi + mp_veh + mp_is_code + hash'ler)
+  source/engine_main.cpp  (.vmp0 chars + cfg[0x09] + MEMPROT loglari)
+  source/engine.hpp       (opt.mpveh)
+  source/xprotect_ui.cpp  (--mpveh CLI)
+  source/xrt_blob.cpp     (yeni blob)
+  XProtectUI.exe / XProtectUI32.exe (A11 ikilileri)
+  CHANGELOG_1.2.2.md / PORT_DURUMU.md / worklog_2.md (A11 bloklari)
+YENI (kanit_122/):
+  test_mp.c, test_mp2.c, xrt_core.c (aynalama), ncalli_unicorn.py,
+  mpclean_mp.exe, t42_mpf.exe, mpclean.exe, mpwrite.exe,
+  t42_mpf.log, mpclean_mp.log, t42_v4.log, t42_v5.log, tmp_mp_prot.log
+
+== PORTLAMA DURUMU (dikkatle yeniden sayim) ==
+Oge                              | %    | Not
+---------------------------------|------|----------------------------------
+Virtualization                   | %90  | + CALLI (A10); vtable-thiscall OK
+Mutation                         | %80  | dolayli cagri on-RED -> saf V dusumu
+Ultra (M+V)                      | %100 | zincir + dusum politikasi kanitli
+Encrypt ByteCode                 | %85  | A9 zinciri; UO zincir-paritesi
+Encrypt Registers                | %100 | UO'yu ASAN (UO'da olcu bayrak)
+Check Debugger                   | %90  | K1-K9+CHKRET+syscall
+Check Kernel Debugger            | %90  | K5/K6
+Check Virtual Machine            | %70  | CPUID/TF
+Loader CRC                       | %90  | kullanici dogruladi
+File CRC                         | %90  | K9 kok-duzeltmesi
+Memory Protection                | %80  | + .vmp0 loader-RX (A11); VEH gate'li
+Import Protection                | %60  | IAT thunk deneysel
+Resource Protection              | %70  | pack akisi
+Packing                          | %90  | LZMA
+String Encryption                | %60  | strenc kismi
+Watermark                        | %50  | kutu+kismi
+Virtual Files                    | %10  | motor yok (dokumente)
+Licensing                        | %75  | RSA/SHA1+HWID+keygen
+SDK markers                      | %90  | B8 ailesi + JMPEXT/JCCEXT/CHKRET
+MAP/PDB                          | %85  | PDBScope+export/COFF/MAP/RVA
+Strip Fixups/Debug Info          | %90  | kanitli
+TOPLAM MOTOR-PARITE              | ~%87 | (A10 ~%86 -> MemoryProt +1)
+
+Kullanici istek kaydi (bu tur):
+  [OK] "Internal Memory Protection portu" -> .vmp0 loader-RX + VEH altyapisi
+       (VEH-kill wine'da dogrulanamadi; --mpveh ile gercek-Windows testi)
+  [KOŞUYOR] "coklu-fonksiyon x pack olcek izolasyonu" (S1) -> cp40'ta rapor
+  [OK] cp38 A10 (OP_NCALLI) -> kullanici oyun testi bekleniyor (E96D0 dahil)
+  [SIRADA] Check Debugger UO-parite kalanlari + ozellik listesi eksik taramasi
+  [BILGI] tam-tarama kipi ( tum CRT lift) sagliksiz — UI manuel-add normal yol
+
+== SON DURAK / SONRAKI ENDPOINT ==
+1. coklu-fonksiyon x pack S1 sonucu (arka planda kosuyor) -> cp40 kanitlari
+2. tam-tarama kipi (726 lift) saglik sorusturmasi — A10'dan beri RC=1/0xC0000FD
+3. --mpveh gercek-Windows kullanici testi talimati (tek satir CLI)
+4. Check Debugger UO-parite kapanisi + ozellik listesi eksik taramasi
+5. Kullaniciya: cp39 UI ile D7610+E96D0 ULTRA(+memprot) oyun-damage testi
+
+cp40'ta gorusmek uzere — kaldigimiz yerden devam.

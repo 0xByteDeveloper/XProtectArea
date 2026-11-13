@@ -588,7 +588,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         newva_guess = (lastva + lastvsz + pe.secalign - 1) & ~(pe.secalign - 1);
     }
 
-    bool rt_any  = opt.rt_selfcrc || opt.rt_textcrc || opt.rt_filecrc;
+    bool rt_any  = opt.rt_selfcrc || opt.rt_textcrc || opt.rt_filecrc || opt.memprot;   /* 1.2.2-A11: memprot runtime bagli */
     // 0.7.0: lisans API'leri xrt dispatch ister
     bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
@@ -1311,6 +1311,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
 
     u32 vmp_rva = 0;
     u32 chars = 0xE0000060u;   // CNT_CODE|MEM_EXEC|MEM_READ|MEM_WRITE
+    /* 1.2.2-A11-v3 KANITLI TASARIM: memprot YALIN kipte (CRC yok — cfg
+       state yazisi olmayacak) .vmp0 LOADER seviyesinde EXECUTE_READ map
+       edilir (0x60000020) — kullanici raporundaki "jmp'in gotturdugu yer"
+       (.vmp0 stub) korumasi DISK-seviyesinden baslar. Kanit: loader-RX
+       .vmp0 + memprot = VM dogru hesap (sdk_v=5142, rc=42); .vmp0 RWX +
+       memprot = VM bozuk (rc=1, t42+memp birebir reprodüksiyon).
+       CRC kipinde .vmp0 yazilabilir kalir (cfg state yazisi calisir). */
+    if (opt.memprot && !opt.rt_selfcrc && !opt.rt_textcrc && !opt.rt_filecrc)
+        chars = 0x60000020u;   // CNT_CODE|MEM_EXEC|MEM_READ (yazma YOK)
     /* 1.2.0-B5 cpDebugMode: INT3 dolumu BOLGE-KALANINDA zaten uygulanir
        (yerinde-stub yolu: govde kalan = 0xCC; tramp yolu: bolge junk = 0xCC)
        — debugger korumali bolgeye duserse trap. .vmp0 ic-dolumu YAPILMAZ:
@@ -1415,6 +1424,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 u32 ch = text->chars & ~0x80000000u;   // WRITE kaldir -> EXECUTE_READ
                 memcpy(&pe.buf[o + 36], &ch, 4);
                 snprintf(b, sizeof b, "[MEMPROT] .text Chars=0x%08X (yazilamaz)", ch);
+                L(b);
+            }
+            if (opt.memprot && strcmp(nm, ".vmp0") == 0) {
+                /* 1.2.2-A11: dosyada yazilabilir; runtime ilk VM cagrisinda
+                   EXECUTE_READ'e kucler (VEH yazma-guvesi ile birlikte) */
+                u32 ch = 0; memcpy(&ch, &pe.buf[o + 36], 4);
+                snprintf(b, sizeof b, "[MEMPROT] .vmp0 Chars=0x%08X %s",
+                         ch, (ch & 0x80000000u) ? "(CRC kipi: yazilabilir, VEH kurulu)"
+                                                : "(yazilamaz — jmp hedefi korumali; VEH kurulu)");
                 L(b);
             }
         }
@@ -1563,10 +1581,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (opt.rt_filecrc) fl |= 0x04;
         if (opt.rt_msg)     fl |= 0x08;
         if (opt.rt_exit)    fl |= 0x10;
+        if (opt.memprot)    fl |= 0x20;   /* 1.2.2-A11: IC memory protection */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);
         cwr(0x08, 0);                           // state: 0 (ilk cagrida kontrol)
+        /* 1.2.2-A11: cfg[0x09] = memprot-VEH gate (0=wine-guvenli varsayilan;
+           --mpveh ile 1 — gercek-Windows test anahtari; wine'da VEH kaydi
+           VM akisini bozuyor — noop-handler bisect kaniti v5) */
+        cwr(0x09, (opt.memprot && opt.mpveh) ? 0x01000000u : 0);   /* byte@0x09 */
         cwr(0x0C, vmp_rva);                     // self_rva (vm blob basi)
         cwr(0x10, xr_self_len);
         cwr(0x14, xr_sc);
