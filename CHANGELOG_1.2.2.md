@@ -223,3 +223,18 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
   W1 ULTRA+wm=10+10 kopya statik + rc=42; W2 loadercrc=8+8 kopya + rc=42;
   W3 pack=8+8 + rc=42; W4 metin2 D7610+E96D0 ULTRA+wm → [LIFT] 2/2 rc=0 + 10+10.
 - Doğrulayıcı: wm_verify.py (SearchByte durum makinesi 1:1 — maske eşleşmesi).
+
+## 1.2.2-A14 (cp42) — Watermark ARAMA (UI) — UO SearchWatermarks 1:1
+- **Watermarks diyalogu yukseltildi**: 3. sutun "Bulundu/Found" (LS_WMFOUND eklendi,
+  EN+TR tablolar); "Tara/Scan" dugmesi (UO watermarks_window.cc scanButtonClicked karsiligi).
+- **Tarama kapsami**: acik hedef dosyanin TAM ham baytlari (UO dosya-tarama kipi) —
+  durum makinesi WM listesi: IC SURUM imzasi ("XProtect1.2.2" hex) + proje watermarklari
+  (joker '?/' destekli — UO Watermark::SearchByte 1:1).
+- Sonuc: her satir icin "Bulundu" sutunu + ozet MessageBox (watermark: N kopya).
+- UI dogrulama (VLM, kanit_122/wm4_*.png): diyalog acildi; sutunlar Name|Value|Found;
+  satir "XProtect (surum imzasi) | 5850726F74656374312E322E32 | -"; dugmeler
+  Add Watermark | Delete | Scan | Close gorundu.
+- BILINEN SINIR: wine10+Xvfb (WM'siz) ortaminda modal diyaloga fare/klavye GISI
+  ulasmadi (Add dugmesi de dahil — ortam siniri, kod yolu degil; tum diyaloglar ayni
+  modal desen). Kullanici gercek-Windows testi bekleniyor. Tarama mantigi wm_verify.py
+  ile ayni durum makinesi — W1-W4'te 3 dosyada dogrulandi.

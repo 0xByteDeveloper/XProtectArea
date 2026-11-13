@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp42  (2026-11-13, UTC+8)
+================================================================
+Odak: A14 Watermark arama UI — UO SearchWatermarks 1:1 (Bulundu sutunu + Tara; VLM gorsel + mantik kanitli)
+Zipler: checkpoints/Xprotect_1.2.2_cp42/Xprotect_1.2.2_cp42.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

@@ -64,7 +64,7 @@ enum LS {
     // 0.4.0 ekleri (LS_BLOCKED zaten yukarida — yeni eklenmez)
     LS_MANUAL, LS_BASE, LS_END, LS_SCAN, LS_SEARCHRES,
     LS_EXAMPLES, LS_QUICKSTART, LS_RECENTFILES, LS_COMPILE_DONE_Q, LS_SCANNING,
-    LS_WARNING, LS_COUNT
+    LS_WMFOUND, LS_WARNING, LS_COUNT
 };
 
 static const wchar_t* g_lang_en[LS_COUNT] = {
@@ -96,8 +96,9 @@ static const wchar_t* g_lang_en[LS_COUNT] = {
     L"Source", L"Disassembly", L"Load Template", L"Execute selected", L"Symbol info",
     L"Manual Address", L"Base", L"End", L"Scan", L"Search Result",
     L"Examples...", L"Quick Start", L"Recent Files",
-    L"Compilation completed. Execute the protected file?", L"Scanning (pdbscope)..."
-    L"Warning",           /* LS_WARNING */
+    L"Compilation completed. Execute the protected file?", L"Scanning (pdbscope)...",
+    L"Found",             /* LS_WMFOUND — 1.2.2-A14 */
+    L"Warning"            /* LS_WARNING */
 };
 static const wchar_t* g_lang_tr[LS_COUNT] = {
     L"Dosya", L"Düzen", L"Proje", L"Araçlar", L"Yardım",
@@ -128,8 +129,9 @@ static const wchar_t* g_lang_tr[LS_COUNT] = {
     L"Kaynak", L"Söküm (Disassembly)", L"Şablonu Yükle", L"Seçiliyi çalıştır", L"Sembol bilgisi",
     L"Manuel Adres", L"Başlangıç (Base)", L"Bitiş (End)", L"Tara", L"Arama Sonucu",
     L"Örnekler...", L"Hızlı Başlangıç", L"Son Açılanlar",
-    L"Derleme tamamlandı. Korumalı dosya çalıştırılsın mı?", L"Taranıyor (pdbscope)..."
-    L"Uyarı",             /* LS_WARNING */
+    L"Derleme tamamlandı. Korumalı dosya çalıştırılsın mı?", L"Taranıyor (pdbscope)...",
+    L"Bulundu",            /* LS_WMFOUND — 1.2.2-A14 */
+    L"Uyarı"              /* LS_WARNING */
 };
 static bool g_tr = false;
 static const wchar_t* L(int id) { return (g_tr ? g_lang_tr : g_lang_en)[id]; }
@@ -2108,6 +2110,79 @@ static void gen_watermark(std::wstring* out) {
     }
     b[16] = 0; *out = b;
 }
+// ---- 1.2.2-A14: Watermark Compile + SearchByte — UO core.cc 1:1 (UI tarafı) ----
+// Deger hex dizisi; hex olmayan karakter = JOKER (maske 0). Durum makinesi
+// kismi-eslesmeyle ilerler; dump tamamlaninca "bulundu" sayilir.
+static bool wm_ui_compile(const std::wstring& value, std::vector<unsigned char>& dump,
+                           std::vector<unsigned char>& mask) {
+    dump.clear(); mask.clear();
+    if (value.empty()) return false;
+    for (size_t i = 0; i < value.size(); i++) {
+        size_t p = i / 2;
+        if (p >= dump.size()) { dump.push_back(0); mask.push_back(0); }
+        unsigned char m = 0xff, b2;
+        wchar_t c = value[i];
+        if (c >= L'0' && c <= L'9') b2 = (unsigned char)(c - L'0');
+        else if (c >= L'A' && c <= L'F') b2 = (unsigned char)(c - L'A' + 0x0a);
+        else if (c >= L'a' && c <= L'f') b2 = (unsigned char)(c - L'a' + 0x0a);
+        else { m = 0; b2 = (unsigned char)(rand() & 0xff); }
+        if ((i & 1) == 0) { dump[p] = (unsigned char)((dump[p] & 0x0f) | (b2 << 4)); mask[p] = (unsigned char)((mask[p] & 0x0f) | (m << 4)); }
+        else               { dump[p] = (unsigned char)((dump[p] & 0xf0) | (b2 & 0x0f)); mask[p] = (unsigned char)((mask[p] & 0xf0) | (m & 0x0f)); }
+    }
+    return !dump.empty();
+}
+struct WmUiSearch {                       // UO Watermark::SearchByte 1:1
+    std::vector<unsigned char> dump, mask;
+    std::vector<int> pos;
+    bool search_byte(unsigned char v) {
+        if (dump.empty()) return false;
+        bool res = false;
+        for (int i = (int)pos.size() - 1; i >= -1; i--) {
+            size_t p = (i == -1) ? 0 : (size_t)pos[i];
+            if ((dump[p] & mask[p]) == (v & mask[p])) {
+                p++;
+                if (p == dump.size()) {
+                    res = true;
+                    if (i > -1) pos.erase(pos.begin() + i);
+                } else if (i == -1) {
+                    pos.push_back((int)p);
+                } else {
+                    pos[i] = (int)p;
+                }
+            } else if (i > -1) {
+                pos.erase(pos.begin() + i);
+            }
+        }
+        return res;
+    }
+};
+// Dosyayi akarak tum watermarklari ara (UO files.cc SearchWatermarks 1:1).
+// Liste: proje watermarklari + IC SURUM imzasi ("XProtect1.2.2" hex'i).
+static bool wm_ui_scan_file(const std::wstring& path,
+                            const std::vector<std::pair<std::wstring, std::wstring>>& items,
+                            std::vector<int>& counts, std::wstring* err) {
+    HANDLE h = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) { if (err) *err = L"open failed"; return false; }
+    std::vector<WmUiSearch> ws(items.size());
+    bool any = false;
+    for (size_t i = 0; i < items.size(); i++)
+        if (wm_ui_compile(items[i].second, ws[i].dump, ws[i].mask)) any = true;
+    if (!any) { CloseHandle(h); if (err) *err = L"empty"; return false; }
+    counts.assign(items.size(), 0);
+    unsigned char buf[1 << 20];           // 1MB puffer
+    DWORD rd = 0;
+    for (;;) {
+        if (!ReadFile(h, buf, sizeof buf, &rd, NULL) || rd == 0) break;
+        for (DWORD k = 0; k < rd; k++) {
+            unsigned char b = buf[k];
+            for (size_t i = 0; i < ws.size(); i++)
+                if (!ws[i].dump.empty() && ws[i].search_byte(b)) counts[i]++;
+        }
+    }
+    CloseHandle(h);
+    return true;
+}
 static bool dlg_addwm(std::wstring* name, std::wstring* value) {
     HWND d = dlg_base(L(LS_ADDWM), 400, 180);
     mk_ctl(d, L"STATIC", L(LS_DETAILS), 0, 0, 16, 16, 200, 18);
@@ -2142,20 +2217,31 @@ static void dlg_watermarks() {
     HWND lv = mk_ctl(d, WC_LISTVIEWW, L"", LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP, 0x610, 14, 14, 480, 240);
     ListView_SetExtendedListViewStyle(lv, LVS_EX_FULLROWSELECT);
     LVCOLUMNW c; memset(&c, 0, sizeof(c)); c.mask = LVCF_TEXT | LVCF_WIDTH;
-    c.pszText = (LPWSTR)L(LS_NAME); c.cx = 200; ListView_InsertColumn(lv, 0, &c);
-    c.pszText = (LPWSTR)L(LS_VALUE); c.cx = 260; ListView_InsertColumn(lv, 1, &c);
+    c.pszText = (LPWSTR)L(LS_NAME); c.cx = 170; ListView_InsertColumn(lv, 0, &c);
+    c.pszText = (LPWSTR)L(LS_VALUE); c.cx = 210; ListView_InsertColumn(lv, 1, &c);
+    c.pszText = (LPWSTR)L(LS_WMFOUND); c.cx = 80; ListView_InsertColumn(lv, 2, &c);
+    /* 1.2.2-A14: liste = IC SURUM imzasi (ilk satir, sabit) + proje watermarklari */
+    std::vector<std::pair<std::wstring, std::wstring>> items;
+    items.push_back({ L"XProtect (sürüm imzası)", L"5850726F74656374312E322E32" });
+    for (auto& w : g_proj.wms) items.push_back({ w.name, w.value });
+    std::vector<int> found;   // son tarama sayilari (-1 = taranmadi)
     auto refill = [&]() {
         ListView_DeleteAllItems(lv);
-        for (size_t i = 0; i < g_proj.wms.size(); i++) {
+        for (size_t i = 0; i < items.size(); i++) {
             LVITEMW it; memset(&it, 0, sizeof(it));
-            it.mask = LVIF_TEXT; it.iItem = (int)i; it.pszText = (LPWSTR)g_proj.wms[i].name.c_str();
+            it.mask = LVIF_TEXT; it.iItem = (int)i; it.pszText = (LPWSTR)items[i].first.c_str();
             int idx = ListView_InsertItem(lv, &it);
-            ListView_SetItemText(lv, idx, 1, (LPWSTR)g_proj.wms[i].value.c_str());
+            ListView_SetItemText(lv, idx, 1, (LPWSTR)items[i].second.c_str());
+            wchar_t fb[24];
+            if (i < found.size()) _snwprintf(fb, 24, L"%d", found[i]);
+            else wcscpy(fb, L"-");
+            ListView_SetItemText(lv, idx, 2, fb);
         }
     };
     refill();
     mk_ctl(d, L"BUTTON", L(LS_ADDWM), WS_TABSTOP, 0x611, 14, 270, 110, 26);
     mk_ctl(d, L"BUTTON", L(LS_DELETE), WS_TABSTOP, 0x612, 130, 270, 90, 26);
+    mk_ctl(d, L"BUTTON", L(LS_SCAN), WS_TABSTOP, 0x613, 226, 270, 90, 26);   /* 1.2.2-A14: UO scanButtonClicked karşılığı */
     mk_ctl(d, L"BUTTON", L(LS_CLOSE), BS_DEFPUSHBUTTON | WS_TABSTOP, IDCANCEL, 404, 270, 90, 26);
     EnableWindow(g_main, FALSE); ShowWindow(d, SW_SHOW); UpdateWindow(d);
     MSG m;
@@ -2164,12 +2250,41 @@ static void dlg_watermarks() {
         if (m.message == WM_COMMAND && m.hwnd == d) {
             if (LOWORD(m.wParam) == 0x611) {
                 std::wstring n, v;
-                if (dlg_addwm(&n, &v)) { ProjWatermark w; w.name = n; w.value = v; g_proj.wms.push_back(w); g_proj.modified = true; refill(); }
+                if (dlg_addwm(&n, &v)) { ProjWatermark w; w.name = n; w.value = v; g_proj.wms.push_back(w); g_proj.modified = true;
+                    items.clear();
+                    items.push_back({ L"XProtect (sürüm imzası)", L"5850726F74656374312E322E32" });
+                    for (auto& w2 : g_proj.wms) items.push_back({ w2.name, w2.value });
+                    refill(); }
                 continue;
             }
             if (LOWORD(m.wParam) == 0x612) {
                 int sel = ListView_GetNextItem(lv, -1, LVNI_SELECTED);
-                if (sel >= 0) { g_proj.wms.erase(g_proj.wms.begin() + sel); g_proj.modified = true; refill(); }
+                if (sel >= 1) { g_proj.wms.erase(g_proj.wms.begin() + (sel - 1)); g_proj.modified = true;
+                    items.clear();
+                    items.push_back({ L"XProtect (sürüm imzası)", L"5850726F74656374312E322E32" });
+                    for (auto& w2 : g_proj.wms) items.push_back({ w2.name, w2.value });
+                    found.clear(); refill(); }
+                continue;
+            }
+            if (LOWORD(m.wParam) == 0x613) {
+                /* 1.2.2-A14: AçIK HEDEF DOSYAYI tara (UO SearchWatermarks 1:1). */
+                if (g_proj.target.empty()) {
+                    MessageBoxW(d, L(LS_NO_TARGET), XPROTECT_EDITION, MB_OK | MB_ICONWARNING);
+                } else {
+                    std::vector<int> cnt; std::wstring werr;
+                    if (wm_ui_scan_file(g_proj.target, items, cnt, &werr)) {
+                        found = cnt; refill();
+                        int tot = 0; std::wstring rep;
+                        for (size_t i = 0; i < items.size(); i++) {
+                            rep += items[i].first + L": " + std::to_wstring(cnt[i]) + L"\n";
+                            tot += cnt[i];
+                        }
+                        rep = std::wstring(L(LS_SCAN)) + L": " + basename_of(g_proj.target) + L"\n\n" + rep;
+                        MessageBoxW(d, rep.c_str(), XPROTECT_EDITION, MB_OK | MB_ICONINFORMATION);
+                    } else {
+                        MessageBoxW(d, L(LS_WARNING), XPROTECT_EDITION, MB_OK | MB_ICONERROR);
+                    }
+                }
                 continue;
             }
             if (LOWORD(m.wParam) == IDCANCEL) done = true;
