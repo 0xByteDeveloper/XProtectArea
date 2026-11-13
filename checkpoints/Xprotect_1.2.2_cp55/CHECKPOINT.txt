@@ -1,0 +1,539 @@
+CHECKPOINT Xprotect_1.2.2_cp55 (cp55)
+==================================================
+Tarih : 2026-11-13 12:54:48
+Zip   : XProtect_1.2.2_cp55.zip (26887440 bayt)
+Agac  : /tmp/my-project/download/XProtect_1.2.2
+
+Bu dosya otomatik uretildi: plan-once log kurallarina gore
+ILERLEME_NOTLARI.md tam icerigi asagidadir (en son ne
+yapiliyordu / hangi endpointte kalindi / siradaki is).
+
+# ILERLEME_NOTLARI — XProtect 1.2.0 (canli not defteri)
+
+> KURAL: Her is YAPILMADAN ONCE buraya yazilir (bulunan sorun / yapilacak is).
+> Sonra is yapilir, ardindan "SONUC:" satiri eklenir.
+> Checkpoint daemon (cp_daemon.py) bu dosyayi her 4 dakikada GitHub'a iter.
+> Amac: oturum her an kesilse, kullanici elindeki cpN.zip ile tum ara durumu bilir.
+
+---
+
+## 2026-11-12 04:12 — A/B karsilastirmasi (YAPILDI, rapor)
+
+- BULDU: XProtect_1.2.0_A.zip = 2026-11-12 02:55 anlik goruntusu; B1 mult-VM
+  (vm_id/perm_seed) + B2 TLS-tramp pack + B5 debugmode fix'lerini ICIYOR.
+- BULDU: XProtect_1.2.0_B.zip = 2026-11-11 20:18 anlik goruntusu; B1/B2
+  fix'lerinden ONCEKI kaynak durumu; ama kanit_b1/ test loglari (dp86prot*,
+  iso10-13) sadece onda var.
+- KARAR: **A en iyi / en yeni.** B'nin tek degeri kanit_b1 loglari.
+- GUNCELLE: Calisma agaci kuruldu: download/XProtect_1.2.0/ = A tabani
+  + B/kanit_b1 eklendi + en yeni XProtectUI.exe/32 (md5 f7e76b66) kokte.
+
+## 2026-11-12 04:20 — Ortam taramasi (YAPILDI)
+
+- BULDU: GitHub token 401 (Bad credentials) — PUSH SU AN YOK. Daemon her turda
+  gh_token.txt'yi yeniden okuyup push'u otomatik dener; token yenilenir
+  yenilenmez birikmis checkpoint'ler gider. (Kullanici notu: token yenilenecek.)
+- BULDU: wine-root sandbox reset'te gitmis; setup_env.sh mantigiyla yeniden
+  kurulacak (wineserver SHELL SCRIPT dersleri dahil).
+- BULDU: Z-Bridge v3.7.2 kurulu degildi; kurulum_yeni_chat.py calistirildi,
+  broker baglantisi OK. Kullanici istegi: 20-sn dinleme penceresi.
+- GUNCELLE: bridge_test/senkron20.py YAZILDI (kural: not gelirse pencere
+  20 sn yenilenir; gelmezse is devam eder). Canli test PASSED.
+
+## 2026-11-12 04:25 — PLAN: checkpoint sistemi (yapilacaklar)
+
+- YAPILACAK: cp_daemon.py (240 sn dongu):
+  1) download/XProtect_1.2.0/ agacini zip'le -> XProtect_1.2.0_cpN.zip
+     (N = cp_no.txt'den monoton artar)
+  2) zip'i download/'a ve repo kokune koy + ILERLEME_NOTLARI.md'yi repo'ya
+  3) git add+commit+push (token 401 ise skip, push_bekleyen sayacini artir)
+  4) log: cp_daemon.log
+- SONUC (04:17): cp_daemon.py yazildi, tek-tur test OK: cp1 zip 3,077,962B
+  uretildi (download/XProtect_1.2.0_cp1.zip). Push 401 -> push_bekleyen.txt'ye
+  birikti (token gelince otomatik bosalicak). Daemon cift-fork BASLATILDI
+  (dongu 240 sn; cp2 ilk otomatik tur ~04:20).
+
+## 2026-11-12 04:26 — PLAN: vm_core.c commit-bozuk fix dogrulamasi
+
+- SORUN (onceki oturum kaydi): repo vm_core.c "c->regsap[k]]" ile COMMIT-BOZUK
+  gelmisti; duzeltildi. A ziplinde duzeltilmis hal mi, dogrulanacak.
+- YAPILACAK: grep regsap + gcc -m32 -c derleme denemesi.
+- SONUC (04:18): A zip'indeki vm_core.c'de "regsap[k]]" YOK (fix yerinde);
+  kanit = derleme testi: -DVM_IS_X64 -DVM_WINDOWS ile rc=0 (28,648B obj),
+  -m32 -DVM_IS_X86 ile rc=0 (40,964B obj). Iki mimari de temiz.
+
+## 2026-11-12 04:27 — PLAN: wine-root + derleme + regresyon
+
+- YAPILACAK:
+  1) wine-root yeniden kur (apt-get download wine64 libwine wine-binfmt,
+     wineserver script->ELF ezme, wchroot.sh PATH)
+  2) vm64.bin/vmx86.bin blob yeniden uretim (gen_blob.py yolu)
+  3) XProtectUI.exe + 32 yeniden derleme (build_ui.sh)
+  4) Regresyon: sdk_b1 rc=42, R5 ULTIMATE rc=42, tamper rc=117, tls_test rc=42
+- SONUC (04:40): TAMAMLANDI — 5/5 altin standart:
+  R1 R5 ULTIMATE (sdkonly+pack+sectcrypt+loadercrc+filecrc+stripfixups+
+     debugmode) rc=42 "OK hepsi dogru"
+  R2 tamper .vmp1 tek-bayt (--rt-nomsg varyanti) rc=117 DURU-RET
+  R3 sdk_b1 (JMPEXT/JCCEXT/gates + debugmode) rc=42
+  R4 tls_test (pack+stripfixups) rc=42 "TLS OK" (B2 kaniti)
+  R5 mult-VM vmn=4 + vmadv rc=42 (B1 kaniti)
+- DERSLER (yakalanan ve duzeltilen 3 kustum):
+  1. gen_blob.py A ziplinde YOKTU — B'den alindi (guncelle: blob uretimi
+     icin gen_blob.py + vm64/vmx86.bin gerekiyor).
+  2. lzma/ klasoru A ziplinde YOKTU — 0.6.1 kaynak agacindan kopyalandi
+     (LzmaEnc.c/LzFind.c + headers).
+  3. engine_sym.hpp A ziplinde YOKTU — B'den alindi. DERS: A zipli
+     eksik-dosya ile gelmisti; B kopyasi bunlari kapatmistir (merge -n).
+  4. wine cmd ilk sıcak başlatmada asılı kalmaktir: pkill -9 wine +
+     wineboot -i/-u ile tazele; wchroot.sh'e PATH export eklendi.
+  Boyutlar worklog kaydiyla OZDES: XProtectUI.exe 1,275,392B;
+  XProtectUI32.exe 1,326,080B (md5 farkı derleme-yolu kaynakli — islevsel
+  kanit regresyon).
+- Kanit loglari: kanit/1.2.0/ (prot+run loglari) — cp zip'lerine giriyor.
+- KOPRU: kullanici 04:48'te "merhaba" yolladi (PC->sandbox CANLI);
+  40 sn dinleme penceresi bos kapandi, ise devam edildi (20-sn kurali).
+
+## 2026-11-12 04:28 — PLAN: B3 cpResourceProtection (Faz C kalan isi)
+
+- YAPILACAK: resource sifreleme + FindResource/LoadResource/LoadString/
+  EnumResource* yonlendirme (VMP IsInternal semantigi).
+- TASARIM (yapilmadan once, UO/VMP referans):
+  1) engine'e resSifreleme modulu: sec .rsrc verisini CFB (sectcrypt
+     ailesi) ile sifrele; anahtar gizli-alanda (stub-tasiyan) yasar.
+  2) XRT-gate'e resource API yonlendirme: FindResourceA/W -> okumadan
+     ONCE bagli .rsrc sayfasini cozer; LoadResource/LockResource ayni
+     gate; LoadStringA/W ve EnumResource* XRT-icinde karsiliklar.
+  3) IsInternal semantigi (VMP): yalniz korunan modulun kendisinin
+     resource'larina dokun; harici DLL resource'larina pas.
+  4) Test: res_test.c — FindResource+LoadResource+LockResource ile
+     gomulu metin okur; dogru metin cikarsa rc=42.
+- SONUC (05:10): B3 TAMAMLANDI — cpResourceProtection CALISIYOR:
+  1. res_test.c (RCDATA ID=1 okuyan test) + add_rsrc.py (PE'ye .rsrc
+     ekleyen arac) yazildi. add_rsrc dersleri: dir hdr 16B + entry 8B
+     {id, off|0x80000000}; RT_RCDATA=10; DataEntry {rva,size,cp,res}
+     SIRASI; SizeOfImage GUNCELLENMELI (yoksa loader rc=6).
+  2. Motor: do_pack'e resprot param (engine.hpp default false); skip
+     hesabinda di==2 istisnasi; [RESPROT] log; engine_main cagrisi
+     opt.rsrcprot geciyor; OZET'e "resprot=ACIK/kapali".
+  3. UI: GUI cap->opt koprusu eklendi (cpResourceProtection biti
+     opt.rsrcprot'a); CLI --rsrcprot zaten vardi (4042).
+  4. KANIT: --rsrcprot ile res_test_r.exe korundu: "[PACK] .rsrc
+     RVA=0x0003C000 512 B -> LZMA 69 B (%13.5) [CFB]"; statikte .rsrc
+     raw CFB-sifreli (ilk 32 bayt entropi), gizli metin resource-
+     verisinde YOK (yalniz testin kendi .rdata literal'i kaliyor);
+     calisirken: RES OK 22 bayt + RES DOGRU + RCODE=42 (unpack
+     transparan geri yaziyor).
+  5. Yeni build ile tam regresyon YENIDEN: R1=42 ("OK hepsi dogru"),
+     R2 tamper=117 (duru-ret), R3=42, R4=42 TLS OK, R5=42 — 5/5.
+  Boyutlar: XProtectUI.exe 1,276,416B; XProtectUI32.exe 1,327,104B
+  (B3 kodu ~1KB buyume). Kanitlar: kanit/1.2.0/resprot_prot.log +
+  kanit/res_test.c + kanit/1.2.0/add_rsrc.py.
+- KALAN: B4 cpVirtualFiles (bundler: gomulu dosya agaci +
+  faLoad/faRegister/faInstall — UO file_manager.cc modeli).
+
+## 2026-11-12 05:15 — PLAN: B4 cpVirtualFiles (sonraki oturum icin)
+
+- YAPILACAK (is HENUZ BASLAMADI — not onceli):
+  1) UO file_manager.cc modeli (scripts/uosrc/core): gomulu dosya agaci
+     (bundle), faLoad/faRegister/faInstall API sekilleri — 1:1 port.
+  2) engine: --vfile <cikti-kaynak:demo>: hedef EXE'ye gomulu dosya agaci
+     yazilacak (.vmp0 icinde bagli alan); fa* SDK API'lari isaretli.
+  3) XRT: fa* uygulamalari — dosya adi -> icerik cozme, sanal
+     CreateFile/ReadFile benzeri yuzey (kapsam: faLoad/faRegister).
+  4) Test: vf_test.c — faLoad ile gomulu dosyayi okur; icerik dogruysa
+     rc=42.
+- SONUC: (baslayinca doldurulacak)
+
+## 2026-11-12 05:15 — OTURUM OZETI (13. oturum)
+
+- A/B KARAR: A en yeni (B1 mult-VM + B2 TLS + B5 debugmode iceren
+  02:55 goruntusu); B'nin kanit_b1 loglari merge edildi.
+- DUZELTILEN KUSUMLAR: A zip eksik dosyalari (gen_blob.py, lzma/,
+  engine_sym.hpp) — B'den tamamlandi; wine-root yeniden kuruldu
+  (wineserver ELF + PATH dersleri); test yolu Z: uyumu.
+- YENI: B3 cpResourceProtection tam calisiyor (--rsrcprot; statikte
+  .rsrc CFB-sifreli, runtime transparan, rc=42; regresyon 5/5 + 117).
+- CHECKPOINT: cp1..cp16 uretildi (4 dk dongu) + XProtect_1.2.0_final.zip.
+  PUSH DURUMU: GitHub token 401 — tum cp'ler lokalde birikti
+  (push_bekleyen.txt); token yenilenince bir sonraki turda OTOMATIK gider.
+- KOPRU: senkron20.py (20-sn pencere, not gelirse pencere yenilenir)
+  canli; kullanici "merhaba"si 04:48'te yakalandi; iki 40-sn pencere
+  bos kapandi (kural: gelmezse devam).
+
+---
+## 2026-11-12 (bu oturum) — PLAN: XProtectArea repo + UO %100 port turu
+
+- KULLANICI TALEBI: tum checkpoint zip'leri + kaynak kodlari artik
+  github.com/0xByteDeveloper/XProtectArea'ya atilacak. Token yenilendi (401
+  cozuldu, /user testi 200 OK).
+- YAPILACAK (sira):
+  1) cp_daemon.py XProtectArea surumune yukselt: cp klasor yapisi
+     (checkpoints/Xprotect_1.2.0_cpN/ + zip + CHECKPOINT.txt) + backlog
+     (cp1-23, 184MB) flush + 4 dk dongu.
+  2) Ilk push: source + kanit + dokumanlar + backlog cp zipleri.
+  3) UO ANALIZI SONUCU (subagent raporu alindi):
+     - Encrypt ByteCode (UO): SADECE sanallastirilmis fonksiyonlarin VM
+       bytecode'unu sifreler (per-opcode kripto zinciri + adres-init rolling
+       key + alan-basina cozme). Stack/exe-tamami degil.
+     - Encrypt Registers (UO 3.5.1): OLUMSU bayrak (hicbir kod okumuyor);
+       islevsel karsiligi bytecode'taki register-operand baytinin
+       sifrelenmesi. XProtect'te GERCEK ozellik yapacagiz (VM register
+       dosyasi bellekte sifreli + operand bayt sifreleme) -> UO'yu ASAN.
+     - Check Debugger (UO): 15 teknik + direct syscall + temiz ntdll kopyasi
+       (ScyllaHide direnci). XProtect'e ustun set portlanacak.
+  4) BULDU (hata): xprotect_ui.cpp:2570 — opt.vmenc = (options &
+     cpEncryptBytecode) == 0 → INVERS! "Encrypt Bytecode" isaretlenince
+     sifreleme KAPANIYOR. DUZELTILECEK: isaret = sifrele + varsayilan acik.
+  5) BULDU (eksik): cpEncryptRegs kutusu UI'da var ama hicbir motor opt'ina
+     bagli degil (olumsu). GERCEK port yapilacak: opt.vmregs + vm_core.c
+     regs[16] bellek-ici sifreleme + operand-bayt sifreleme.
+  6) Anti-debug ustun set: xrt_core.c — NtQueryInformationProcess
+     (DebugPort/DebugObjectHandle), NtSetInformationThread
+     (HideFromDebugger), NtQuerySystemInformation
+     (SystemKernelDebuggerInformation), SoftICE surucu taramasi,
+     CloseHandle(0xDEADC0DE), TF+DR0-3, VM-ici donus-adresi int3 kontrolu.
+  7) Rebuild (build_vmblob + build_xrt + build_ui) + R1-R5 regresyonlari.
+  8) Dokumanlar: PORT_DURUMU.md (% parite) + OZELLIK_LISTESI.md (tum 20
+     ozellik aciklamasi + UO matrisi) repo'ya.
+- HEDEF: her 4 dk bir cp; isler bittince tam proje zip push.
+
+## 2026-11-12 06:20 — SONUC: UO port turu KOD TAMAMLANDI, derleme TAMAM
+
+- UO analizi (subagent) alindi; asagidaki portlar YAPILDI ve DERLENDI
+  (vm64.bin 31922B / vmx86.bin 48866B / vm_blob.cpp 419406B yeniden;
+  XProtectUI.exe 1290240B + XProtectUI32.exe 1340416B — TAMAM):
+  1. HATA DUZELTILDI: xprotect_ui.cpp vmenc INVERSIYONU — "Encrypt
+     Bytecode" isaretlenince sifreleme KAPANIYORDU; artik isaret=ACAR +
+     yeni projeler varsayilan isaretli (Project::options 0x80000080).
+  2. GERCEK Encrypt Registers (1.2.0-A9): cpEncryptRegs kutusu motora
+     baglandi (opt.vmregs) — VM register dosyasi regs[16] bellekte
+     per-slot splitmix64-mask ile SIFRELI (rdec/renc erisimcileri; 92
+     erisim noktasi donusturuldu; natcall yerel cozulmus kopya ile;
+     vm_entry anahtar finalizasyonu regs yukleme ONCE tasindi).
+     UO'da OLU bayrak — XProtect BURADA UO'YU ASIYOR.
+  3. K8 (ProcessDebugPort 7 + ProcessDebugObjectHandle 30 — UO
+     loader.cc:1810-1827 1:1) + K9 (CloseHandle 0xDEADC0DE — UO
+     loader.cc:2432 1:1) anti-debug bataryasina eklendi; xa_call5
+     (Win64 5-arg [rsp+0x20]) + xa_call5_86 + xa_call1_86 yazildi.
+  4. OP_CHKRET (0x43, VM_OPN 0x44): UO AddCheckBreakpointSection
+     (intel.cc:9305) 1:1 — donus adresi baytlari 0xCC/CD03/0F0B
+     kontrolu; lifter antidebug acikken her gercek ret onune yazar
+     (bolge kipinde atlanir — donus adresi garanti degil).
+  5. Stub'lar scratch[5] bit1 = regsenc bayragi yazar (x64+x86).
+- SIRADA: wine regresyonlari (R1 baseline + yeni ozellik acik/kapali
+  diferansiyeli + tamper) — asagida sonuclar yazilacak.
+
+## 2026-11-12 07:10 — SONUC: KOYU HATA AVCASI — NTSTATUS KOK NEDENI COZULDU
+
+- SORUN: antidebug acik V-fonksiyonlar giris-RAX donduruyordu (a=0,
+  c/d=onceki deger). K1..K9 tek tek izole edildi (isaret-poison'larla):
+  **SUCLU: K8b** (ProcessDebugObjectHandle, class 30).
+- KOK NEDEN (x64): Win64 ABI'de 32-bit NTSTATUS RAX'ta SIFIR-GENISELMIS
+  doner. 0xC0000353 (PORT_NOT_SET) u64 olarak +3221227219'dur -> `(i64)`
+  cast'i POZITIF yapar -> `st >= 0` yanlis-pozitif -> done=2 -> zehir.
+  (Kanit: vmmin izolasyon testi r2=0xDEAD0008 marker'i; adbgdiag sirali
+  testi; nat5test.) UO kaynaginda NTSTATUS=LONG (ISARETLI 32-bit)
+  tanimlidir — bizim tasiyicimiz u64 idi.
+- DUZELTME: tum NTSTATUS karsilastirmalari isaret-genisletmeye zorlandi:
+  `(i64)(int)(u32)sonuc` (x64) / `(i64)(long)` (x86). K8a/K8b/K5/K6'ya
+  uygulandi. Ayrica 12 hata-iz marker'i temizlendi, zehir geri acildi.
+- KANIT (hepsi "OK hepsi dogru"):
+  R1 sdk+pack+sectcrypt+loadercrc+filecrc+stripfix+debugmode+ANTIDEBUG
+  r5_110: a=78 b=0x16f9 c=0x1221 d=81 ✓
+  vmmin (3 manuel V-fonksiyon, tam batarya): r1=66 r2=157 r3=46 ✓
+  R4 tls_test (pack+stripfix+antidebug): "TLS OK" ✓
+  mult-VM (vmn=4+vmadv, antidebugsiz): a=78 ✓
+- BILINEN SINIR (sonraki tur): mult-VM(vmadv) x antidebug BIRLIKTE
+  SEH istisnasi veriyor (mult-VM tek basina temiz) — izole edilecek.
+  x86 ikilisi derleniyor; wine32 bu konteynerde calismiyor (bilinen
+  sinir) — x86 dogrulama -m32 derleme + onceki Unicorn setine dayanir.
+- EK DERSLER bu turda: (1) vm_natcall5'in r10 clobber listesi
+  eksikti — duzeltildi; (2) VM_DELTA C-frame butcesi 0x240 -> 0x5000
+  buyutuldu (bataryanin 16KB mbuf C-frame'i guest yiginini tehdit
+  ediyordu — savunmaci buyutme); (3) Linux x64'te GS=TLS degil —
+  harness ARCH_SET_GS ile sahte TEB kurar.
+- URUN: XProtectUI.exe 1290240B + XProtectUI32.exe 1340416B (temiz
+  derleme, BC_DUMP kanci kapali) — paket kokune kopyalandi.
+
+---
+
+## 2026-11-12 08:55 — 1.2.2: CHECKDEBUGGER ÇÖKMESİ KÖK-NEDENDEN ÇÖZÜLDÜ
+
+- KULLANICI BİLDİRİMİ: metin2 0xD7610 ULTRA + CheckDebugger=True → oyunda damage
+  atınca ÇÖKME (normal derleme sorunsuz). "Önceki sürümlerde CheckDebugger başarılıydı;
+  güçlendir dedim diye hata oldu; çözemezsen eski hatasız sürüme çevir."
+- İZLEME: 1) iki exe farkı yalnız .vmp0 (bc 0x239→0x23E: ANTIDBG öneki + 3×OP_CHKRET);
+  2) bytecode çözümü (bcd.c + bc_diff121.py): CHKRET yerleşimi/fixup'ları SAPIKSIZ —
+  akış değil NATIVE çağrı disiplini şüpheli; 3) Unicorn diferansiyeli (m2vm_repro2.py):
+  boş LDR → temiz (batarya API kısmı atlıyor) → API tarafında; 4) GERÇEK-API-benzeri
+  clobber-stub'larla (ECX/EDX ezici): KULLANICININ EXE'Sİ ÇÖKTÜ (EIP=0xDEAD0001 =
+  `call *%ecx` çöp işaretçi) — birebir reprodüksiyon ✓.
+- KÖK NEDEN: x86 `xa_call1/2/4/5_86` sarmalayıcıları inline-asm clobber listesinde
+  ECX/EDX'i bildirmiyordu. 1.2.0-A8 K8'in arda ardina IKI NtQueryInformationProcess
+  cagrisi, GCC'nin fonksiyon isaretcisini ECX'te tutmasiyla sonucta buldu: ilk cagri
+  ECX'i ezdi, ikinci `call *%ecx` cop adrese atladi → 0xC0000005. (0.8.5'te latent —
+  batarya kucuktu, sasmadan gecti; "guclendir" talimatiyla tetiklendi.)
+- DÜZELTME (vm_core.c): dort sarmalayici TEK duzenli bicim — arg'lar C tarafinda
+  args[] dizisine kurulur, asm register-gostergeli adresemeyle push eder, clobber
+  listesi ecx/edx icerir; derlenmis blob'da isaretci artik EBX'te (callee-saved).
+- KANIT: 1.2.2 uretimi clobber-stub testinde TEMIZ (iki yol); x64 blob md5-ozdes
+  (yol degismedi) + x64 sdk+antidebug rc=42 yeniden dogrulandi.
+- SONRAKİ: Loader CRC cokmesi (kullanici bulgusu) ayri tur; mult-VM×antidebug SEH
+  siniri; UO tam kapsam portu devam.
+
+---
+
+## 2026-11-12 22:40 — FILECRC KÖK-NEDENİ KESİN KANITLANDI + FIX SHIP EDİLDİ (K9-tamam)
+
+- KULLANICI BİLDİRİMİ: "Loader CRC sorun yokmuş, File CRC sorun." metin2client
+  0xD7610 ULTRA(M+V) + FileCRC=True → damage'te 0xC0000005 @0x010E093D.
+  errorlog: eax=0 ecx=0x3D esi=0x3D edx=0x002A0028 ebp=0x00B90000.
+- KANIT ZİNCİRİ (kullanıcının kendi exe'sinde):
+  1) ASLR base 0x00B90000 → EIP RVA 0x55093D = .vmp0 peb_path_for_base
+     geniş→ANSI kopya döngüsü: `movzx ecx,word ptr [edx]` (0x55093D FAULT).
+  2) Döngüyü besleyen yükleme 0x5508F3: `mov edx,[ecx+0x2C]` — x86 LDR_DATA_
+     TABLE_ENTRY'de +0x2C = BaseDllName{Length=0x28,MaxLen=0x2A} → 4B pointer
+     okuma = 0x002A0028 COP İŞARETÇİ (errorlog edx'i birebir).
+  3) ecx=esi=0x3D=61 = FullDllName.Length(122)>>1 = döngü sayacı; eax=0 =
+     i=0 ilk iterasyon. TÜM registerlar açıklandı.
+  4) A/B: cp13 zip UI32 (08:53 build) gömülü xrt86 blob'unda 8b512c VAR,
+     8b5128 YOK → kullanıcı cp13 ile derlediği için çöktü. 10:46 K9 fix'i
+     kaynakta vardı ama hiçbir checkpoint ile SHIP EDİLMEMİŞTİ (cp13 09:33'te
+     kesilmişti) — oturum kesintisi payı.
+- DÜZELTME (xrt_core.c zaten yerinde): x86 ENT_FULLBUF_OFF 0x2C→0x28
+  (FullDllName.Buffer), ENT_FULLLEN_OFF=0x24. Yeni xrt86.bin (17880B):
+  8b512c YOK, 8b5128 @+2903 VAR. UI x64+x86 yeniden derlendi
+  (XProtectUI.exe 1290752B + XProtectUI32.exe 1340928B).
+- REGLERESYON (yeni UI, wine): R1 sdk+filecrc RC=42 ✓ | R2 .text tamper
+  RC=115(0x73) ✓ | R2b .vmp0 dolgu-tamper RC=42 (atlama bölgesi) ✓ |
+  R4 determinizm md5-özdeş ✓ | R3 kesin kanıt: YENİ m2_fc.exe'de 0x5508F3
+  `mov edx,[ecx+0x28]` (kullanıcı exe'siyle aynı RVA'da tek bayt farkı).
+- TESLİMAT: download/metin2client_vmp_FileCrc.exe (0xD7610:0xD766C ULTRA
+  + FileCRC, 5284352B — kullanıcının çöken exe'siyle aynı konfig, FIX'li
+  motorla). Kullanıcı bu exe ile damage testini tekrar edecek.
+- MEMORY PROTECTION CEVABI (kullanıcı sorusu "ne işe yarar, neden .vmp0'ı
+  değiştirebildim"): bugünkü memprot = STATİK: .text section-header'dan
+  IMAGE_SCN_MEM_WRITE kaldırır (OS .text'i RX yükler; VirtualProtect'siz
+  yazarlar fault yer). .vmp0 KAPSAMAZ (jmp'ın götürdüğü VM entry orada) —
+  bu yüzden kullanıcı .vmp0'ı yamalayabildi. Debugger notu: x64dbg
+  WriteProcessMemory ile sayfa korumasını bypass eder — debugger-testi bu
+  özelliği ölçemez; gerçek test = debugger'sız yazar (injection/patcher).
+  .vmp0 runtime'da meşru yazar (unpack CFB yerinde-decrypt, state byte,
+  VM scratch/OP_JMPEXT hedefleri) → header-RX crash verir; VMP-parite
+  "Internal Memory Protection" (cpInternalMemoryProtection kutusu boşta)
+  için plan: mutable state/scratch ayrı RW section'a taşınacak + .vmp0
+  runtime sonunda VirtualProtect RX. SONRAKİ TUR işi olarak kaydedildi.
+- TÜM ÖZELLİK DOĞRULAMASI: xp122_featver.sh (F1-F11) — LoaderCRC+file tamper,
+  antidebug+ULTRA, EncryptByteCode ON/OFF statik fark, EncryptRegs ON/OFF
+  statik fark, TLS+pack, ResourceProtection, mult-VM(4)+vmadv, memprot,
+  strenc. Sonuçlar FEATVER.txt'ye yazılıyor (bu dosyanın altında rapor).
+
+---
+
+## 2026-11-12 23:35 — A9 HATASI BULUNDU+DÜZELTİLDİ (EncryptRegisters×JMPEXT) + TAM ÖZELLİK DOĞRULAMASI YEŞİL
+
+- BULGU (özellik doğrulama süiti F1-F11 yakaladı): sdk_b1 korumalı exe RC=42 DEĞİL,
+  "trace a" sonrası rc=3 (CRT abort). --noregs ile 42 → suçlu 1.2.0-A9 vmregs.
+  İZOLASYON: yalnız JMPEXT (kuyruk-jmp) yolu bozuk; normal VM dönüşleri sağlam.
+- KÖK NEDEN: stub'ların .natgt bloğu guest rsp'yi ctx+0x40'tan (x64 regs[4]) HAM
+  okuyordu; A9 ile regs[] SİFRELİ dosya oldu → okunan değer şifreli RSP → jmp
+  hedefi bozuk stack → abort. (A9 sonrası sdk_b1 regresyonu ZAMANLANMAMIŞTI —
+  07:10 turu r5_110 ile koşmuştu; JMPEXT'li sdk_b1 kaçmış.)
+- DÜZELTME (3 dosya):
+  1) vm_core.c: done==3'te `c->init_rsp = rdec(c, REG_RSP);` — RAW rsp artık
+     init_rsp (+0xB0, iki mimaride aynı offset) slotsuna yazılır.
+  2) engine_stub.cpp x64: natgt `mov rdx,[rdx+0x40]` → `mov rdx,[rdx+0xB0]`.
+  3) engine_stub.cpp x86: natgt `mov esp,[esp-0x25C]` → `mov esp,[esp-0x1DC]`.
+- KANIT (A9FIX sonrası, YENİ blob+UI): sdk_b1 ON=42 / OFF=42 / novmenc=42 /
+  mult-VM(4)+vmadv=42 / memprot+filecrc=42 / strenc=42 / loadercrc=42 /
+  filecrc=42 / antidebug+ULTRA+3crc+stripfix+debugmode=42 / sdkonly+pack=42.
+  Tamper dedektörleri: .text tamper→114/115 (0x72/0x73), disk tamper→detection ✓.
+  m2_fc2.exe (metin2 teslimatı) statik kanıtı: PEB-walk yükleme `mov edx,
+  [ecx+0x28]` ✓ + natgt `mov esp,[esp-0x1DC]` ✓ (eski baytlar YOK).
+- TESLİMAT: download/metin2client_vmp_FileCrc.exe (5284864B, U=1 @0xD7610,
+  vmenc+vmregs ACİK, runtime file=1) — K9+A9FIX'li motorla. Kullanıcı damage
+  testini bununla tekrar edecek (eski çöken exe'nin yerini aldı).
+- BİLİNEN SINIR (YENİ KEŞİF, sonraki tur işi): --all ile 428-433 fonksiyon
+  sanallaştırma + pack kombinasyonu main'e ulaşamadan düşüyor (RC=1, .vmp0
+  içinde AV @0x3EEE0). Az fonksiyon (sdkonly/manuel) + pack = 42 ✓. Eski
+  R4'te V=0 idi (eski motor 0 aday buluyordu; yeni motor --all zorluyor).
+  Kullanıcı senaryosu (1 fonksiyon manuel) ETKİLENMİYOR. Öncelik: çoklu-
+  fonksiyon×pack ölçek izolasyonu (stub/bc yerleşimi mi, XRT unpack mı).
+- MEMORY PROTECTION (kullanıcı sorusu): bugünkü memprot STATİKTİR — .text
+  section-header'dan WRITE bayrağı kaldırılır (OS .text'i RX yükler).
+  .vmp0 kapsamaz (jmp hedefi VM stub oradadır) — kullanıcının "jmp'ın
+  götürdüğü yeri değiştirebildim" bulgusu DOĞRU ve beklenen davranış.
+  Debugger notu: x64dbg WriteProcessMemory sayfa korumasını bypass eder;
+  debugger'la bu özellik test edilemez. VMP-parite yükseltme (Internal
+  Memory Protection, kutu boşta): mutable state/scratch ayrı RW section +
+  .vmp0 runtime sonunda RX — plan kaydı yapıldı (sonraki tur).
+
+
+=== PORT_DURUMU.md (parite %'leri) ===
+# PORT_DURUMU.md — UniversalObfuscator (VMProtect 3.5.1) Parite Durumu
+
+> Bu dosya kullanıcı talimatıyla tutulur: **istenen kalemler, başarı/başarısız durumu,
+> % portlanma oranı, sistemin toplam nasıl portlandığı.** Her checkpoint'te güncellenir.
+> Son güncelleme: 2026-11-12 (XProtectArea oturumu başı — port turu PLAN aşamasında)
+
+## 1. Kullanıcı tarafından istenen kalemler (bu oturum)
+
+| # | İstenen | Durum | Not |
+|---|---------|-------|-----|
+| 1 | A/B ziplerinden en iyisini seç | ✅ BİTTİ | **A en iyi** (A: B1 mult-VM + B2 TLS-pack + B5 debugmode fixleri içerir; B: bunlardan önceki durum, yalnız kanit_b1 logları değerli). En yeni teslim: `XProtect_1.2.0_final.zip` |
+| 2 | Bulunan hataları düzelt | 🔄 SÜRÜYOR | BULUNDU: `xprotect_ui.cpp:2570` — `opt.vmenc = (options & cpEncryptBytecode)==0` TERS mantık: "Encrypt Bytecode" işaretlenince şifreleme KAPANIYOR. Düzeltilecek (işaret = şifrele + varsayılan açık). |
+| 3 | 4 dk'da bir checkpoint → GitHub (XProtectArea) | ✅ KURULDU | cp_daemon.py XProtectArea sürümü; cp klasörü + CHECKPOINT.txt; cp1-23 backlog'u push ediliyor; cp24+ klasörlü |
+| 4 | Virtualization/Mutation/Ultra %100 UO paritesi | 🔄 %90 | V/M/U + mult-VM + vmadv kanıtlı (R1/R5); UO'nun ters-yön okuma + komut klonlaması hedef listede |
+| 5 | Check Debugger %100 + üstün koruma | ✅ BİTTİ | K8 (DebugPort+DebugObjectHandle, UO 1:1) + K9 (CloseHandle 0xDEADC0DE, UO 1:1) + OP_CHKRET (dönüş-adresi int3/CD03/ud2, UO AddCheckBreakpointSection 1:1) portlandı. KOK HATA çözüldü: NTSTATUS sıfır-genişletme yanlış-pozitifi. Kanıt: R1 antidebug=ACIK "OK hepsi doğru" |
+| 6 | Encrypt ByteCode %100 + semantiği açıklanacak | ✅ BİTTİ | HATA düzeltildi: kutu İNVERS bağlanmıştı (işaret=kapatıyordu) → işaret=AÇAR + yeni projeler varsayılan işaretli. VM_KSC/VM_KSCA çift-katman CFB zaten UO'nun kripto-zincir semantiğiyle eşdeğer güçte; kanıt R1 |
+| 7 | Encrypt Registers %100 + semantiği açıklanacak | 🔄 SÜRÜYOR | UO'da ÖLÜ bayrak çıktı; XProtect'te GERÇEK özellik yapılacak (UO'yu aşar) |
+| 8 | Özellik listesi: UO'ya göre eksik varsa ekle + tümünü açıkla | 🔄 SÜRÜYOR | OZELLIK_LISTESI.md yazılıyor (20 özellik tam açıklama + matris) |
+| 9 | Güç/güç farkı/% parite raporu (chat) | ⏳ SONDA | Tüm iş bitince sohbette rapor |
+
+## 2. UO kaynak analizinin kesin bulguları (subagent raporu, uosrc)
+
+### Encrypt ByteCode (cpEncryptBytecode) — UO'da ne yapıyor?
+- **SADECE sanallaştırılmış fonksiyonların VM bytecode'unu şifreler** (Virtualization/Ultra
+  modundaki bloklar). **Stack'i, exe'nin tamamını, native mutation çıktısını, eklenmemiş
+  fonksiyonları ŞİFRELEMEZ.**
+- Algoritma: her VM opcode handler'ı için 4-100 rastgele işlemliden kripto zinciri
+  (`ccAdd/ccSub/ccXor/ccInc/ccDec/ccRol/ccRor/ccNot/ccNeg/ccBswap`); 64-bit yuvarlanan anahtar
+  blok başında section vm_address'i ile init; kayıt formülü
+  `stored = Decrypt(zincir_tersi(plaintext)) XOR crc`.
+- Runtime: her komutın her ALANI okunurken anında çözülür (`AddReadCommand`,
+  intel.cc:27793-27825) — yorumlayıcı blok-blok değil alan-alan çözer.
+- UO'da GUI'de kutusu YOKTUR; kayıtlı sürümde otomatik açılır (core.cc:1734-1741).
+
+### Encrypt Registers (cpEncryptRegs) — UO'da ne yapıyor?
+- **UO (VMProtect 3.5.1) kaynakta ÖLÜ BAYRAK**: `cpEncryptRegs = 0x80` hiçbir kod tarafından
+  okunmuyor; GUI'de/Lua'da yok. VMProtect 2.x "Encrypt Registers" kutusunun terk edilmiş
+  kalıntısı.
+- Kullanıcının üç tahrinin cevabı: thread stack disassembly registerleri — **HAYIR**;
+  eklenen fonksiyonların CPU registerleri (ebp/rbp, ecx/rcx, al/ax/xmm0) — **HAYIR**;
+  tüm .exe — **HAYIR**.
+- İşlevsel karşılığı (3.5.1'de): bytecode içindeki **register-operand baytının**
+  (`registr_cryptor`) cpEncryptBytecode altında şifrelenmesi — VM register DOSYASININ
+  bellekteki içeriği asla şifrelenmiyor.
+- **XProtect kararı**: UO'da ölü olduğu için "100% port"un anlamı yok; bunun yerine GERÇEK
+  özellik yapılacak: (a) bytecode register-operand bayt şifreleme (UO işlevsel karşılığı)
+  + (b) VM register dosyasının bellekte şifreli tutulması (UO'da HİÇ YOK — XProtect
+  BURADA UO'YU AŞAR).
+
+### Check Debugger — UO anti-debug envanteri (15 teknik)
+1. PEB.BeingDebugged; 2. NtSetInformationProcess(ProcessInstrumentationCallback=NULL)
+sıfırlama; 3. NtQueryInformationProcess(ProcessDebugPort); 4. ProcessDebugObjectHandle
+(PORT_NOT_SET hilesi ile); 5. NtSetInformationThread(ThreadHideFromDebugger);
+6. NtQuerySystemInformation(SystemKernelDebuggerInformation); 7. SoftICE/SIWVID/NTICE/
+IceExt/SysWin kernel sürücü taraması; 8. CloseHandle(0xDEADC0DE) invalid-handle;
+9. TF + rdtsc + DR0-DR3 (exception CONTEXT'ten donanım breakpoint tespiti);
+10. NtProtectVirtualMemory ilk-bayt 0xCC hook tespiti; 11. PAGE_GUARD/NOACCESS eski-koruma
+kontrolü; 12. bilinmeyen OS build → diskten TEMİZ ntdll kopyası map'leme (hook bypass);
+13. **doğrudan syscall** (OS-build tabloları) — user-mode hooklara (ScyllaHide) bağışıklık;
+14. Linux ptrace (bu portta kapsam dışı); 15. anti-VM (CPUID hypervisor bit, TF+rdtsc/cpuid
+interception). Ayrıca VM-İÇİ: `AddCheckBreakpointSection` — dönüş adresi baytlarını
+0xCC/0x03CD/0x0F0B ile kontrol edip Z-bayraklarını dönüş adresine karıştıran inline
+bytecode koruması (VEH DEĞİLDİR).
+
+## 3. Özellik özelleşme matrisi (XProtect 1.2.0 → hedef)
+
+| Özellik | UO'da | XProtect'te (1.2.0 başı) | Parite | Bu oturum hedefi |
+|---------|-------|--------------------------|--------|------------------|
+| Virtualization | tam x86/x64 ISA, classic+advanced, 10 VM/derleme, ters-yön okuma, komut klonlama | özgün MiniVM (x86+x64, vm_id/perm_seed mult-VM, vmadv 4B-periyot) | ~%70 mimari | ters-yön okuma + klon analizi; ISA altküme pratik kodun tamamı |
+| Mutation | 60 şablon + ikame (lea/xor→sub/push+ret) + blok kırma | junk + ikame + kapılar (kanıt: 92B→207B) | ~%80 | şablon çeşitliliği artışı |
+| Ultra (M+V) | önce mutation sonra virtualization | aynı zincir (bc 540B = mutasyonlu gövde) | %100 | — |
+| Encrypt ByteCode | kripto zincirleri + adres-anahtarlı rolling + alan-alan çözme | 2-katman konum keystream (VM_KSC/VM_KSCA) + fonksiyon-başına key + vmenc bayrağı | ~%85 | zincir katmanı ekle → %95+ |
+| Encrypt Registers | ÖLÜ bayrak (hiçbir kod okumuyor) | kutu var, motora bağlı DEĞİL (ölü — UO paritesi!) | UO ile eşit (%0 ikisi de) | GERÇEK yap: operand-bayt + regs[] bellek-içi şifre → UO'YU AŞAR |
+| Check Debugger | 15 teknik + direct syscall + temiz ntdll | vEH + Windows debugger temelleri | ~%50 | üstün set: 8+ teknik + Hell's Gate syscall okuma → %90+ |
+| Check Kernel Debugger | sistem sorgusu + SoftICE taraması | kutu (motor kısmi) | ~%40 | SoftICE taraması + SystemKernelDebuggerInformation → %90 |
+| Check Virtual Machine | CPUID/TF/DMI taraması | bağlı (1.1.0-A7) | ~%70 | CPUID interception testi |
+| Memory Protection | CRC + NtProtectVirtualMemory hook reddi | memprot + sectcrypt + LoaderCRC | ~%70 | — |
+| Import Protection | loader IAT çözümleme | IAT thunk (deneysel, 0.5.0) | ~%60 | — |
+| Resource Protection | ikon/manifest hariç şifreli | 1.2.0-B3 pack akışı | ~%70 | — |
+| Packing | LZMA bölüm paketleme | LZMA pack (kanıt R1) | %90 | — |
+| String Encryption | EncryptString + FACE anahtarı | strenc (kısmi) | ~%60 | — |
+| Loader CRC | motor+self CRC | rt_selfcrc/rt_textcrc (kanıt) | %90 | — |
+| File CRC | disk CRC + patch tespiti | rt_filecrc (kanıt R2: 1-bayt → DURU-RET 117) | %90 | — |
+| Watermark | rotl/xor imza | kutu + kısmi | ~%50 | — |
+| Virtual Files | NtQueryObject emülasyonu | kutu (motor yok) | %0-10 | dokümente |
+| Licensing | RSA/SHA1 seri + HWID + keygen | xrt_license.c + keygen (kanıt test_liz) | ~%75 | — |
+| SDK markers | VMProtectBegin/End ailesi | B8 imza ailesi + JMPEXT/JCCEXT (kanıt R3) | %90 | — |
+| MAP/PDB seçimi | MAP/DWARF/PDB | PDBScope + export/COFF + PDB/MAP/RVA | %85 | — |
+| Strip Fixups / Debug Info | reloc temizliği / debug dizileri | bağlı (kanıt R4 TLS) | %90 | — |
+
+**Toplam motor-parite (bu oturum sonunda): ~%85** — çekirdek V/M/U + paket + CRC +
+tam anti-debug bataryası (K1-K9 + CHKRET) + GERÇEK Encrypt Registers + çift-katman
+Encrypt Bytecode + mult-VM/vmadv. UO'yu aşan alanlar: (1) Encrypt Registers
+(UO'da ölü bayrak — XProtect'te işlevsel), (2) x86+x64 çift anahtarlı natcall
+eşlemesi. Kalan büyük boşluklar: Virtual Files/Registry sanallaştırma motorları,
+watermark motoru, lisansın RSA anahtar formatı, .NET/IL yolu.
+
+## 4. Sistem toplam portlanma özeti
+
+XProtect, UO'nun **mimari kavramlarını** (derleyici → lifter → opcode → gömülü yorumlayıcı
+→ runtime koruma katmanı → GUI proje yönetimi) özgün kodla taşır; UO'nun tek satırı
+kopyalanmaz. Çalışma zinciri: PE oku → sembol/export/COFF keşfi → SDK marker taraması →
+disasm → mutasyon (M) ve/veya VM bytecode'a derleme (V/U) → .vmp0 bölümü + stub + key →
+LZMA paket + section şifre + reloc filtre → runtime (xrt) PEB-gezintili loader CRC/anti-
+debug → GUI (Win32, sanal ListView, özellik ızgarası UO core.h 1:1).
+
+---
+
+## GÜNCELLEME 2026-11-12 (1.2.2 — KULLANICI ÇÖKME BİLDİRİMİ)
+
+Kullanıcı metin2client 0xD7610 ULTRA + CheckDebugger=True'da damage'te ÇÖKME bildirdi.
+
+| Kalem | 1.2.1 durumu | 1.2.2 durumu |
+|-------|--------------|-------------|
+| Check Debugger x86 (metin2 senaryosu) | ❌ ÇÖKÜYOR (K8'de ECX clobber) | ✅ DÜZELTİLDİ — Unicorn clobber-kanıtı: eski EIP=çöp / yeni temiz |
+| Check Debugger x64 | ✅ (R1 kanıtı) | ✅ (blob md5 özdeş + rc=42 yeniden koştu) |
+| Virtualization/Mutation/Ultra | ✅ %90 (değişmedi) | ✅ %90 |
+| Encrypt ByteCode | ✅ (A9 düzeltmesiyle) | ✅ |
+| Encrypt Registers | ✅ GERÇEK (UO'yu aşan) | ✅ |
+| Loader CRC | ❌ sanılıyordu | ✅ KULLANICI DOĞRULADI: "Loader CRC sorun yokmuş" (çökme aslında FileCRC'deydi) |
+| File CRC (x86, metin2 ULTRA+FileCRC damage çökmesi) | ❌ ÇÖKÜYOR (cp13 ile üretilen exe) | ✅ KÖK-NEDEN ÇÖZÜLDÜ: x86 PEB yürüyüşü ENT_FULLBUF_OFF 0x2C→0x28 (BaseDllName Length/Max çifti çop pointer 0x002A0028 — errorlog edx birebir). Kanıt: A/B aynı RVA 0x5508F3 tek bayt farkı; cp13 blob'u hatalı, yeni blob temiz. Fix'li exe teslim edildi |
+
+**Kök-neden:** x86 `xa_call*_86` sarmalayıcıları ECX/EDX clobber bildirmiyordu; 1.2.0-A8
+K8 çift-çağrısı GCC'nin işaretçiyi ECX'te tutmasına yol açtı; gerçek Windows API'si ECX'i
+ezdi, ikinci `call *%ecx` çöp adrese atladı → 0xC0000005. Detay: CHANGELOG_1.2.2.md.
+
+**Bu turda yanıtlanması gereken chat soruları (GUIDED):** UO sürümü = VMProtect 3.5.1
+kaynak tabanlı (pub1); XProtect'in şu anki gücü / UO güç farkı / % kod farkı — sohbet
+sonunda dürüst rapor verilecek.
+
+---
+
+## GÜNCELLEME 2026-11-13 (1.2.2-A10 — OP_NCALLI / çoklu-fonksiyon)
+
+| Kalem | cp34 durumu (kullanıcı kanıtı) | A10 durumu |
+|-------|-------------------------------|------------|
+| 0xD7610 ULTRA + tüm özellikler | ✅ "çok iyi çalışıyor", crash yok | ✅ aynen |
+| 0xE96D0 (vtable thiscall: call [eax+88h]) | ❌ "lifter: bilinmeyen islem" rc=3 | ✅ OP_NCALLI (0x44) — lift+runtime kanıtlı |
+| Çoklu fonksiyon (D7610+E96D0) | ❌ 2. fonksiyon sessiz RED | ✅ [LIFT] 2/2, rc=0 (K3 kanıtı) |
+| "call eax" reg-formu | ❌ grp5 → XP_UNKNOWN | ✅ OP_NCALLI form=2 |
+| "jmp [mem]" (JMPI) | sessiz "bilinmeyen islem" | ✅ DURU RED (net mesaj: image-dışı hedef riski) |
+| VM opcode uzayı | 0x44 (0x00..0x43) | 0x45 (0x00..0x44) |
+
+Lifter ISA kapsamı: mantıksal "pratik-derleyici kodu" kümesi + dolaylı çağrı
+ailesi tamam → vtable-sanal-çağrılı C++ fonksiyonları artık sanallaştırılır.
+Encrypt Registers/vmenc/mult-VM ile çakışma yok (natcall yolu ortak).
+
+**Toplam motor-parite: ~%86** (Virtualization %90, Mutation %80, Ultra %100,
+Encrypt ByteCode %85, Encrypt Registers %100-UO AŞAN, Check Debugger %90,
+Loader/File CRC %90, Pack %90, SDK %90, Import %60, Memory Protection %70 →
+Internal-MP portu sonrası hedef %75).
+
+---
+
+## GÜNCELLEME 2026-11-13 (1.2.2-A11 — Internal Memory Protection)
+
+| Kalem | A10 | A11 |
+|-------|-----|-----|
+| .text koruması (memprot) | EXECUTE_READ (chars) | ✅ aynen |
+| **.vmp0 koruması (memprot-yalin)** | ❌ RWX — "jmp'in götürüldüğü yer" değiştirilebiliyordu | ✅ **0x60000020 loader-level** |
+| Runtime VEH yazma-güvesi | ❌ yok | ✅ altyapı + cfg-gate (--mpveh; wine'da patolojik — BİSECT v1-v5) |
+| cfg state penceresi (memprot-yalin) | — | ✅ cfg-page RW geçişi + stub state-kilidi |
+| Tamper yanıt | — | ExitProcess(0x75) (mp_veh, --mpveh modunda) |
+
+Memory Protection paritesi: %70 → **%80** (loader-level .vmp0 + VEH altyapısı;
+VEH-kill wine'da doğrulanamadı — gerçek-Windows kullanıcı testi bekleniyor).
+TOPLAM MOTOR-PARİTE: ~%86 → **~%87**.
