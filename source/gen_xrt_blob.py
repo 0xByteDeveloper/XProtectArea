@@ -30,8 +30,24 @@ r64 = sym_off('xrt64.elf', 'xrt_resolve')
 u64o = sym_off('xrt64.elf', 'xrt_unpack')
 s64 = sym_off('xrt64.elf', 'xrt_sdk_entry')
 
+# 1.2.2-A20: .bss statik extent (blob basina goreli) — motor bu araliga
+# SIFIR dolgu ayirmak ZORUNDADIR (flat binary bss icermez; aksi halde
+# xvr_* statikleri cfg blokunu ezer).
+def bss_end(elf):
+    r = subprocess.run(['nm', elf], capture_output=True, text=True).stdout
+    mx = 0
+    for line in r.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and parts[1] in ('b', 'B'):
+            mx = max(mx, int(parts[0], 16) - 0x100000)
+    return mx
+
+be86 = bss_end('xrt86.elf')
+be64 = bss_end('xrt64.elf')
+
 out = '// OTOMATIK uretildi: gen_xrt_blob.py (xrt_core.c -> ld flat binary)\n#include "engine.hpp"\n'
 out += b64 + '\n' + b86 + '\n'
+out += f'const u32 XRT_BLOB64_BSS_END = {be64};\nconst u32 XRT_BLOBX86_BSS_END = {be86};\n'
 out += f'const u32 XRT_BLOB64_ENTRY_OFF = {e64};\nconst u32 XRT_BLOB64_RESOLVE_OFF = {r64};\n'
 out += f'const u32 XRT_BLOB64_UNPACK_OFF = {u64o};\n'
 out += f'const u32 XRT_BLOB64_SDK_OFF = {s64};\n'
@@ -51,8 +67,8 @@ for _elf in ['vm64.elf', 'vmx86.elf'] if 'vm' in 'gen_xrt_blob.py' else ['xrt64.
     except FileNotFoundError:
         break
     _bad = [ln.split()[1] for ln in _h.splitlines() if len(ln.split()) >= 7
-            and ln.split()[1] not in ('.text',) and ln.split()[1].startswith('.')]
+            and ln.split()[1] not in ('.text', '.bss') and ln.split()[1].startswith('.')]
     if _bad:
         print(f'HATA: {_elf} PIC degil — bolumler: {_bad}')
         _sys.exit(1)
-print('PIC kapisi: temiz (yalniz .text)')
+print('PIC kapisi: temiz (.text + .bss; bss VirtualAlloc/sahne-sifir')

@@ -291,6 +291,12 @@ extern const u32 XRT_BLOBX86_UNPACK_OFF;
 // 0.7.0: lisans dispatch (xrt_sdk_entry / xrt_sdk_entry86)
 extern const u32 XRT_BLOB64_SDK_OFF;
 extern const u32 XRT_BLOBX86_SDK_OFF;
+// 1.2.2-A20: xrt blob .bss statikleri icin SIFIR dolgu — gen_xrt_blob.py
+// gercek bss extent'ini uretir (XRT_BLOB*_BSS_END); XRT_BSS_PAD minimum
+// dolgudur (yoksa VR xvr_* statikleri cfg blokunu ezer).
+#define XRT_BSS_PAD 0x200
+extern const u32 XRT_BLOB64_BSS_END;
+extern const u32 XRT_BLOBX86_BSS_END;
 
 // ---------------- 0.6.0: Paketleme (cpPack) + strip ----------------
 // LZMA1 (end-mark) ile sikistirir; props 5 bayt + sozluk boyutu doner.

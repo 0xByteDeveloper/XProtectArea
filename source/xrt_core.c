@@ -24,6 +24,7 @@ typedef unsigned char  u8;
 typedef unsigned short u16;
 typedef unsigned int   u32;
 typedef unsigned long long u64;
+typedef long long i64;   /* 1.2.2-A20: NTSTATUS isaret-genisletme (A8 dersi) */
 
 // ---- cfg yerlesimi (engine ile SOZLESME — engine_main.cpp'deki ayni tablo) ----
 #define XCFG_MAGIC     0x31545258u   // 'XRT1'
@@ -60,6 +61,9 @@ typedef unsigned long long u64;
 #define XFLAG_VFILES 0x40   /* 1.2.2-A16: Virtual Files (tek-kurulum kilidi) */
 #define XFLAG_VREG   0x80   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
 #define XFLAG_STRENC 0x100  /* 1.2.2-A18: String Encryption (orijinal .rdata sifreli) */
+#define XFLAG_ANTIDBG 0x200 /* 1.2.2-A20: GLOBAL Check Debugger (UO loader-parite) */
+#define XFLAG_CHECKVM 0x400 /* 1.2.2-A20: GLOBAL Check Virtual Machine */
+#define XFLAG_KDBG   0x800 /* 1.2.2-A20: GLOBAL Check Kernel Debugger */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -119,6 +123,10 @@ static u32 fnv_w(const u16* s, u32 n) {
 #define XH_GETTEMPPATHA   0x5F59CFF1u  // "GetTempPathA" (1.2.2-A16)
 #define XH_WRITEFILE      0x7F07C44Au  // "WriteFile" (1.2.2-A16)
 #define XH_SETFILEPOINTER 0xB7F5E1C2u  // "SetFilePointer" (A16-iz)
+/* 1.2.2-A20: GLOBAL batarya hash'leri (fnv_a case-sensitive) */
+#define XH_NQIP   0xEA2DDA8Au  /* "NtQueryInformationProcess" (ntdll) */
+#define XH_NQSI   0x7A43974Au  /* "NtQuerySystemInformation"  (ntdll) */
+#define XH_NSIP   0x19ECB6CAu  /* "NtSetInformationProcess"   (ntdll) */
 
 // volatile 4-karakter yazisi — GCC bunlari memcpy'ye cevireMEZ (PIC guvenli)
 #define VP4(d, off, w) do { \
@@ -219,6 +227,11 @@ W3(api3)
 W4(api4)
 W5(api5)
 W7(api7)
+/* A17.1: 0-arg stdcall cagri (DllRegisterServer — callee 0 arg temizler) */
+#define W0(NM) static u32 NM(u32 fn) { u32 ret; \
+    __asm__ volatile ("call *%[fn]" : "=a"(ret) : [fn] "r"(fn) \
+        : "ecx", "edx", "esi", "memory", "cc"); return ret; }
+W0(api0)
 #else
 // x64 Win64: rcx,rdx,r8,r9 + yigin (5.+ arg: 0x20'den itibaren) + golge alani.
 // rbp cerceve cipasi; r14=argiman-dizi, r15=hedef fn (kayit-degiskeni PIN:
@@ -286,6 +299,15 @@ W3(api3)
 W4(api4)
 W5(api5)
 W7(api7)
+/* A17.1: 0-arg Win64 cagri (DllRegisterServer) — shadow alan + hizalama */
+#define W0(NM) static u64 NM(u64 fn) { u64 ret; \
+    register u64 rfn __asm__("r15") = fn; \
+    __asm__ volatile ("pushq %%rbp\n\tmovq %%rsp, %%rbp\n\tandq $-16, %%rsp\n\tsubq $0x20, %%rsp\n\t" \
+        "call *%%r15\n\t" \
+        "movq %%rbp, %%rsp\n\tpopq %%rbp" \
+        : "=a"(ret) : "r"(rfn) \
+        : "rcx", "rdx", "r8", "r9", "r10", "r11", "memory", "cc"); return ret; }
+W0(api0)
 #endif
 
 // ---- modul ve ihracat cozumleme ----
@@ -1766,8 +1788,23 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
                    (u8*)(unsigned long)buf, dsz, 1);                 /* yerinde çöz */
             xvf_dbg(k32, 'D', (char)('0' + (act < 10 ? act : 9)), (char)('0' + (dsz < 10 ? dsz : (dsz > 99 ? 9 : (dsz / 10)))));
             if (act == 1 || act == 2) {
-                /* faLoad (+ faRegister: A17'de DllRegisterServer tam bağlanır) */
+                /* faLoad (+ faRegister: A17.1 TAM — map edilen modulun
+                   DllRegisterServer ihracati bağlanır VE çağrılır; COM
+                   self-registration senaryosu UO faRegister 1:1) */
                 u64 mapret = xvf_map_pe((const u8*)(unsigned long)buf, dsz, k32);
+                if (act == 2 && mapret) {
+                    /* A17.1: DllRegisterServer (fnv_a=0x38bf1ac1) bağla+çağır.
+                       mapret = maplenen modul base (xvf_map_pe donusu);
+                       find_export ihraç-tablosu yürütmesi PIC-guvenli. */
+                    u64 drs = find_export(mapret, 0x38bf1ac1u);
+                    if (drs) {
+#if defined(XRT_IS_X64)
+                        (void)api0(drs);
+#else
+                        (void)api0((u32)drs);
+#endif
+                    }
+                }
 #if defined(XVF_TRACE)
                 {   /* DEBUG-PROBE (A16) — stack-string (PIC-güvenli) */
                     char pn[16]; volatile char* pp = pn;
@@ -1828,6 +1865,139 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
     if (ld32(cfg + XCFG_OFF_FLAGS) & XFLAG_VREG)
         xrt_vreg_install((const u8*)(unsigned long)((u64)(unsigned long)cfg -
                          (u64)ld32(cfg + XCFG_OFF_CFGRVA)), k32);
+}
+
+/* ============================================================
+   1.2.2-A20: GLOBAL CHECK DEBUGGER / CHECK VM / CHECK KERNEL DEBUGGER
+   ============================================================
+   UO parite: UO'nun Check Debugger'i LOADER-seviyesinde GLOBALDIR —
+   fonksiyon sanallastirma olmadan da calisir (loader.cc:1810-1827,
+   2432). XProtect'te batarya simdiye kadar yalniz VM icindeydi
+   (OP_ANTIDBG, fonksiyon-basina). Bu yukleyici-yan kopya xrt_entry
+   tek-kurulum noktasinda calisir ve GLOBAL-only koruma saglar.
+   UO teknik eslemesi:
+     - K1  PEB.BeingDebugged + NtGlobalFlag      (loader.cc 1:1)
+     - K8  ProcessDebugPort(7)/DebugObjectHandle(30) (loader.cc:1810)
+     - K9  CloseHandle(0xDEADC0DE)               (loader.cc:2432)
+     - K5  SystemKernelDebuggerInformation(0x23) (kernel-debugger)
+     - K7  CPUID hipervizor bit + vendor dizeleri (checkvm)
+   Donus: 0 temiz | 5 antidebug | 6 checkvm | 7 kerneldbg
+   (xrt_entry err 1-4 kullanir; 5-7 burada — cikis 0x70+err) */
+static u32 xrt_antidebug(u64 k32, u32 flags) {
+    /* ---- (K7) CHECK VM: CPUID hipervizor-present + vendor dizeleri ---- */
+    if (flags & XFLAG_CHECKVM) {
+        u32 a, b, c, d;
+#if defined(XRT_IS_X64)
+        __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(1));
+#else
+        __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
+                         : "=a"(a), "=c"(c), "=d"(d) : "a"(1) : "memory");
+#endif
+        if (c & 0x80000000u) return 6;             /* hipervizor icinde */
+        /* 1.2.2-A20: hypervisor leaf 0x40000000 vendor taramasi
+           (VBOX/KVM/HyperV/Xen/Parallels/VMware — UO checkvm deseni).
+           Sabitler LE-dword (ebx,ecx,edx) — rodata YASAK (PIC). */
+#if defined(XRT_IS_X64)
+        __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(0x40000000));
+#else
+        __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
+                         : "=a"(a), "=c"(c), "=d"(d) : "a"(0x40000000) : "memory");
+#endif
+        if (a) {
+            if (b == 0x4b4d564bu && c == 0x564b4d56u && d == 0x0000004du) return 6; /* KVMKVMKVM */
+            if (b == 0x7263694du && c == 0x666f736fu && d == 0x76482074u) return 6; /* Microsoft Hv */
+            if (b == 0x786f4256u && c == 0x786f4256u && d == 0x786f4256u) return 6; /* VBoxVBoxVBox */
+            if (b == 0x206c7270u && c == 0x65707968u && d == 0x00002076u) return 6; /* prl hyperv  */
+            if (b == 0x566e6558u && c == 0x65584d4du && d == 0x4d4d566eu) return 6; /* XenVMMXenVMM */
+            if (b == 0x61774d56u && c == 0x4d566572u && d == 0x65726177u) return 6; /* VMwareVMware */
+        }
+    }
+    /* ---- (K1) PEB.BeingDebugged + NtGlobalFlag ---- */
+    {
+        u64 peb = peb_addr();
+        if (peb) {
+            u8* p = (u8*)(unsigned long)peb;
+#if defined(XRT_IS_X64)
+            if (p[2] || (ld32(p + 0xBC) & 0x70)) return 5;
+#else
+            if (p[2] || (ld32(p + 0x68) & 0x70)) return 5;
+#endif
+        }
+    }
+    /* ---- (K8) ProcessDebugPort(7) + ProcessDebugObjectHandle(30) ----
+       UO loader.cc:1810-1827 1:1; NTSTATUS isaret-genisletme (A8 dersi) */
+    {
+        u64 nt = peb_module(XH_NTDLL);
+        if (nt) {
+            u64 nqip = find_export(nt, XH_NQIP);
+            if (nqip) {
+                u64 dbo = 0;
+#if defined(XRT_IS_X64)
+                i64 st = (i64)(int)(u32)api5(nqip, 0xFFFFFFFFFFFFFFFEull, 7,
+                                             (u64)(unsigned long)(void*)&dbo, 8, 0);
+#else
+                i64 st = (i64)(long)api5(nqip, 0xFFFFFFFFu, 7,
+                                         (u32)(unsigned long)(void*)&dbo, 8, 0);
+#endif
+                if (st >= 0 && dbo != 0) return 5;
+                dbo = 0;
+#if defined(XRT_IS_X64)
+                st = (i64)(int)(u32)api5(nqip, 0xFFFFFFFFFFFFFFFEull, 30,
+                                         (u64)(unsigned long)(void*)&dbo, 8, 0);
+#else
+                st = (i64)(long)api5(nqip, 0xFFFFFFFFu, 30,
+                                     (u32)(unsigned long)(void*)&dbo, 8, 0);
+#endif
+                if (st >= 0) return 5;
+            }
+            /* ---- (K5) SystemKernelDebuggerInformation (0x23) ---- */
+            if (flags & XFLAG_KDBG) {
+                u64 nqsi = find_export(nt, XH_NQSI);
+                if (nqsi) {
+                    u8 ib[16];
+                    u32 rl = 0;
+                    i64 st;
+                    ib[0] = 0; ib[1] = 0;
+#if defined(XRT_IS_X64)
+                    st = (i64)(int)(u32)api4(nqsi, 0x23, (u64)(unsigned long)(void*)ib, 2,
+                                             (u64)(unsigned long)(void*)&rl);
+#else
+                    st = (i64)(long)api4(nqsi, 0x23, (u32)(unsigned long)(void*)ib, 2,
+                                         (u32)(unsigned long)(void*)&rl);
+#endif
+                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) return 7;
+                }
+            }
+        }
+    }
+    /* ---- (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1 ---- */
+    if (flags & XFLAG_ANTIDBG) {
+        u64 ch = find_export(k32, XH_CLOSEHANDLE);
+        if (ch) {
+#if defined(XRT_IS_X64)
+            if (api1(ch, 0xDEADC0DEull)) return 5;
+#else
+            if (api1(ch, 0xDEADC0DEu)) return 5;
+#endif
+        }
+        /* ---- A21-uzanti: ProcessInstrumentationCallback sifirlama
+           (UO teknik-2: NtSetInformationProcess(-1, 0x40, NULL, 0)) —
+           kullanici-modu hook motorlarinin callback'ini etkisizler) ---- */
+        {
+            u64 nt = peb_module(XH_NTDLL);
+            if (nt) {
+                u64 nsip = find_export(nt, XH_NSIP);
+                if (nsip) {
+#if defined(XRT_IS_X64)
+                    (void)api4(nsip, 0xFFFFFFFFFFFFFFFEull, 0x40, 0, 0);
+#else
+                    (void)api4(nsip, 0xFFFFFFFFu, 0x40, 0, 0);
+#endif
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 u32 xrt_entry(void* cfgp) {
@@ -1955,6 +2125,15 @@ u32 xrt_entry(void* cfgp) {
         cfg[XCFG_OFF_STATE + 1] = 0;
         cfg[XCFG_OFF_STATE + 2] = 0;
         cfg[XCFG_OFF_STATE + 3] = 0;
+    }
+
+    /* 1.2.2-A20: GLOBAL Check Debugger / Check VM / Check Kernel Debugger —
+       tek-kurulum noktasinda LOADER-seviyesi batarya (UO loader-parite:
+       UO'da Check Debugger fonksiyon-sanallastirmasi OLMADAN da globaldir).
+       CRC'lerden ONCE calisir (UO: loader once debugger'i arar).
+       err: 5=antidebug | 6=checkvm | 7=kerneldbg -> rt_fatal(0x70+err). */
+    if ((flags & (XFLAG_ANTIDBG | XFLAG_CHECKVM | XFLAG_KDBG)) && !err) {
+        err = xrt_antidebug(k32, flags);
     }
 
     // --- SELF CRC ---

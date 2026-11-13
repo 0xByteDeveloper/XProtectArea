@@ -34,7 +34,7 @@ for _elf in ['vm64.elf', 'vmx86.elf'] if 'vm' in 'gen_blob.py' else ['xrt64.elf'
     except FileNotFoundError:
         break
     _bad = [ln.split()[1] for ln in _h.splitlines() if len(ln.split()) >= 7
-            and ln.split()[1] not in ('.text',) and ln.split()[1].startswith('.')]
+            and ln.split()[1] not in ('.text', '.bss') and ln.split()[1].startswith('.')]
     if _bad:
         print(f'HATA: {_elf} PIC degil — bolumler: {_bad}')
         _sys.exit(1)

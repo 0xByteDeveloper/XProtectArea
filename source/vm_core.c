@@ -71,6 +71,7 @@ typedef struct {
     u64 extra_pop;  // +0xB8 (x86 stdcall)
     u64 done;       // +0xC0  0=devam 1=ret 2=zehir
     u64 scratch[8]; // +0xC8
+    u64 regs_epoch; // +0x108 (A20: Encrypt Registers anahtar rotasyonu)
 } VMContext;
 
 /* --- 1.2.0-A9 Encrypt Registers (cpEncryptRegs GERCEK portu) ---
@@ -91,10 +92,30 @@ static u64 rmask(u64 k, int i) {
 }
 static u64 rdec(VMContext* c, int i) {
     u64 s = c->regs[i];
-    return (c->scratch[5] & 2) ? (s ^ rmask(c->key, i)) : s;
+    return (c->scratch[5] & 2) ? (s ^ rmask(c->key ^ c->regs_epoch, i)) : s;
 }
 static void renc(VMContext* c, int i, u64 v) {
-    c->regs[i] = (c->scratch[5] & 2) ? (v ^ rmask(c->key, i)) : v;
+    c->regs[i] = (c->scratch[5] & 2) ? (v ^ rmask(c->key ^ c->regs_epoch, i)) : v;
+}
+/* 1.2.2-A20: REGISTER-DOSYASI ANAHTAR ROTASYONU — her dogal-cagri
+   sinirinda regs[] dosyasi YENI epoch ile yerinde yeniden sifrelenir.
+   Anlam: dogal kod penceresinde (debugger'in thread'i dondurup dump
+   alabilecegi tek an) regs[] sifresi epoch-basina baskadir; ayni adresin
+   farkli anlarda alinan dump'lari FARKLI sifreler tasir (statik maske
+   analizi/Hafiza-karsilastirma saldirisi zayiflatilir). UO'da YOK —
+   XProtect UO'yu asan kisim (A9 uzantisi). */
+static void regs_rotate(VMContext* c) {
+    int i;
+    if (!(c->scratch[5] & 2)) return;
+    {
+        u64 oe = c->regs_epoch;
+        u64 ne = oe * 0x100000001B3ull + 0x9E3779B97F4A7C15ull;
+        for (i = 0; i < 16; i++) {
+            u64 v = c->regs[i] ^ rmask(c->key ^ oe, i);
+            c->regs[i] = v ^ rmask(c->key ^ ne, i);
+        }
+        c->regs_epoch = ne;
+    }
 }
 
 #if defined(VM_IS_X64)
@@ -1120,6 +1141,7 @@ static void vm_run(VMContext* c) {
             {
                 u64 ncr[16]; int nci;
                 for (nci = 0; nci < 16; nci++) ncr[nci] = rdec(c, nci);
+                regs_rotate(c);   /* A20: dogal-cagri penceresinde yeni epoch */
                 renc(c, 0, vm_natcall(c->base + (u64)v32, ncr));
             }
 #else
@@ -1133,6 +1155,7 @@ static void vm_run(VMContext* c) {
                 u64 nret = 0, nesp = 0;
                 u64 ncr86[16]; int nci;
                 for (nci = 0; nci < 16; nci++) ncr86[nci] = rdec(c, nci);
+                regs_rotate(c);   /* A20: dogal-cagri penceresinde yeni epoch */
                 vm_natcall86(ncr86, (u32)(c->base + (u64)v32),
                              (u32)(rdec(c, REG_RSP) - (u64)VM_DELTA), &nret, &nesp);
                 renc(c, REG_RSP, nesp + (u64)VM_DELTA);
@@ -1168,6 +1191,7 @@ static void vm_run(VMContext* c) {
             {
                 u64 ncr[16]; int nci;
                 for (nci = 0; nci < 16; nci++) ncr[nci] = rdec(c, nci);
+                regs_rotate(c);   /* A20: dogal-cagri penceresinde yeni epoch */
                 renc(c, 0, vm_natcall(tgt, ncr));
             }
 #else
@@ -1175,6 +1199,7 @@ static void vm_run(VMContext* c) {
                 u64 nret = 0, nesp = 0;
                 u64 ncr86[16]; int nci;
                 for (nci = 0; nci < 16; nci++) ncr86[nci] = rdec(c, nci);
+                regs_rotate(c);   /* A20: dogal-cagri penceresinde yeni epoch */
                 vm_natcall86(ncr86, (u32)tgt,
                              (u32)(rdec(c, REG_RSP) - (u64)VM_DELTA), &nret, &nesp);
                 renc(c, REG_RSP, nesp + (u64)VM_DELTA);
@@ -1254,6 +1279,26 @@ static void vm_run(VMContext* c) {
                                  : "=a"(ca), "=c"(ccx2), "=d"(cd2) : "a"(1) : "memory");
 #endif
                 if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
+                /* 1.2.2-A20: K7c — hypervisor leaf 0x40000000 VENDOR taramasi
+                   (VBOX/KVM/HyperV/Xen/Parallels/VMware; UO checkvm deseni,
+                   loader-parite: xrt_antidebug ile ayni sabitler). */
+                if (!c->done) {
+                    u32 va_, vb, vc, vd;
+#if defined(VM_IS_X64)
+                    __asm__ volatile("cpuid" : "=a"(va_), "=b"(vb), "=c"(vc), "=d"(vd) : "a"(0x40000000));
+#else
+                    __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
+                                     : "=a"(va_), "=c"(vc), "=d"(vd) : "a"(0x40000000u) : "memory");
+#endif
+                    if (va_) {
+                        if (vb == 0x4b4d564bu && vc == 0x564b4d56u && vd == 0x0000004du) c->done = 2; /* KVMKVMKVM */
+                        if (vb == 0x7263694du && vc == 0x666f736fu && vd == 0x76482074u) c->done = 2; /* Microsoft Hv */
+                        if (vb == 0x786f4256u && vc == 0x786f4256u && vd == 0x786f4256u) c->done = 2; /* VBoxVBoxVBox */
+                        if (vb == 0x206c7270u && vc == 0x65707968u && vd == 0x00002076u) c->done = 2; /* prl hyperv  */
+                        if (vb == 0x566e6558u && vc == 0x65584d4du && vd == 0x4d4d566eu) c->done = 2; /* XenVMMXenVMM */
+                        if (vb == 0x61774d56u && vc == 0x4d566572u && vd == 0x65726177u) c->done = 2; /* VMwareVMware */
+                    }
+                }
                 /* 1.2.2-A15: K7b - CPUID rdtsc-ZAMANLAMA yakalamasi (UO CheckVM
                    deseni): hipervizorlar CPUID'yi yakalayinca komut ~10x yavas
                    calisir. YANLIS-POZITIF korumasi: 8 ornekten EN KUCUK delta
@@ -2143,6 +2188,7 @@ void vm_entry(VMContext* c) {
         /* 1.2.0-B1 mult-VM: vm_id (scratch[7], stub yazar) anahtar-alani
            ayristirir — her VM instanci kendi bytecode anahtar uzayinda. */
         c->key ^= VM_VMK((u32)c->scratch[7]);
+        c->regs_epoch = 0;   /* A20: deterministik baslangic (determinizm testleri) */
     }
 
     for (k = 0; k < NMAP; k++) {

@@ -618,7 +618,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         newva_guess = (lastva + lastvsz + pe.secalign - 1) & ~(pe.secalign - 1);
     }
 
-    bool rt_any  = opt.rt_selfcrc || opt.rt_textcrc || opt.rt_filecrc || opt.memprot;   /* 1.2.2-A11: memprot runtime bagli */
+    bool rt_any  = opt.rt_selfcrc || opt.rt_textcrc || opt.rt_filecrc || opt.memprot   /* 1.2.2-A11: memprot runtime bagli */
+                || opt.antidebug || opt.checkvm || opt.kerneldbg;   /* 1.2.2-A20: GLOBAL debugger/VM bataryasi (UO loader-parite) */
     // 0.7.0: lisans API'leri xrt dispatch ister
     bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
@@ -633,7 +634,16 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     u32 xrt_entry_rva = 0, xrt_resolve_rva = 0, cfg_rva = 0, xrt_unpack_rva = 0;
     u32 xrt_sdk_rva = 0, lsd_rva = 0;
     if (rt_blob) {
-        xrt_code_off = ((u32)blob_len + 15) & ~15u;
+        /* 1.2.2-A20: xrt blob'u artik .bss staticleri tasiyabilir (VR xvr_*,
+           GCC10+ -fno-common). Flat binary bunlari ICERMEZ: bss VA'larina
+           SIFIR dolgu ayrilir (XRT_BLOB*_BSS_END gercek extent; gen
+           script uretir). Aksi halde bss cfg blokunu ezer (XRT1/FLAGS/STATE). */
+        xrt_code_off = (((u32)blob_len + 15) & ~15u) + XRT_BSS_PAD;
+        {
+            u32 be = (pe.is64 ? (u32)XRT_BLOB64_BSS_END : (u32)XRT_BLOBX86_BSS_END);
+            u32 need = ((be + 16 + 15) & ~15u) + XRT_BSS_PAD;
+            if (need > xrt_code_off) xrt_code_off = need;
+        }
         cfg_off      = (xrt_code_off + xrt_len + 15) & ~15u;
         u32 xrt_rva  = newva_guess + xrt_code_off;
         xrt_entry_rva   = xrt_rva + (pe.is64 ? XRT_BLOB64_ENTRY_OFF : XRT_BLOBX86_ENTRY_OFF);
@@ -2079,6 +2089,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (vf_area)         fl |= 0x40;   /* 1.2.2-A16: Virtual Files tek-kurulum */
         if (vf_has_reg)      fl |= 0x80;   /* 1.2.2-A17: Virtual Registry (IAT kesmesi) */
         if (strenc_rva_final) fl |= 0x100;  /* 1.2.2-A18: String Encryption */
+        if (opt.antidebug)  fl |= 0x200;   /* 1.2.2-A20: GLOBAL Check Debugger */
+        if (opt.checkvm)    fl |= 0x400;   /* 1.2.2-A20: GLOBAL Check Virtual Machine */
+        if (opt.kerneldbg)  fl |= 0x800;   /* 1.2.2-A20: GLOBAL Check Kernel Debugger */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);
@@ -2144,7 +2157,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     /* 0.5.1 SAHTE-BASARI KORUMASI: secili fonksiyonlarin HICBIRI
     uygulanamadiysa cikti dosyasi HIC YAZILMAZ (0.5.0 sessiz "korunmus"
     kopya yaziyordu). rc=3 -> GUI uyari kutusu + CLI net hata. */
-    if (comps.empty() && !opt.pack && !opt.strip_fixups && !opt.strip_debug && !lic_any) {
+    /* 1.2.2-A20: GLOBAL-ONLY derlemeye izin (UO parite): Check Debugger /
+       Check VM / Check Kernel Debugger / CRC / memprot / strenc / VF / VR /
+       rsrc / IAT / waterline — fonksiyon-sanallastirma OLMADAN da gecerli
+       koruma setidir (UO Check Debugger globaldir). Hicbir ozellik ve
+       hicbir fonksiyon yoksa hala RED (sahte-basari korumasi surer). */
+    if (comps.empty() && !opt.pack && !opt.strip_fixups && !opt.strip_debug && !lic_any
+        && !rt_any && !opt.strenc && !opt.rsrcprot && !opt.iat_prot
+        && !opt.vfiles && !opt.vreg && !opt.debugmode) {
         L("[HATA] HICBIR FONKSIYON UYGULANAMADI - cikti dosyasi YAZILMADI.");
         L("[HATA] Nedenler yukarida [RED] satirlarinda.");
         return 3;
