@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp41  (2026-11-13, UTC+8)
+================================================================
+Odak: A13 Watermark gomme motoru — UO 1:1 (wm_compile+mask, ic surum imzasi, 8/10 kopya, --wmvalue; W1-W4 kanit)
+Zipler: checkpoints/Xprotect_1.2.2_cp41/Xprotect_1.2.2_cp41.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

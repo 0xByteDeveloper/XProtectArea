@@ -363,6 +363,11 @@ struct Options {
     std::string lic_pubkey;    // 512 hex (256B modulus BE); bos = lisans yok
     std::string lic_prodcode;  // 16 hex (8B urun kodu); pubkey varken zorunlu
     std::string lic_watermark; // watermark metni (FNV-64 gomulur)
+    // --- 1.2.2-A13: cpIncludeWatermark — UO Watermark::Compile 1:1 gomulmesi ---
+    // Deger: hex dizisi ("5850726F.."); hex olmayan karakter = JOKER (maske 0,
+    // her kopyada yeniden rastgelelenir). Motor IC watermark (surum imzasi)
+    // her derlemeye gomulur; wm_values = kullanici watermarklari.
+    std::vector<std::string> wm_values;
     u32 lic_builddate = 0;     // 0xYYYYMMDD; 0 = derleme gunu (2026-11-09 sabiti)
 };
 

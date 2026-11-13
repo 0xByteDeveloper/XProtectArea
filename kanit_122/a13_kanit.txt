@@ -1,0 +1,21 @@
+== W1: ULTRA yalin + wmvalue AABBCC ==
+W1 run RCODE=42
+  watermark XProtect1.2.2 (ic surum): 10 kopya bulundu
+  watermark AABBCC: 10 kopya bulundu
+== W2: ULTRA + loadercrc (rt_blob=8 kopya) ==
+[WM] watermark alanı: .vmp0+0xC640 (384B) | sürüm imzası: 8 kopya | kullanıcı: 8 kopya (1 watermark)
+[WM] kullanıcı watermark[1]: value=DDEEFF (8 kopya)
+W2 run RCODE=42
+  watermark XProtect1.2.2 (ic surum): 8 kopya bulundu
+  watermark DDEEFF: 8 kopya bulundu
+== W3: ULTRA + pack ==
+[WM] watermark alanı: .vmp0+0xC620 (376B) | sürüm imzası: 8 kopya | kullanıcı: 8 kopya (1 watermark)
+[WM] kullanıcı watermark[1]: value=1122 (8 kopya)
+W3 run RCODE=42
+  watermark XProtect1.2.2 (ic surum): 8 kopya bulundu
+  watermark 1122: 10 kopya bulundu
+== W4: metin2 D7610+E96D0 ULTRA + wm (kullanici senaryosu) ==
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0xC5E0 (480B) | sürüm imzası: 10 kopya | kullanıcı: 10 kopya (1 watermark)
+[WM] kullanıcı watermark[1]: value=AABBCC (10 kopya)
+REGRESS-A13 DONE

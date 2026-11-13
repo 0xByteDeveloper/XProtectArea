@@ -208,3 +208,18 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
 - SONUÇ: A10 OP_NCALLI + çoklu-fonksiyon + Pack + LZMA + unpack-tramp zinciri
   birlikte sağlıklı. Kullanıcının "sadece tek fonksiyon değil birkaç fonksiyon
   koruyabilme" yolu pack ile de çalışıyor.
+
+## 1.2.2-A13 (cp41) — Watermark Motoru: GOMME tarafı UO 1:1
+- **UO core.cc Watermark::Compile 1:1**: değer hex dizisi; hex olmayan karakter = JOKER
+  (maske 0, bayt rastgele). "5850726F.." gibi değer → baytlar; "AA??CC" → AA,joker,CC.
+- **UO processors.cc BaseFunction::AddWatermark 1:1**: her derlemeye İÇ SÜRÜM imzası
+  ("XProtect1.2.2" = 5850726F74656374312E322E32) otomatik gömülür (UO version_watermark
+  davranışı); cpIncludeWatermark işaretliyken kullanıcı watermark'ları da gömülür.
+- Kopya sayısı UO il.cc:4667 ile aynı: runtime katmanlı 8, yalın 10.
+- Yerleşim: .vmp0 sonu slotlu alan (dump+16B slot, slot içi rastgele kayma); her kopya
+  yeniden Compile() edilir → jokerler kopya-başına farklı. FileCRC .vmp0'ı zaten atlar.
+- UI: cpIncludeWatermark → g_proj.wms tüm değerleri motora; CLI --wmvalue <hex>.
+- Kanıtlar (regress_a13.sh → a13_kanit.txt):
+  W1 ULTRA+wm=10+10 kopya statik + rc=42; W2 loadercrc=8+8 kopya + rc=42;
+  W3 pack=8+8 + rc=42; W4 metin2 D7610+E96D0 ULTRA+wm → [LIFT] 2/2 rc=0 + 10+10.
+- Doğrulayıcı: wm_verify.py (SearchByte durum makinesi 1:1 — maske eşleşmesi).

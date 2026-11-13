@@ -1,55 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp40  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp41  (2026-11-13, UTC+8)
 ================================================================
-
-== BU CHECKPOINTTE NE YAPILDI ==
-cp39'ten devam — kullanici yol haritasinin 1. maddesi TAMAMLANDI:
-"coklu-fonksiyon x pack olcek izolasyonu".
-
--- A12: COKLU-FONKSIYON x PACK OLCEK IZOLASYONU -------------------------
-Senaryo (kullanicinin cp38 testinin pack'li versiyonu):
-  metin2client.exe + D7610:D766C:U (Damage) + E96D0:E9710:U (vtable-thiscall)
-  + --pack (LZMA + unpack-tramp)
-
-KANITLAR:
-  S1:  [LIFT] 2/2 secili fonksiyon | V=1 M=0 U=1 (U-mutdus=1)
-       [PACK] .text 3.881.472B -> LZMA 1.253.548B (%32.3)
-       [PACK] .data %35.4, .data1 %14.6
-       [PACK] EP 0x239B82 -> unpack stub 0x6972E0 (.vmp1) | OEP gomulu
-       dosya compaction: 5.286.400 -> 3.853.824 bayt
-       rc=0 -> m2_coklu_pack.exe  (bolumler: ...+ .vmp0 + .vmp1)
-  S3:  ayni komut tekrar -> [LIFT] 2/2, rc=0, ayni boyut
-       -> m2_coklu_pack2.exe  (bayt-ozdeslik BEKLENMEZ: derleme-basina
-         rastgele VM anahtari — tasarim geregi; kanit = akis-sagligi)
-SONUC: A10 OP_NCALLI + coklu-fonksiyon + Pack + unpack-tramp zinciri
-birlikte saglikli. Kullanicinin coklu-fonksiyon yolu pack ile de calisiyor.
-
-== GUNCELLENEN / YENI DOSYALAR ==
-YENI (kanit_122/): s1.log, s2.log, m2_coklu_pack.exe, m2_coklu_pack2.exe,
-  coklu_pack_122a10.sh
-GUNCELLENEN: CHANGELOG_1.2.2.md (A12), CHECKPOINT.txt
-
-== PORTLAMA DURUMU (degisiklik yok — kanit turu) ==
-TOPLAM MOTOR-PARITE: ~%87 (A11 sonrasi deger korunur; A12 kanit turudur)
-  Packing %90 -> pack+coklu-VM kanitlendi (deger ayni, guven artti)
-
-== KULLANICI ISTEK KAYDI ==
-  [OK] cp38 A10 OP_NCALLI — E96D0 lifter RED kok-duzeltmesi (kullanici testi bekliyor)
-  [OK] cp39 A11 Internal Memory Protection — .vmp0 loader-RX (jmp hedefi)
-  [OK] cp40 A12 coklu-fonksiyon x pack — S1+S3 kanitli
-  [SIRADA] tam-tarama kipi saglik sorusturmasi (cp38'den beri — UI manuel-add
-           normal yol, coklu-add kanitli)
-  [SIRADA] --mpveh gercek-Windows testi (tek satir: --memprot --mpveh)
-  [SIRADA] Check Debugger UO-parite kalanlari + ozellik listesi eksik taramasi
-
-== SON DURAK / SONRAKI ENDPOINT ==
-1. KULLANICI TEST PAKETI (cp40 ikilileriyle):
-   a) D7610 + E96D0 ULTRA (pack'siz) -> oyun damage testi (cp34'te cp34-UI
-      ile sorunsuzdu; A10/A11 sonrasi yeniden dogrulama)
-   b) D7610 + E96D0 ULTRA + PACK -> oyun acilis + damage (S1/S3 ciktilari repo'da)
-   c) Memory Protection=True + damage (A11 .vmp0 RX davranisi)
-   d) (istege bagli) --memprot --mpveh CLI ile VEH tamper-kill gercek-Windows testi
-2. tam-tarama kipi sorusturmasi (tum-CRT lift sagligi)
-3. Check Debugger UO-parite kalanlari + ozellik listesi eksik taramasi
-
-cp41'de gorusmek uzere — kaldigimiz yerden devam.
+Odak: A13 Watermark gomme motoru — UO 1:1 (wm_compile+mask, ic surum imzasi, 8/10 kopya, --wmvalue; W1-W4 kanit)
+Zipler: checkpoints/Xprotect_1.2.2_cp41/Xprotect_1.2.2_cp41.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

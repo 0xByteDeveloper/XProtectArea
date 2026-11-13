@@ -2592,6 +2592,11 @@ static void start_compile() {
     opt.strip_debug  = (g_proj.options & cpStripDebugInfo) != 0;
     // 1.2.0-B3: cpResourceProtection — .rsrc paket-akisina katilir
     opt.rsrcprot     = (g_proj.options & cpResourceProtection) != 0;
+    // 1.2.2-A13: cpIncludeWatermark — proje watermark listesi motora
+    // (UO: proje watermark_name'i options.watermark olarak gecer; XProtect
+    // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
+    if (g_proj.options & cpIncludeWatermark)
+        for (auto& w : g_proj.wms) if (!w.value.empty()) opt.wm_values.push_back(w2s(w.value));
     opt.sdk_scan   = true;   // SDK isaretleri otomatik (VMProtect davranisi)
     // 0.3.0: level artik ftypes oncelikli; "tumunu derle" yolu 0.2.0 uyumu
     // icin level=2 birakilir (ftypes bosken VM junk aktif)
@@ -4087,7 +4092,11 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     }
                     else if (!wcscmp(argv[j], L"--watermark") && j + 1 < argc) {
                         std::string v = w2s(argv[++j]);
-                        opt.lic_watermark = v;
+                        opt.lic_watermark = v;   // lisans metni (FNV-64 LSD'ye) — WM hex'i degil
+                    }
+                    else if (!wcscmp(argv[j], L"--wmvalue") && j + 1 < argc) {   /* 1.2.2-A13 */
+                        std::string v = w2s(argv[++j]);
+                        if (!v.empty()) opt.wm_values.push_back(v);   // WM gomme alani: hex deger (joker '?')
                     }
                     else if (!wcscmp(argv[j], L"--builddate") && j + 1 < argc) {
                         std::string v = w2s(argv[++j]);

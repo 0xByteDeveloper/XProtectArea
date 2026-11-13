@@ -54,6 +54,30 @@ static u32 xcrc_up(u32 c, u8 by) {
     return c;
 }
 
+// ---- 1.2.2-A13: Watermark — UO core.cc Watermark::Compile 1:1 ----
+// Deger hex dizisi: ciftler bayt olur ('5''8' -> 0x58). Hex OLMAYAN karakter
+// = JOKER: maske 0, bayt rastgele (her cagride yeniden). Orn. "585072??" =
+// 0x58,0x72 + 1 joker bayt. Sürün dicek arama (SearchByte) maskeli eslesir.
+static void wm_compile(const std::string& value, std::vector<u8>& dump, std::vector<u8>& mask) {
+    dump.clear(); mask.clear();
+    if (value.empty()) return;
+    for (size_t i = 0; i < value.size(); i++) {
+        size_t p = i / 2;
+        if (p >= dump.size()) { dump.push_back(0); mask.push_back(0); }
+        u8 m = 0xff, b2;
+        char c = value[i];
+        if (c >= '0' && c <= '9') b2 = (u8)(c - '0');
+        else if (c >= 'A' && c <= 'F') b2 = (u8)(c - 'A' + 0x0a);
+        else if (c >= 'a' && c <= 'f') b2 = (u8)(c - 'a' + 0x0a);
+        else { m = 0; b2 = (u8)(rand() & 0xff); }
+        if ((i & 1) == 0) { dump[p] = (u8)((dump[p] & 0x0f) | (b2 << 4)); mask[p] = (u8)((mask[p] & 0x0f) | (m << 4)); }
+        else               { dump[p] = (u8)((dump[p] & 0xf0) | (b2 & 0x0f)); mask[p] = (u8)((mask[p] & 0xf0) | (m & 0x0f)); }
+    }
+}
+// IC SURUM WATERMARK: "XProtect1.2.2" ASCII -> hex dizisi (UO version_watermark karsiligi;
+// her korumali dosyaya otomatik gomulur — Search Watermarks ile tespit edilebilir)
+static const char* WM_VERSION_VALUE = "5850726F74656374312E322E32";  // "XProtect1.2.2"
+
 // ---- import tablosu (IAT yuvalari) ----
 struct ImpSlot {
     u32 iat_rva = 0;
@@ -1327,6 +1351,56 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
        ilk-denemede state byte 0xCC olmustu). debugmode bayragi log'a islenir. */
     if (opt.debugmode)
         log.push_back("[DEBUGMODE] INT3 dolumu aktif: bolge-kalanlari 0xCC (govde + tramp junk)");
+
+    // ============================================================
+    // 1.2.2-A13: WATERMARK GOMME — UO processors.cc BaseFunction::AddWatermark 1:1
+    // Her derleme IC surum watermark'i gomulur (UO version_watermark davranisi);
+    // cpIncludeWatermark isaretliyse kullanici watermarklari (wm_values) da.
+    // Kopya sayisi: UO il.cc:4667 — runtime katmanli: 8, yalin: 10.
+    // Yerlesim: .vmp0 sonunda slotlu alan (slot = dump+16, slot ici rastgele
+    // kayma) — her kopya WM.Compile() ile YENIDEN uretilir (jokerler
+    // kopya-basina farkli). FileCRC .vmp0'i zaten atlar (tasma derdi yok).
+    // ============================================================
+    {
+        std::vector<std::string> wms;
+        wms.push_back(WM_VERSION_VALUE);
+        if (!opt.wm_values.empty())
+            for (auto& v : opt.wm_values) if (!v.empty()) wms.push_back(v);
+        const u32 wm_copies = rt_blob ? 8u : 10u;   // UO: ctx.runtime ? 8 : 10
+        u32 wm_base = ((u32)secimg.size() + 15) & ~15u;
+        u32 wm_area = 0;
+        struct WmPlan { std::vector<u8> dump; u32 off; size_t wi; };
+        std::vector<WmPlan> wm_plan;
+        for (size_t wi = 0; wi < wms.size(); wi++) {
+            std::vector<u8> dump, mask;
+            wm_compile(wms[wi], dump, mask);
+            if (dump.empty()) continue;
+            for (u32 i = 0; i < wm_copies; i++) {
+                std::vector<u8> d2, m2;             // her kopya taze derleme (jokerler yeniden)
+                wm_compile(wms[wi], d2, m2);
+                wm_plan.push_back({ d2, wm_base + wm_area, wi });
+                wm_area += (u32)d2.size() + 16;     // slot: dump + 16B aylik
+            }
+        }
+        if (!wm_plan.empty()) {
+            u32 need = wm_base + wm_area;
+            if ((u32)secimg.size() < need) secimg.resize(need, 0);
+            for (auto& pr : wm_plan) {
+                u32 jit = (u32)(rand() & 15);       // slot ici rastgele kayma (ayri kopya gorunumu)
+                memcpy(&secimg[pr.off + jit], pr.dump.data(), pr.dump.size());
+            }
+            u32 n_us = 0;
+            for (auto& pr : wm_plan) if (pr.wi > 0) n_us++;
+            snprintf(b, sizeof b, "[WM] watermark alanı: .vmp0+0x%X (%uB) | sürüm imzası: %u kopya | kullanıcı: %u kopya (%zu watermark)",
+                     wm_base, wm_area, wm_copies, n_us, wms.size() - 1);
+            L(b);
+            for (size_t wi = 1; wi < wms.size(); wi++) {
+                snprintf(b, sizeof b, "[WM] kullanıcı watermark[%zu]: value=%s (%u kopya)", wi, wms[wi].c_str(), wm_copies);
+                L(b);
+            }
+        }
+    }
+
     if (!pe.add_section(".vmp0", secimg, chars, vmp_rva)) { L("[HATA] section eklenemedi"); return 1; }
     snprintf(b, sizeof b, "[SECTION] .vmp0 RVA=0x%06X boyut=0x%06X | VM blob %dB | vm_entry RVA=0x%06X",
              vmp_rva, (u32)secimg.size(), blob_len, vmp_rva + (pe.is64 ? VM_BLOB64_ENTRY_OFF : VM_BLOBX86_ENTRY_OFF));
