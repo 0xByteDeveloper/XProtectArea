@@ -1,6 +1,27 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp49  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp50 (2026-11-13, UTC+8)
 ================================================================
-Odak: cp49: OZELLIK_DURUM.html (progressbar'lı özellik durumu) + son regresyonlar GREEN (vf/vfstr/iat) + rbp-RED revert
-Zipler: checkpoints/Xprotect_1.2.2_cp49/Xprotect_1.2.2_cp49.zip (tam kaynak + ikililer)
-Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.
+Odak: cp49 DEVAMI — A21+ eksik turu + SAHA ANALIZI (UniversalObfuscator_Build
+derleme + metin2client tekil-ozellik test matrisi + XProtect karsilik matrisi).
+
+cp49 durumunda kalanlar (OZELLIK_DURUM.html "Kalan" satirlari):
+ A21 ScyllaHide-seviyesi hook seti (Check Debugger %95→100)
+ A17.1 faRegister DllRegisterServer tam baglanma (VF %90→100)
+ A18.2 UTF-16/wide string taramasi (Encrypt Strings)
+ A17.2 Virtual Registry wine-kanit ailesi (%75→100)
+ Bölge-U jcc mutasyon fixup (Mutation/Ultra %95)
+ VBOX/KVM vendor dizeleri (Check VM %90)
+ UO tarzi section-cryptor rolling-key (Encrypt ByteCode %95)
+ Register-dosyasi anahtar rotasyonu (Encrypt Registers %90)
+ Packed-mod import-dizini gizleme (Import %95)
+ rsrc sifreleme kanit ailesi (Resource %80)
+
+SAHA ANALIZI PLANI (kullanici istegi):
+ 1) upload/UniversalObfuscator_Build.zip acilir; VMProtectCon (x64 Ultimate)
+    + VMProtectCon32 (x86) yeniden derlenir (zig clang cross; 7 uyum yamasi).
+ 2) universalobfuscator/ klasoru: her ozellik tek tek metin2client.exe'e
+    uygulanir -> metin2_vmp_<ozellik>.exe (20+ dosya) + TUM-ozellik acik derleme.
+ 3) xprotect/ klasoru: XProtect ile ayni matris -> metin2_xp_<ozellik>.exe.
+ 4) Fark analizi: section/entropi/boyut/IAT/reloc karsilastirma tablosu.
+ 5) OZELLIK_DURUM.html guncellenir (progressbar'li).
+Son endpoint: cp49 push edildi; bu tur cp50 ile devam.
