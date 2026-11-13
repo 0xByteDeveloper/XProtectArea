@@ -953,12 +953,16 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 c.v.notes.push_back("  [STRDEC] str=0x" + hex32(s.rva) + " len=" + std::to_string(s.len) + " key=0x" + hex32(k2));
             }
         }
-        /* 1.1.0-A7: ANTIDBG maske bayti — bit0=anti-debug bataryasi,
-           bit1=Check VM (K7 CPUID hipervizor). UO/VMProtect CheckVirtual
-           Machine secenegi artik motora bagli. */
-        if (opt.antidebug || opt.checkvm) {
+        /* 1.1.0-A7 + 1.2.2-A15: ANTIDBG maske bayti — bit0=anti-debug bataryasi
+           (PEB/K1..K4,K8,K9), bit1=Check VM (K7 CPUID hipervizor), bit2=KERNEL
+           DEBUGGER (K5 SystemKernelDebuggerInformation + K6 SoftICE surucu
+           taramasi). UO KURALI: Check Debugger acikken kernel-debugger kontrolu
+           OTOMATIK dahil -> bit2 = (antidebug || kerneldbg). */
+        if (opt.antidebug || opt.checkvm || opt.kerneldbg) {
             plain.push_back(ptab[OP_ANTIDBG]);
-            plain.push_back((u8)((opt.antidebug ? 1 : 0) | (opt.checkvm ? 2 : 0)));
+            plain.push_back((u8)((opt.antidebug ? 1 : 0)
+                               | (opt.checkvm ? 2 : 0)
+                               | ((opt.antidebug || opt.kerneldbg) ? 4 : 0)));
         }
         c.prefix_len = (u32)plain.size();     // 0.8.1: govde ref-site kaydirmasi
         plain.insert(plain.end(), c.v.plain.begin(), c.v.plain.end());

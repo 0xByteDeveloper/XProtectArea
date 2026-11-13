@@ -2683,6 +2683,7 @@ static void start_compile() {
     if (g_proj.funcs.empty() || (opt.funcs.empty() && opt.manual.empty())) opt.all = true;
     opt.antidebug = (g_proj.options & cpCheckDebugger) != 0;
     opt.checkvm = (g_proj.options & cpCheckVirtualMachine) != 0;   // 1.1.0-A7: motor baglandi
+    opt.kerneldbg = (g_proj.options & cpCheckKernelDebugger) != 0;  // 1.2.2-A15: K5+K6 ayri gate
     opt.strenc = (g_proj.options & cpCryptValues) != 0;
     opt.memprot = (g_proj.options & cpMemoryProtection) != 0;
     /* 1.2.0-A9 DUZELTILDI (inversiyon hatasi): "Encrypt Bytecode" isareti
@@ -4165,6 +4166,7 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                         }
                     } else if (!wcscmp(argv[j], L"--antidebug")) opt.antidebug = true;
                     else if (!wcscmp(argv[j], L"--checkvm")) opt.checkvm = true;
+                    else if (!wcscmp(argv[j], L"--kerneldbg")) opt.kerneldbg = true;   /* 1.2.2-A15 */
                     else if (!wcscmp(argv[j], L"--vmadv")) opt.vm_adv = true;          /* 1.2.0-B1 vtAdvanced */
                     else if (!wcscmp(argv[j], L"--vmn") && j + 1 < argc) {             /* 1.2.0-B1 mult-VM */
                         opt.vmn = (int)wcstol(argv[j + 1], 0, 10); j++;

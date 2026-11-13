@@ -1254,6 +1254,39 @@ static void vm_run(VMContext* c) {
                                  : "=a"(ca), "=c"(ccx2), "=d"(cd2) : "a"(1) : "memory");
 #endif
                 if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
+                /* 1.2.2-A15: K7b - CPUID rdtsc-ZAMANLAMA yakalamasi (UO CheckVM
+                   deseni): hipervizorlar CPUID'yi yakalayinca komut ~10x yavas
+                   calisir. YANLIS-POZITIF korumasi: 8 ornekten EN KUCUK delta
+                   kullanilir (yerel CPUID ilk orneklerde cache/TLB nedeniyle
+                   yavas olabilir; trap her ornekte yavastir). Esik: 10000 devir
+                   (yerel ~100-1000, trap ~10000+). */
+                if (!c->done) {
+#if defined(VM_IS_X64)
+                    u32 t0lo, t0hi, t1lo, t1hi, ea, eb, ecxd, edd;
+                    u64 dmin = ~0ull;
+                    int it;
+                    for (it = 0; it < 8; it++) {
+                        __asm__ volatile("rdtsc" : "=a"(t0lo), "=d"(t0hi));
+                        __asm__ volatile("cpuid" : "=a"(ea), "=b"(eb), "=c"(ecxd), "=d"(edd) : "a"(1));
+                        __asm__ volatile("rdtsc" : "=a"(t1lo), "=d"(t1hi));
+                        u64 d = (((u64)t1hi << 32) | t1lo) - (((u64)t0hi << 32) | t0lo);
+                        if (d < dmin) dmin = d;
+                    }
+                    if (dmin > 10000ull) c->done = 2;
+#else
+                    u32 t0lo, t0hi, t1lo, t1hi, ea, ecxd, edd;
+                    u32 dmin = ~0u;
+                    int it;
+                    for (it = 0; it < 8; it++) {
+                        __asm__ volatile("rdtsc" : "=a"(t0lo), "=d"(t0hi));
+                        __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
+                                         : "=a"(ea), "=c"(ecxd), "=d"(edd) : "a"(1u) : "memory");
+                        __asm__ volatile("rdtsc" : "=a"(t1lo), "=d"(t1hi));
+                        if (t1lo - t0lo < dmin) dmin = t1lo - t0lo;
+                    }
+                    if (dmin > 10000u) c->done = 2;
+#endif
+                }
             }
             if (ud & 1) {
             /* 1.2.0-A8: K1..K9 TAM batarya (UO 1:1) */
@@ -1320,8 +1353,54 @@ static void vm_run(VMContext* c) {
 #endif
                 }
             }
-            /* (K5) KERNEL DEBUGGER — SystemKernelDebuggerInformation (0x23) */
+            /* (K8) PROCESS DEBUG PORT/OBJECT — UO loader.cc:1810-1827 1:1:
+               ProcessDebugPort(7): NT_SUCCESS && port != 0 -> debugger.
+               ProcessDebugObjectHandle(30): NT_SUCCESS tek basina debugger
+               (debug nesnesi yokken cagri BASARISIZDIR — PORT_NOT_SET). */
             if (!c->done) {
+                u64 nqip = xa_export(xa_module(XA_NTD), XA_NQIP);
+                if (nqip) {
+                    u64 dbo = 0;
+#if defined(VM_IS_X64)
+                    /* 1.2.0-A8 KOK DUZELTME (NTSTATUS isaret-genisletme):
+                       Win64 ABI'de 32-bit NTSTATUS RAX'ta SIFIR-GENISLEMIS
+                       doner; (i64) u64 cast yanlis-pozitif uretir (0xC0000353
+                       -> +3221227219!). Cozum: u32 kirp -> i32 isaret
+                       genislet -> i64. (VMMIN K8b-kaniti: 0xDEAD0008.) */
+                    i64 st = (i64)(int)(u32)xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)(int)(u32)xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
+                    if (st >= 0) c->done = 2;
+#else
+                    i64 st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
+                                              (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0 && dbo != 0) c->done = 2;
+                    dbo = 0;
+                    st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
+                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
+                    if (st >= 0) c->done = 2;
+#endif
+                }
+            }
+            /* (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1 */
+            if (!c->done) {
+                u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
+                if (ch) {
+#if defined(VM_IS_X64)
+                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
+#else
+                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
+#endif
+                }
+            }
+            }   /* if (ud & 1) */
+            /* ===== 1.2.2-A15: KERNEL DEBUGGER bataryasi - cpCheckKernelDebugger
+               ayri kutu. UO KURALI: Check Debugger acikken otomatik dahil
+               (motor bit2 = antidebug || kerneldbg). Yalniz-kernel kipinde
+               (ud&4, bit0 kapali) K5+K6 bagimsiz calisir. ===== */
+            /* (K5) KERNEL DEBUGGER — SystemKernelDebuggerInformation (0x23) */
+            if ((ud & 4) && !c->done) {   /* 1.2.2-A15: cpCheckKernelDebugger (bit2) */
                 u64 nqsi = xa_export(xa_module(XA_NTD), XA_NQSI);
                 if (nqsi) {
                     u8 ib[16];
@@ -1337,7 +1416,7 @@ static void vm_run(VMContext* c) {
                 }
             }
             /* (K6) SURUCU TARAMASI — SystemModuleInformation (0x0B) */
-            if (!c->done) {
+            if ((ud & 4) && !c->done) {   /* 1.2.2-A15: cpCheckKernelDebugger (bit2) */
                 u64 nqsi = xa_export(xa_module(XA_NTD), XA_NQSI);
                 if (nqsi) {
 #if defined(VM_IS_X64)
@@ -1388,48 +1467,6 @@ static void vm_run(VMContext* c) {
                     }
                 }
             }
-            /* (K8) PROCESS DEBUG PORT/OBJECT — UO loader.cc:1810-1827 1:1:
-               ProcessDebugPort(7): NT_SUCCESS && port != 0 -> debugger.
-               ProcessDebugObjectHandle(30): NT_SUCCESS tek basina debugger
-               (debug nesnesi yokken cagri BASARISIZDIR — PORT_NOT_SET). */
-            if (!c->done) {
-                u64 nqip = xa_export(xa_module(XA_NTD), XA_NQIP);
-                if (nqip) {
-                    u64 dbo = 0;
-#if defined(VM_IS_X64)
-                    /* 1.2.0-A8 KOK DUZELTME (NTSTATUS isaret-genisletme):
-                       Win64 ABI'de 32-bit NTSTATUS RAX'ta SIFIR-GENISLEMIS
-                       doner; (i64) u64 cast yanlis-pozitif uretir (0xC0000353
-                       -> +3221227219!). Cozum: u32 kirp -> i32 isaret
-                       genislet -> i64. (VMMIN K8b-kaniti: 0xDEAD0008.) */
-                    i64 st = (i64)(int)(u32)xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0 && dbo != 0) c->done = 2;
-                    dbo = 0;
-                    st = (i64)(int)(u32)xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0) c->done = 2;
-#else
-                    i64 st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
-                                              (u32)(unsigned long)(void*)&dbo, 8, 0);
-                    if (st >= 0 && dbo != 0) c->done = 2;
-                    dbo = 0;
-                    st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
-                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
-                    if (st >= 0) c->done = 2;
-#endif
-                }
-            }
-            /* (K9) CloseHandle(0xDEADC0DE) — UO loader.cc:2432 1:1 */
-            if (!c->done) {
-                u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
-                if (ch) {
-#if defined(VM_IS_X64)
-                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
-#else
-                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
-#endif
-                }
-            }
-            }   /* if (ud & 1) */
 #endif
 
                 } else if (op == OP_BSWAP_R) {

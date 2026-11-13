@@ -331,6 +331,7 @@ struct Options {
     int  mut_strength = 2;     // 0.3.0: mutasyon gucu 1..3
     bool antidebug = false;
     bool checkvm = false;     // 1.1.0-A7: cpCheckVirtualMachine -> K7 CPUID
+    bool kerneldbg = false;   // 1.2.2-A15: cpCheckKernelDebugger -> K5+K6 (bit2)
     bool vm_adv = false;      // 1.2.0-B1: VirtualMachineType vtAdvanced (VM_KSA)
     int  vmn = 1;             // 1.2.0-B1: mult-VM instance sayisi (1..8)
     bool debugmode = false;   // 1.2.0-B5: cpDebugMode — dolgu INT3 (0xCC)

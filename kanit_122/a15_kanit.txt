@@ -1,0 +1,15 @@
+== KD1: yalin ULTRA ==
+KD-1: [LIFT] 1/1 RCODE=42
+== KD2: --kerneldbg tek ==
+KD-2: [LIFT] 1/1 RCODE=42
+== KD3: --antidebug (bit2 oto) ==
+KD-3: [LIFT] 1/1 RCODE=42
+== KD4: --checkvm (KVM sandbox: TESPIT beklenir) ==
+KD-4: [LIFT] 1/1 RCODE=1
+== KD5: metin2 coklu + antidebug + kerneldbg ==
+[LIFT] 2/2 secili fonksiyon | V=1 M=0 U=1 (U-mutdus=1)
+[KAYIT] Z:\home\z\my-project\scripts\metin2\m2_kd.exe (5268992 bayt)
+rc=0
+  watermark XProtect1.2.2 (ic surum): 10 kopya bulundu
+  watermark AABBCC: 10 kopya bulundu
+REGRESS-A15 DONE

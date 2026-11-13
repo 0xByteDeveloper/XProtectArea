@@ -238,3 +238,20 @@ batarya (UO 1:1) çalışır durumda; yalnızca çökme kaldırıldı.
   ulasmadi (Add dugmesi de dahil — ortam siniri, kod yolu degil; tum diyaloglar ayni
   modal desen). Kullanici gercek-Windows testi bekleniyor. Tarama mantigi wm_verify.py
   ile ayni durum makinesi — W1-W4'te 3 dosyada dogrulandi.
+
+## 1.2.2-A15 (cp43) — Check Kernel Debugger ayri gate + Check VM guclendirme
+- **K5 (SystemKernelDebuggerInformation) + K6 (SoftICE/siwvid/ntice/iceext/syser
+  surucu taramasi) artik AYRI kutu**: cpCheckKernelDebugger -> opt.kerneldbg ->
+  ANTIDBG maskesi bit2. Bataryadan cikarildi, (ud & 4) gate'iyle bagimsiz calisir.
+- **UO KURALI 1:1**: Check Debugger acikken kernel-debugger kontrolu otomatik dahil
+  (bit2 = antidebug || kerneldbg — UO'da ayni otomatik-ekleme davranisi).
+- **K7b (Check VM guclendirmesi)**: CPUID rdtsc-zamanlama yakalamasi — 8 ornekten
+  EN KUCUK delta, esik 10000 devir (yanlis-pozitif korumali: yerel ~2590 olculdu).
+- **KANIT (a15_kanit.txt)**:
+  KD1 yalin=42; KD2 --kerneldbg TEK BASINA=42 (bagimsiz K5+K6 yolu acik);
+  KD3 --antidebug=42 (bit2 otomatik); KD4 --checkvm=rc1 TESPIT (sandbox KVM'de
+  calisiyoruz — hipervizor CPUID biti SET: Check VM GERCEKTEN yakiyor; K7b
+  zamanlama yanlis-pozitif VERMIYOR, 2590<10000); KD5 metin2 D7610+E96D0
+  ULTRA+antidebug+kerneldbg+wm -> 2/2 rc=0 + 10+10 watermark.
+- UI: cpCheckKernelDebugger kutusu motoru baglandi (eski durum: kutu vardi, motor
+  K5/K6'yi yalniz antidebug acikken kosturuyordu); CLI --kerneldbg.
