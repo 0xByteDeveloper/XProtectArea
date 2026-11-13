@@ -1,6 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp46  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp47  (2026-11-13, UTC+8)
 ================================================================
-Odak: A18 String Encryption: diskte orijinal sifreleme + runtime yerinde cozum (vfstr_p7 GREEN, regresyonlar GREEN)
-Zipler: checkpoints/Xprotect_1.2.2_cp46/Xprotect_1.2.2_cp46.zip (tam kaynak + ikililer)
+Odak: A19 Import Protection tamamlama: disk-IAT silme + BoundImport/IAT-dir temizligi (iat_p1 wine GREEN)
+Zipler: checkpoints/Xprotect_1.2.2_cp47/Xprotect_1.2.2_cp47.zip (tam kaynak + ikililer)
 Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.
