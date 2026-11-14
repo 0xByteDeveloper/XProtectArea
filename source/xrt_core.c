@@ -1145,12 +1145,14 @@ static u32 vr_RegOpenKeyExW(u64 hKey, const u16* sub, u32 opt, u32 sam, u64 phk)
 }
 static u32 vr_RegQueryValueExA(u64 hKey, const char* vname, u64 res, u64 ptype, u64 pdata, u64 pcb) {
     (void)res;
-    {   /* 1.2.3-bisect: arg nibble izleri (ptype/pcb/vname) */
+    {   /* 1.2.3-bisect: arg nibble izleri + cagiran (return-address) */
         u64 k32q = peb_module(XH_KERNEL32);
+        u64 ra = (u64)(unsigned long)__builtin_return_address(0);
         if (k32q) {
             xvf_dbg(k32q, 'A', (char)('0' + (((unsigned long long)vname >> 4) & 15)), (char)('0' + (((unsigned long long)vname >> 32) & 15)));
             xvf_dbg(k32q, 'B', (char)('0' + (((unsigned long long)ptype >> 4) & 15)), (char)('0' + (((unsigned long long)ptype >> 32) & 15)));
             xvf_dbg(k32q, 'C', (char)('0' + (((unsigned long long)pcb >> 4) & 15)), (char)('0' + (((unsigned long long)pcb >> 32) & 15)));
+            xvf_dbg(k32q, 'D', (char)('0' + ((ra >> 4) & 15)), (char)('0' + ((ra >> 32) & 15)));
         }
     }
     if (xvr_mem && vr_is_fake(hKey)) {
