@@ -1,0 +1,21 @@
+== A21 SCYLLAHIDE-SEVIYESI REGRESYON (2026-11-14) ==
+Motor: XProtectUI.exe (1374720B, xrt blob xrt64.bin 35173B = A21'li)
+Girdi: wm_sdk64.exe (SDK bolge test exe, x64)
+KD-A21-1 --sdkonly            -> LIFT 1/1, rc=42  (yalin)
+KD-A21-2 --sdkonly --kerneldbg-> LIFT 1/1, rc=42  (K5/K6 + A21 runtime)
+KD-A21-3 --sdkonly --antidebug-> LIFT 1/1, rc=42  (A21 SCYLLA yolu AKTIF:
+        temiz-ntdll disk-map + unhook + temiz-kopya K8 — wine'da stublar
+        zaten temiz -> diff=0 -> unhook atlanir, yanlis-pozitif YOK)
+KD-A21-4 --sdkonly --checkvm  -> rc=3 (KVM tespiti; ESKI motorda da rc=3
+        (old_k4 kontrol kosulumu) -> A21 davranis degisikligi YOK)
+KONTROL: adbgdiag.exe tam-tarama (V=427) rc=3 = bilinen CRT-lift sagliksiz
+mod (A21 ile ilgisiz; --antidebug/--checkvm sdkonly olmadan butun-program
+VM acar — kullanici dokumanti: fonksiyon secimiyle kullanin).
+A21 UYGULAMA OZETI:
+ xrt_ad_scylla(): ntdll PEB FullDllName -> CreateFileA/ReadFile (6MB RW
+ buf) -> xvf_map_pe2(call_dm=0) manuel map (DllMain ATLANIR) -> NQIP/
+ NQSI/NSIP ilk 32B in-memory kopyaya geri yaz (VirtualProtect RWX ->
+ memcpy -> geri) -> K8 (DebugPort 7 / DebugObjectHandle 30) TEMIZ kopya
+ uzerinden. Stub-imza guvesi: x64 "4C 8B D1 B8" / x86 "B8".
+ xvf_map_pe -> xvf_map_pe2(raw,rawsz,k32,call_dm) sarmalayici (VF cagrisi
+ davranis-korunumlu call_dm=1).
