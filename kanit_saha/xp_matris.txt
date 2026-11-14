@@ -1,0 +1,46 @@
+Virtualization             FAIL 0
+   LOG:  status 0xc0000002. | 0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0124:err:environ:init_peb starting L"Z:\\tmp\\my-project\\download\\XProtect_1.2.2\\source\\XProtectUI32.exe" in experimental wow64 mode | 011c:err:start:fatal_error FormatMessage failed | 
+Mutation                   FAIL 0
+   LOG:  status 0xc0000002. | 0128:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0128:err:environ:init_peb starting L"Z:\\tmp\\my-project\\download\\XProtect_1.2.2\\source\\XProtectUI32.exe" in experimental wow64 mode | 0120:err:start:fatal_error FormatMessage failed | 
+Ultra                      FAIL 0
+   LOG:  status 0xc0000002. | 0128:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0128:err:environ:init_peb starting L"Z:\\tmp\\my-project\\download\\XProtect_1.2.2\\source\\XProtectUI32.exe" in experimental wow64 mode | 0120:err:start:fatal_error FormatMessage failed | 
+CheckDebugger              FAIL 0
+   LOG:  status 0xc0000002. | 0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0124:err:environ:init_peb starting L"Z:\\tmp\\my-project\\download\\XProtect_1.2.2\\source\\XProtectUI32.exe" in experimental wow64 mode | 011c:err:start:fatal_error FormatMessage failed | 
+CheckKernelDebugger        FAIL 0
+   LOG:  status 0xc0000002. | 0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0124:err:environ:init_peb starting L"Z:\\tmp\\my-project\\download\\XProtect_1.2.2\\source\\XProtectUI32.exe" in experimental wow64 mode | 011c:err:start:fatal_error FormatMessage failed | 
+Virtualization             OK 5267968
+Mutation                   OK 5267968
+Ultra                      OK 5268480
+CheckDebugger              FAIL 0
+   LOG: to start: 1359 | 00fc:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0120:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0128:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 
+CheckKernelDebugger        FAIL 0
+   LOG: to start: 1359 | 00f4:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 011c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002. | 
+CheckDebugger              OK 5301248
+CheckKernelDebugger        OK 5301248
+CheckVM                    OK 5301248
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt
+EncryptStrings             OK 5305344
+FileCRC                    OK 5301248
+LoaderCRC                  OK 5301248
+Pack                       OK 3868672
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt
+ImportProtection           OK 5301248
+MemoryProtection           OK 5301248
+InternalMemoryProtection   OK 5301248
+StripFixups                OK 5264896
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt
+ResourceProtection         OK 5264896
+StripDebugInfo             OK 5264896
+DebugMode                  OK 5264896
+Watermark                  OK 5301760
+VirtualFiles               OK 5301248
+VirtualRegistry            OK 5301248
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt
+Virtualization             OK (ziaten var) 5267968
+Mutation                   OK (ziaten var) 5267968
+Ultra                      OK (ziaten var) 5268480
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt
+EncryptByteCode            OK 5265408
+EncryptRegisters           OK 5265408
+TUMU                       OK 3957760
+RAPOR: /tmp/my-project/saha/matris/xp_matris.txt

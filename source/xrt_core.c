@@ -710,7 +710,11 @@ static void xvf_dbg(u64 k32, char a, char b2, char c3) {
 #else
 static void xvf_dbg(u64 k32, char a, char b2, char c3) { (void)k32; (void)a; (void)b2; (void)c3; }
 #endif
+static u64 xvf_map_pe2(const u8* raw, u32 rawsz, u64 k32, int call_dm);
 static u64 xvf_map_pe(const u8* raw, u32 rawsz, u64 k32) {
+    return xvf_map_pe2(raw, rawsz, k32, 1);
+}
+static u64 xvf_map_pe2(const u8* raw, u32 rawsz, u64 k32, int call_dm) {
     u32 pe_off, machine, nsec, optsz, ep_rva, img_sz, hdr_sz, ddir_off;
     u64 base, delta;
     u64 va_alloc, ep;
@@ -917,12 +921,13 @@ static u64 xvf_map_pe(const u8* raw, u32 rawsz, u64 k32) {
         }
     }
     xvf_dbg(k32, 'I', 'M', '.');
-    /* DllMain(base, DLL_PROCESS_ATTACH, NULL) */
-    if (ep_rva) {
+    /* DllMain(base, DLL_PROCESS_ATTACH, NULL) — call_dm=0 (A21 ScyllaHide
+       temiz-ntdll map) DllMain ATLANIR: temiz kopya yalnizca bayt-kaynagi */
+    if (ep_rva && call_dm) {
         ep = (u64)(unsigned long)(base + ep_rva);
         api3(ep, (u64)(unsigned long)base, 1, 0);
     }
-    xvf_dbg(k32, 'D', 'M', '.');
+    xvf_dbg(k32, 'D', call_dm ? 'M' : 's', '.');
     return base;
 }
 
@@ -1868,6 +1873,100 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
 }
 
 /* ============================================================
+   1.2.2-A21: SCYLLAHIDE-SEVIYESI TEMIZ-NTDLL KATMANI
+   ============================================================
+   Kullanici-modu ntdll hook'larina (InlineEAT/IAT hook, Vectored,
+   Detours benzeri) karsi UO/ScyllaHide deseninin 1:1 uygulanisi:
+     1. ntdll DISKTEN okunur (PEB FullDllName yolu — CreateFileA/ReadFile)
+     2. temiz kopya xvf_map_pe2(call_dm=0) ile manuel map edilir
+        (DllMain CALISMAZ — kopya yalnizca bayt-kaynagi)
+     3. hassas 3 fonksiyonun (NtQueryInformationProcess,
+        NtQuerySystemInformation, NtSetInformationProcess) ilk
+        STUB_LEN bayti in-memory kopyaya geri yazilir (UNHOOK)
+        — VirtualProtect(RWX) -> memcpy -> koruma geri
+     4. K8 kontrolu (DebugPort 7 / DebugObjectHandle 30) artik TEMIZ
+        kopya uzerinden yapilir — hook'lu API bir kez bile dokunulmaz
+   Stub-imza guvesi: x64 "4C 8B D1 B8" (mov r10,rcx; mov eax,ssn) /
+   x86 "B8" (mov eax,ssn) yoksa unhook YAPILMAZ (garbage-koruma).
+   Donus: 0=temiz/kurulamadi, 1=unhook yapildi, 2=zaten temiz */
+#define XH_VIRTUALPROTECT_A21 0x820621F3u
+static u32 xrt_ad_scylla(u64 k32, u64* clean_nqip_out) {
+    u64 nt = peb_module(XH_NTDLL);
+    u64 cfa, rf, ch, va_alloc, vp;
+    u64 buf = 0, total = 0, clean = 0;
+    u32 i, st;
+
+    *clean_nqip_out = 0;
+    if (!nt) return 0;
+    cfa = find_export(k32, XH_CREATEFILEA);
+    rf  = find_export(k32, XH_READFILE);
+    ch  = find_export(k32, XH_CLOSEHANDLE);
+    va_alloc = find_export(k32, XH_VIRTUALALLOC);
+    vp = find_export(k32, XH_VIRTUALPROTECT_A21);
+    if (!cfa || !rf || !ch || !va_alloc || !vp) return 0;
+
+    {   /* ntdll tam yolu (PEB InLoadOrder FullDllName -> ANSI dusus) */
+        char path[1056];
+        u32 plen;
+        u64 h;
+        plen = peb_path_for_base((const u8*)(unsigned long)nt, path, 1040);
+        if (!plen || plen >= 1040) return 0;
+        buf = api4(va_alloc, 0, 0x600000ull, 0x3000u, 0x04u);  /* 6MB RW */
+        if (!buf) return 0;
+        h = api7(cfa, (u64)(unsigned long)(void*)path, 0x80000000u, 1, 0, 3, 0, 0);
+        if (!h || h == (u64)(unsigned long)-1) return 0;
+        for (;;) {
+            u32 got = 0;
+            api5(rf, h, buf + total, 4096, (u64)(unsigned long)(void*)&got, 0);
+            if (!got) break;
+            total += got;
+            if (total + 4096 > 0x600000ull) break;
+            if (got < 4096) break;
+        }
+        api1(ch, h);
+        if (total < 0x1000ull) return 0;
+        clean = xvf_map_pe2((const u8*)(unsigned long)buf, (u32)total, k32, 0);
+        if (!clean) return 0;
+    }
+    /* --- 3 hassas fonksiyon: unhook + temiz NQIP'i ver --- */
+    {
+        u32 hs[3]; u32 ni = 0;
+        hs[ni++] = XH_NQIP;
+        hs[ni++] = XH_NQSI;
+        hs[ni++] = XH_NSIP;
+        for (i = 0; i < ni; i++) {
+            u8* fn = (u8*)(unsigned long)find_export(nt, hs[i]);
+            u8* cf = (u8*)(unsigned long)find_export(clean, hs[i]);
+            u32 k2, diff = 0;
+            if (!fn || !cf) continue;
+            /* stub-imza guvesi */
+#if defined(XRT_IS_X64)
+            if (cf[0] != 0x4C || cf[1] != 0x8B || cf[2] != 0xD1 || cf[3] != 0xB8) continue;
+#else
+            if (cf[0] != 0xB8) continue;
+#endif
+            for (k2 = 0; k2 < 32; k2++) if (fn[k2] != cf[k2]) { diff = 1; break; }
+            if (!diff) {
+                if (hs[i] == XH_NQIP) *clean_nqip_out = (u64)(unsigned long)cf;
+                continue;
+            }
+            {   /* UNHOOK: PAGE_EXECUTE_READWRITE -> 32B -> geri */
+                u32 oldp = 0;
+                api4(vp, (u64)(unsigned long)fn, 64, 0x40u,
+                     (u64)(unsigned long)(void*)&oldp);
+                xvf_memcpy(fn, cf, 32);
+                api4(vp, (u64)(unsigned long)fn, 64, oldp,
+                     (u64)(unsigned long)(void*)&oldp);
+                st = 1;
+            }
+            if (hs[i] == XH_NQIP) *clean_nqip_out = (u64)(unsigned long)cf;
+        }
+    }
+    if (*clean_nqip_out) return st ? 1 : 2;
+    return 0;
+}
+
+/* ============================================================
    1.2.2-A20: GLOBAL CHECK DEBUGGER / CHECK VM / CHECK KERNEL DEBUGGER
    ============================================================
    UO parite: UO'nun Check Debugger'i LOADER-seviyesinde GLOBALDIR —
@@ -1928,6 +2027,32 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
        UO loader.cc:1810-1827 1:1; NTSTATUS isaret-genisletme (A8 dersi) */
     {
         u64 nt = peb_module(XH_NTDLL);
+        /* A21: temiz-ntdll map + unhook; kontrol TEMIZ kopya uzerinden */
+        {
+            u64 cnq = 0;
+            u32 sc = xrt_ad_scylla(k32, &cnq);
+            if (cnq) {
+                u64 dbo = 0;
+#if defined(XRT_IS_X64)
+                i64 st2 = (i64)(int)(u32)api5(cnq, 0xFFFFFFFFFFFFFFFEull, 7,
+                                              (u64)(unsigned long)(void*)&dbo, 8, 0);
+#else
+                i64 st2 = (i64)(long)api5(cnq, 0xFFFFFFFFu, 7,
+                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
+#endif
+                if (st2 >= 0 && dbo != 0) return 5;
+                dbo = 0;
+#if defined(XRT_IS_X64)
+                st2 = (i64)(int)(u32)api5(cnq, 0xFFFFFFFFFFFFFFFEull, 30,
+                                          (u64)(unsigned long)(void*)&dbo, 8, 0);
+#else
+                st2 = (i64)(long)api5(cnq, 0xFFFFFFFFu, 30,
+                                      (u32)(unsigned long)(void*)&dbo, 8, 0);
+#endif
+                if (st2 >= 0 && dbo != 0) return 5;
+            }
+            (void)sc;
+        }
         if (nt) {
             u64 nqip = find_export(nt, XH_NQIP);
             if (nqip) {
