@@ -17,6 +17,7 @@
 #include "engine.hpp"
 #include "engine_sym.hpp"
 #include "xprotect_dotnet.h"   // 1.2.4: CLR MethodDef keşfi (x2 fix)
+#include "xprotect_dwarf.h"    // 1.2.5-A13: DWARF .debug_info keşfi (x3 portu)
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
@@ -641,6 +642,7 @@ static const wchar_t* src_name(int source) {
     case 5: return L"PDBScope";
     case 6: return L"VMP project";
     case 7: return L"DOTNET";
+    case 8: return L"DWARF";     // 1.2.5-A13 (x3 portu)
     }
     return L"-";
 }
@@ -3215,6 +3217,34 @@ static void open_target(const std::wstring& path) {
         g_scan_note = job->note + extra;
         delete job;
         g_scanning = false;                // 0.4.3: tarama kilidi kapandi
+    }
+    // 1.2.5-A13 (x3): DWARF .debug_info taramasi (xpdwarf v1 portu) —
+    // MinGW/clang -g derlenen dosyalarda PDB yokken fonksiyon adlari
+    // buradan gelir (kaynak kolonu: DWARF). Bolumler yoksa sessiz gecer.
+    {
+        std::vector<xpdwarf::DwarfFn> dfn;
+        std::string derr;
+        if (xpdwarf::parse(pi.raw.data(), pi.raw.size(), pi.imagebase, &dfn, &derr) && !dfn.empty()) {
+            std::vector<PeFunc> dw;
+            dw.reserve(dfn.size());
+            for (auto& f : dfn) {
+                PeFunc nf;
+                wchar_t b[256];
+                size_t k = 0;
+                while (k < f.name.size() && k < 255) { b[k] = (wchar_t)(unsigned char)f.name[k]; k++; }
+                b[k] = 0;
+                nf.name = b;
+                nf.rva = f.rva;
+                nf.size = (unsigned long long)f.size;
+                nf.is_export = false;
+                nf.source = 8;
+                dw.push_back(nf);
+            }
+            std::wstring dwn;
+            merge_funcs(pi, dw, &dwn);
+            pi.sym_note += (pi.sym_note.empty() ? L"" : L" | ") +
+                (std::wstring(L"DWARF: ") + numdec(dw.size()) + L" fonksiyon" + dwn);
+        }
     }
     g_pe = pi;
     g_proj = Project();

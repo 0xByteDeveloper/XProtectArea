@@ -685,3 +685,37 @@ PLAN (once yaz, sonra is):
        raporlanir. DURUST LİMİT: "%100" sozu ancak kanitli kalemlerde.
 
 SONUC: (is bitince yazilacak)
+
+## 2026-11-14 13:25 — cp166 TURU SONUC (kod-duzeyi; build/wine-kanit sonraki)
+
+- x1 KOK-NEDEN BULUNDU+FIX: vm_core.c vm_poison → xa_export(KERNEL32, MessageBoxA)
+  hep 0 (MessageBoxA user32'de!) → mesaj hic cikmiyor, ExitProcess yalniz =
+  "direk silent cikis" (cp165 raporu birebir). FIX: xa_module(user32) + yoksa
+  kernel32!LoadLibraryA("user32.dll") PIC stack-string yolu (xrt rt_fatal ayni
+  desen). xa_call1 (x64 1-arg) eklendi.
+- x7c VMP Messages paritesi: Detection Message ozel mesaji — VMContext.msgp
+  (+0x110), stub SONUNA ASCII data + PIC lea (build_stub_x64/x86 msgtext
+  param); Options.rt_msgtext; CLI --rt-msg; Properties "Detection Message"
+  satiri (kind-3 edit); .xproj rtmsg= persist; OZET log satiri.
+- x5 KOK-NEDEN BULUNDU+FIX: arama/Tara isleyicileri GetMessage pump'inda
+  YDI — EN_CHANGE/BN_CLICKED SendMessage ile wndproc'a gelir (kuyruga girmez)
+  → pump'taki kod HIC calismadi. FIX: af_dlg_proc WM_COMMAND (0x503 EN_CHANGE
+  → af_fill_list; 0x508 BN_CLICKED → af_start_scan); pump yalniz yedek.
+- x6 FIX: prop_row_edit toggle sonrasi fill_prop secimi sifirliyordu →
+  ListView_SetItemState(row) geri-yukleme (kind-1 + kind-3 edit yollari).
+- x FIX: log pane kopyalanabilir (Ctrl+C secili / Ctrl+A tumunu sec /
+  sag-tik "Kopyala (seçili)/Tümünü Kopyala" — CF_UNICODETEXT) + log
+  yukseklik ayiraci IDC_SPLIT_H (dikey surukleme, min 60, INI LogH persist).
+- x2/x7a STANDALONESIG/LOCALS GERCEK PORT: xprotect_dotnet.cpp parse() —
+  MethodDef→0x11 tablo-gezinmesi (ECMA II.24.2.6 genislikleri; kodlu indeks
+  2/4 satir-sayisindan); sas_blob[]; parse_locals LocalVarSig cozumleyici
+  (xdn_comp_u/xdn_skip_type; GENERICINST/CMOD/SZARRAY/BYREF/CLASS/VAR/MVAR;
+  I8/R8=8 slot); xprotect_il to_x86 yerel-slot haritasi (8-bayt yerel x86'da
+  2 slot); engine_main RED-kapisi kaldirildi → parse_locals yolu.
+  "locals-imzali govde (v1 kapsam-disi)" mesaji artik GECMIS — WinForms
+  metotlarinin buyuk kismi derlenebilir hedefi.
+- x3 DWARF WIRED: xprotect_dwarf.cpp/h (onceki tur) build'e girdi +
+  open_target'ta otomatik tarama (source=8 "DWARF" kolonu; sym_note DWARF:
+  N fonksiyon). src_name case 8.
+- SONU: build a13 suruyor (zig x64+x86); sonrasinda wine E2E: metin2 d7610
+  antidebug mesaj path, RunPEForm locals-derleme, log kopyalama/boyutlandirma.
