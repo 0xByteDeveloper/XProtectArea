@@ -21,6 +21,16 @@
 #include <vector>
 #include <cstdint>
 
+// (xprotect_dotnet.h ile aynı aile; C++11'de özdeş typedef tekrarı yasal)
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int64_t i64;
+typedef int32_t i32;
+
 namespace xpdwarf {
 
 struct DwarfFn {
