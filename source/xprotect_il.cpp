@@ -404,10 +404,11 @@ static void x_push_eax(std::vector<u8>* c) { e8(c, 0x50); }
 static void x_push_edx(std::vector<u8>* c) { e8(c, 0x52); }
 // mov eax,[esp]
 static void x_dup(std::vector<u8>* c) { e8(c, 0x8B); e8(c, 0x04); e8(c, 0x24); x_push_eax(c); }
-// iki-yığınlı ALU: pop ecx (b), pop eax (a), op, push
+// iki-yığınlı ALU: pop ecx (b), pop eax (a), op eax,ecx, push
+// modrm C8 = mod11 reg=ecx(001) rm=eax(000) -> op eax,ecx (a-b dogru yonde)
 static void x_alu(std::vector<u8>* c, u8 op58 /* 0x03 add,0x2B sub,0x0B or,0x33 xor,0x21 and */) {
     x_pop_ecx(c); x_pop_eax(c);
-    e8(c, op58); e8(c, 0xC1);
+    e8(c, op58); e8(c, 0xC8);
     x_push_eax(c);
 }
 struct Fix { u32 at; u32 il_target; u8 jcc; };   // at: rel32 alanının kod-ofseti
@@ -422,7 +423,7 @@ static void emit_jmp(std::vector<u8>* c, std::vector<Fix>* fx, u8 jcc, u32 il_ta
 // bool push: cmp + setcc al + movzx + push
 static void x_push_setcc(std::vector<u8>* c, u8 setxx /*0x94..*/) {
     x_pop_ecx(c); x_pop_eax(c);
-    e8(c, 0x39); e8(c, 0xC1);            // cmp eax,ecx
+    e8(c, 0x39); e8(c, 0xC8);            // cmp eax,ecx (a-b) — C1 = ecx,eax TERS olurdugu
     e8(c, 0x0F); e8(c, setxx); e8(c, 0xC0);  // setxx al
     e8(c, 0x0F); e8(c, 0xB6); e8(c, 0xC0);   // movzx eax,al
     x_push_eax(c);
@@ -444,7 +445,8 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
     out->is64 = is64;
     // --- prologue ---
     e8(&c, 0x55);                        // push ebp/rbp
-    e8(&c, 0x89); e8(&c, 0xE5);          // mov ebp/rbp,esp
+    if (is64) { e8(&c, 0x48); e8(&c, 0x89); e8(&c, 0xE5); }   // mov rbp,rsp (64-bit!)
+    else { e8(&c, 0x89); e8(&c, 0xE5); } // mov ebp,esp
     e8(&c, 0x53); e8(&c, 0x56); e8(&c, 0x57);  // push ebx;push esi;push edi  // push ebx;push esi;push edi
     // sub esp, locals*4 (hizalı)
     u32 slot = is64 ? 8 : 4;
@@ -563,7 +565,7 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             default: cc = 0xE9; break;
             }
             x_pop_ecx(&c); x_pop_eax(&c);
-            e8(&c, 0x39); e8(&c, 0xC1);   // cmp eax,ecx
+            e8(&c, 0x39); e8(&c, 0xC8);   // cmp eax,ecx (a-b; C1 = ecx,eax TERS!)
             emit_jmp(&c, &fx, cc, cm.target);
         } break;
         case 0x45: RED("switch (v1)"); break;
@@ -573,7 +575,7 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             RED("ldind/stind (v1)"); break;
         case 0x58: x_alu(&c, 0x03); break;   // add
         case 0x59: x_alu(&c, 0x2B); break;   // sub
-        case 0x5A: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x0F); e8(&c, 0xAF); e8(&c, 0xC1); x_push_eax(&c); } break;  // mul
+        case 0x5A: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x0F); e8(&c, 0xAF); e8(&c, 0xC8); x_push_eax(&c); } break;  // mul (imul eax,ecx)
         case 0x5B: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x99); e8(&c, 0xF7); e8(&c, 0xF9); x_push_eax(&c); } break;  // div (cdq; idiv ecx)
         case 0x5C: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x31); e8(&c, 0xD2); e8(&c, 0xF7); e8(&c, 0xF1); x_push_eax(&c); } break;  // div.un
         case 0x5D: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x99); e8(&c, 0xF7); e8(&c, 0xF9); x_push_edx(&c); } break;  // rem

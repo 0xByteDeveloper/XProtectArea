@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
 
     printf("[3] IL -> x86 derle + calistir\n");
     xpil::X86Fn x;
-    CHECK(xpil::to_x86(cmds, 0, true /*has ret*/, true /*static*/, 0, &x), x.why_red.c_str());
+    CHECK(xpil::to_x86(cmds, 0, true /*has ret*/, true /*static*/, 0, &x, true /*x64 host*/), x.why_red.c_str());
     printf("  x86 boyut: %zu bayt\n", x.code.size());
     // çalıştır: mmap RWX + çağır (cdecl: args yok -> ret 0)
     void* buf = mmap(0, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     std::vector<xpil::Cmd> c2; std::string e2;
     xpil::decode(il2.data(), il2.size(), &c2, &e2);
     xpil::X86Fn x2;
-    bool rok = xpil::to_x86(c2, 0, true, true, 0, &x2);
+    bool rok = xpil::to_x86(c2, 0, true, true, 0, &x2, true);
     CHECK(!rok && x2.why_red.find("ldstr") != std::string::npos, "ldstr -> RED (net mesaj)");
 
     printf("[5] dal fixup: dongu (br geri-dalis)\n");
@@ -87,14 +87,14 @@ int main(int argc, char** argv) {
                     0x0A,                     // IL_05 stloc.0
                     0x06,                     // IL_06 ldloc.0
                     0x1D,                     // IL_07 ldc.i4.3
-                    0x32, 0xF7,               // IL_08 blt.s IL_02 (rel = 2 - 10 = -9 = 0xF7)
+                    0x32, 0xF8,               // IL_08 blt.s IL_02 (rel = 2 - 10 = -8 = 0xF8)
                     0x06,                     // IL_0A ldloc.0
                     0x2A};                    // IL_0B ret
     std::vector<xpil::Cmd> c3; std::string e3;
     bool d3 = xpil::decode(loop_il, sizeof loop_il, &c3, &e3);
     printf("  decode: %d %s\n", d3, e3.c_str());
     xpil::X86Fn x3;
-    bool l3 = d3 && xpil::to_x86(c3, 1, true, true, 0, &x3);
+    bool l3 = d3 && xpil::to_x86(c3, 1, true, true, 0, &x3, true);
     if (l3) {
         void* b3 = mmap(0, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         memcpy(b3, x3.code.data(), x3.code.size());
