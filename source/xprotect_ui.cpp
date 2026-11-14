@@ -1025,6 +1025,53 @@ static void add_log(const std::wstring& msg) {
     ListView_EnsureVisible(g_log, idx, FALSE);
 }
 
+// 1.2.5-A13 (x): log (konsol) ciktisini panoya kopyala — kullanici hata
+// ciktilarini rapor edebilsin (cp165: "konsolu kopyalayamadigim icin uzun
+// ciktiyi atamadim"). all=false: yalniz secili satirlar (secim yoksa tumu);
+// all=true: tumu. Ctrl+C / Ctrl+A / sag-tik menusu ile ulasilir.
+static void log_copy(bool all) {
+    if (!g_log) return;
+    int n = (int)SendMessageW(g_log, LVM_GETITEMCOUNT, 0, 0);
+    if (n <= 0) return;
+    std::vector<int> rows;
+    if (!all) {
+        int i = -1;
+        while ((i = (int)SendMessageW(g_log, LVM_GETNEXTITEM, (WPARAM)i, LVNI_SELECTED)) != -1)
+            rows.push_back(i);
+        if (rows.empty()) all = true;   // secim yok -> tum log
+    }
+    std::wstring out;
+    for (int i = 0; i < n; i++) {
+        if (!all) {
+            bool sel = false;
+            for (size_t k = 0; k < rows.size(); k++) if (rows[k] == i) { sel = true; break; }
+            if (!sel) continue;
+        }
+        wchar_t b[2048];
+        LVITEMW it; memset(&it, 0, sizeof(it));
+        it.mask = LVIF_TEXT; it.iItem = i; it.pszText = b; it.cchTextMax = 2048;
+        std::wstring line;
+        if (SendMessageW(g_log, LVM_GETITEMTEXTW, i, (LPARAM)&it) && b[0]) line = b;
+        wchar_t b2[4096];
+        memset(&it, 0, sizeof(it));
+        it.mask = LVIF_TEXT; it.iItem = i; it.iSubItem = 1; it.pszText = b2; it.cchTextMax = 4096;
+        if (SendMessageW(g_log, LVM_GETITEMTEXTW, i, (LPARAM)&it) && b2[0])
+            line += std::wstring(line.empty() ? L"" : L"\t") + b2;
+        out += line;
+        out += L"\r\n";
+    }
+    if (out.empty()) return;
+    if (!OpenClipboard(g_main)) return;
+    EmptyClipboard();
+    HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, (out.size() + 1) * sizeof(wchar_t));
+    if (hg) {
+        wchar_t* p = (wchar_t*)GlobalLock(hg);
+        if (p) { memcpy(p, out.c_str(), (out.size() + 1) * sizeof(wchar_t)); GlobalUnlock(hg); }
+        SetClipboardData(CF_UNICODETEXT, hg);
+    }
+    CloseClipboard();
+}
+
 // ---------------- pencere oyuncaklari: dugme yaratma ----------------
 static HWND mk_ctl(HWND parent, const wchar_t* cls, const wchar_t* txt,
                    unsigned long style, int id, int x, int y, int w, int h) {
@@ -4171,6 +4218,30 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
             }
             return 0;
         }
+        // 1.2.5-A13 (x): log/konsol — Ctrl+C kopyala, Ctrl+A tumunu sec,
+        // sag-tik = kopyala menusu (kullanici cp165: cikti kopyalanamiyordu)
+        if (nm->hwndFrom == g_log) {
+            if (nm->code == LVN_KEYDOWN) {
+                NMLVKEYDOWN* kd = (NMLVKEYDOWN*)lp;
+                bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+                if (ctrl && kd->wVKey == 'C') log_copy(false);
+                else if (ctrl && kd->wVKey == 'A') {
+                    int lc = (int)SendMessageW(g_log, LVM_GETITEMCOUNT, 0, 0);
+                    for (int i = 0; i < lc; i++)
+                        ListView_SetItemState(g_log, i, LVIS_SELECTED, LVIS_SELECTED);
+                }
+                return 0;
+            } else if (nm->code == NM_RCLICK) {
+                HMENU m = CreatePopupMenu();
+                AppendMenuW(m, MF_STRING, 1, L"Kopyala (seçili satırlar)");
+                AppendMenuW(m, MF_STRING, 2, L"Tümünü Kopyala");
+                int cmd = track_menu(m);
+                if (cmd == 1) log_copy(false);
+                else if (cmd == 2) log_copy(true);
+                return 0;
+            }
+            return 0;
+        }
         if (nm->hwndFrom == g_prop) {
             if (nm->code == NM_DBLCLK) {
                 NMITEMACTIVATE* ia = (NMITEMACTIVATE*)lp;
@@ -4261,7 +4332,12 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
         RECT sr; GetWindowRect(g_split, &sr);
         POINT sp; sp.x = GET_X_LPARAM(lp); sp.y = GET_Y_LPARAM(lp);
         ClientToScreen(h, &sp);
-        if (sp.x >= sr.left - 3 && sp.x <= sr.right + 3) { SetCapture(h); g_drag = true; }
+        if (sp.x >= sr.left - 3 && sp.x <= sr.right + 3) { SetCapture(h); g_drag = true; break; }
+        // 1.2.5-A13 (x): log pane yukseklik ayiraci dikey surukleme
+        if (g_split_h) {
+            RECT hr; GetWindowRect(g_split_h, &hr);
+            if (sp.y >= hr.top - 3 && sp.y <= hr.bottom + 3) { SetCapture(h); g_drag_h = true; }
+        }
         break;
     }
     case WM_MOUSEMOVE: {
@@ -4275,10 +4351,25 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
             if (nx > rc.right - 360) nx = rc.right - 360;
             if (nx != g_split_x) { g_split_x = nx; layout(); }
         }
+        // 1.2.5-A13 (x): log yuksekligi — yukari cek = buyur, asagi = kucult
+        if (g_drag_h) {
+            RECT hr; GetWindowRect(g_split_h, &hr);
+            POINT sp; sp.x = GET_X_LPARAM(lp); sp.y = GET_Y_LPARAM(lp);
+            ClientToScreen(h, &sp);
+            int nh = g_log_h - (sp.y - hr.top);
+            RECT rc; GetClientRect(h, &rc);
+            RECT sr2; GetWindowRect(g_status, &sr2);
+            int st_h2 = sr2.bottom - sr2.top;
+            if (nh < 60) nh = 60;
+            if (nh > rc.bottom - 260) nh = rc.bottom - 260;   // ust panel min ~200 + status
+            (void)st_h2;
+            if (nh != g_log_h) { g_log_h = nh; layout(); }
+        }
         break;
     }
     case WM_LBUTTONUP:
         if (g_drag) { g_drag = false; ReleaseCapture(); save_settings(); }
+        if (g_drag_h) { g_drag_h = false; ReleaseCapture(); save_settings(); }   // LogH INI'ye
         break;
     case WM_SETCURSOR: {
         if (LOWORD(lp) == HTCLIENT && g_split) {
@@ -4288,6 +4379,17 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
             POINT b; b.x = sr.right; b.y = sr.bottom; ScreenToClient(h, &b);
             if (p.x >= a.x - 3 && p.x <= b.x + 3) {
                 SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+                return TRUE;
+            }
+        }
+        // 1.2.5-A13 (x): dikey ayiraci imleci (NS)
+        if (LOWORD(lp) == HTCLIENT && g_split_h) {
+            POINT p; GetCursorPos(&p); ScreenToClient(h, &p);
+            RECT hr; GetWindowRect(g_split_h, &hr);
+            POINT a; a.x = hr.left; a.y = hr.top; ScreenToClient(h, &a);
+            POINT b; b.x = hr.right; b.y = hr.bottom; ScreenToClient(h, &b);
+            if (p.y >= a.y - 3 && p.y <= b.y + 3) {
+                SetCursor(LoadCursor(NULL, IDC_SIZENS));
                 return TRUE;
             }
         }
