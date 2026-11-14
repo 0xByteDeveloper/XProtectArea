@@ -49,17 +49,24 @@ static bool pe_sections(const u8* d, size_t n, std::vector<Sec>* out, u32* data_
     if (opt_h != 0x10B && opt_h != 0x20B) return false;
     *is64 = (opt_h == 0x20B);
     const u8* oh = d + e_lfanew + 24;
-    // PE32 ve PE64'te DataDirectory ayni yerde: NumberOfRvaAndSizes=0x48,
-    // dizin=0x4C (ECMA/PE spec — VMProtect pefile.cc ile ayni yerlesim)
-    *num_dirs = rd32(oh + 0x48);
+    /* 1.2.5 FIX (x/.NET kök-nedeni): PE spec (IMAGE_OPTIONAL_HEADER32/64):
+       NumberOfRvaAndSizes — PE32: 0x5C, PE64: 0x6C; DataDirectory — PE32:
+       0x60, PE64: 0x70. Eski kod ikisinde de 0x48/0x4C kullanıyordu (PE32'de
+       0x48 = SizeOfStackReserve!) — GERÇEK csc/roslyn çıktılarında CLR
+       dizini hiç bulunamıyor ("CLR veri-dizini yok") ve .NET dosyaları
+       native sanılıyordu. minidn sentezleyicisi aynı yanlış layout'u yazdığı
+       için testler geçiyordu; sentezleyiciler de spec'e alındı. */
+    u32 dd_base = *is64 ? 0x70 : 0x60;
+    u32 nras_off = dd_base - 4;               /* NumberOfRvaAndSizes */
+    *num_dirs = rd32(oh + nras_off);
     if (*num_dirs > 16) *num_dirs = 16;
     memset(data_dirs, 0, 16 * 8);
     for (u32 i = 0; i < *num_dirs; i++) {
-        const u8* de = oh + 0x4C + i * 8;
+        const u8* de = oh + dd_base + i * 8;
         data_dirs[i * 2] = rd32(de);
         data_dirs[i * 2 + 1] = rd32(de + 4);
     }
-    *imagebase = *is64 ? rd32(oh + 0x18) : rd32(oh + 0x1C);
+    *imagebase = rd32(oh + 0x1C);
     if (*is64) { u64 ib = 0; memcpy(&ib, oh + 0x18, 8); *imagebase = (u32)ib; }
     size_t so = e_lfanew + 24 + opt_sz;
     for (u16 i = 0; i < nsec; i++) {
@@ -131,8 +138,14 @@ bool parse(const u8* d, size_t n, Image* out) {
     u32 vlen = rd32(d + meta_off + 12);
     u64 p = meta_off + 16 + vlen;
     if (p + 6 > n) { out->err = "metadata basligi kirik"; return false; }
-    u16 nstreams = rd16(d + p);            // NumberOfStreams (version'dan sonra)
-    p += 2;
+    /* 1.2.5 FIX (x/.NET kök-nedeni-2): ECMA II.24.2.2 — version'dan SONRA
+       Flags(2) gelir, Streams(2) ondan sonra gelir. Eski kod Flags'i
+       NumberOfStreams sanıp stream-header'ları 2 bayt kaydırıyordu;
+       GERÇEK csc çıktısında "#~ akisi yok" üretiyordu. (minidn
+       sentezleyicisi Flags'i hiç yazmıyordu — o da spec'e alındı.) */
+    u16 md_flags = rd16(d + p);            // Flags (II.24.2.2)
+    u16 nstreams = rd16(d + p + 2);        // NumberOfStreams
+    p += 4;
     u64 tab_off = 0, tab_sz = 0, str_off = 0, str_sz = 0, us_off = 0, us_sz = 0, blob_off = 0, blob_sz = 0;
     for (int i = 0; i < nstreams; i++) {
         if (p + 8 > n) break;
@@ -148,6 +161,10 @@ bool parse(const u8* d, size_t n, Image* out) {
         else if (name == "#Blob") { blob_off = meta_off + o; blob_sz = sz; }
     }
     if (!tab_off || tab_off + 24 > n) { out->err = "#~ akisi yok"; return false; }
+    if (md_flags & 0x1) {
+        /* ExtraData biti: stream-header'lardan sonra 4 bayt ek veri (II.24.2.2) */
+        p += 4;
+    }
     Schema sc;
     memset(&sc, 0, sizeof sc);
     // #~: Reserved(2) Major(1) Minor(1) HeapSizes(1) Reserved(1) Valid(8) Sorted(8)
