@@ -319,15 +319,19 @@ bool parse(const u8* d, size_t n, Image* out) {
         //                 FieldList(10..11) MethodList(12..13)
         u32 fieldlist = s4 ? rd32(row + 10) : rd16(row + 10);
         u32 methodlist = s4 ? rd32(row + 12) : rd16(row + 12);
-        (void)fieldlist;
         TypeDef td;
+        td.flags = rd32(row);
         td.name = str_at(namei);
         td.ns = str_at(nsi);
         td.type_full = td.ns.empty() ? td.name : (td.ns + "." + td.name);
         td.method_first = methodlist;
+        td.field_first = fieldlist;
         td.method_last = (r + 1 < sc.rows[2])
             ? (s4 ? rd32(d + ro + td_w + 12) : rd16(d + ro + td_w + 12))
             : sc.rows[6] + 1;
+        td.field_last = (r + 1 < sc.rows[2])
+            ? (s4 ? rd32(d + ro + td_w + 10) : rd16(d + ro + td_w + 10))
+            : sc.rows[4] + 1;
         out->typedefs.push_back(td);
     }
     for (u32 r = 0; r < sc.rows[6]; r++) {
@@ -379,32 +383,121 @@ bool parse(const u8* d, size_t n, Image* out) {
         if (has_flag(valid, 0x11)) {
             u64 cur = md_base + (u64)sc.rows[6] * wMethodDef;
             bool walk_ok = true;
-            for (u32 t = 0x07; t <= 0x10 && walk_ok; t++) {
+            u64 base_10 = 0, base_1a = 0, base_1c = 0, base_1d = 0;
+            u32 bidx_sz = b4 ? 4u : 2u;
+            for (u32 t = 0x07; t <= 0x1D && walk_ok; t++) {
                 u32 cnt = count_of(t);
+                if (t == 0x10) base_10 = cur;
+                else if (t == 0x1A) base_1a = cur;
+                else if (t == 0x1C) base_1c = cur;
+                else if (t == 0x1D) base_1d = cur;
+                if (t == 0x11) {
+                    // StandAloneSig satirlarini oku (A13/x7a: ldloc slotlari)
+                    u32 sas_rows = cnt;
+                    if (sas_rows && blob_off && cur + (u64)sas_rows * bidx_sz <= n) {
+                        for (u32 r = 0; r < sas_rows; r++) {
+                            u32 bi = b4 ? rd32(d + cur + (u64)r * 4) : rd16(d + cur + (u64)r * 2);
+                            if (!b4) bi &= 0xFFFFu;
+                            out->sas_blob.push_back(bi);
+                        }
+                    }
+                    cur += (u64)sas_rows * bidx_sz;
+                    continue;
+                }
                 if (!cnt) continue;
                 u32 w = 0;
                 switch (t) {
                 case 0x07: w = sim_w(8); break;          // ParamPtr -> Param idx
                 case 0x08: w = 2 + 2 + sidx; break;      // Param: Seq, Flags, Name
                 case 0x09: w = sim_w(2) + tdr_w; break;  // InterfaceImpl: Class, Interface
-                case 0x0A: w = cw(3, {2, 1, 0x1A, 6, 0x1B}) + sidx + (b4 ? 4u : 2u); break; // MemberRef
-                case 0x0B: w = 2 + cw(2, {4, 8, 0x17}) + (b4 ? 4u : 2u); break;             // Constant
-                case 0x0C: w = hca_w + cw(3, {6, 0xA}) + (b4 ? 4u : 2u); break;             // CustomAttribute
-                case 0x0D: w = cw(1, {4, 8}) + (b4 ? 4u : 2u); break;                       // FieldMarshal
-                case 0x0E: w = 2 + cw(2, {2, 6, 0x20}) + (b4 ? 4u : 2u); break;             // DeclSecurity
+                case 0x0A: w = cw(3, {2, 1, 0x1A, 6, 0x1B}) + sidx + bidx_sz; break; // MemberRef
+                case 0x0B: w = 2 + cw(2, {4, 8, 0x17}) + bidx_sz; break;             // Constant
+                case 0x0C: w = hca_w + cw(3, {6, 0xA}) + bidx_sz; break;             // CustomAttribute
+                case 0x0D: w = cw(1, {4, 8}) + bidx_sz; break;                       // FieldMarshal
+                case 0x0E: w = 2 + cw(2, {2, 6, 0x20}) + bidx_sz; break;             // DeclSecurity
                 case 0x0F: w = 2 + 4 + sim_w(2); break;  // ClassLayout: Packing, ClassSize, Parent
                 case 0x10: w = 4 + sim_w(4); break;      // FieldLayout: Offset, Field
+                case 0x12: w = sim_w(0x14) + sim_w(2); break;              // EventMap
+                case 0x13: w = sim_w(0x14); break;                          // EventPtr
+                case 0x14: w = 2 + 2 + sidx + tdr_w; break;                 // Event
+                case 0x15: w = sim_w(0x17) + sim_w(2); break;               // PropertyMap
+                case 0x16: w = sim_w(0x17); break;                          // PropertyPtr
+                case 0x17: w = 2 + sidx + bidx_sz; break;                   // Property
+                case 0x18: w = 2 + sim_w(6) + cw(1, {0x14, 0x17}); break;   // MethodSemantics
+                case 0x19: w = sim_w(2) + cw(1, {6, 0xA}) * 2u; break;      // MethodImpl
+                case 0x1A: w = sidx; break;                                 // ModuleRef
+                case 0x1B: w = bidx_sz; break;                              // TypeSpec
+                case 0x1C: w = 2 + cw(1, {4, 6}) + sidx + sim_w(0x1A); break; // ImplMap
+                case 0x1D: w = 4 + sim_w(4); break;                          // FieldRVA
                 default:   walk_ok = false; break;       // bilinmeyen ara tablo -> vazgec
                 }
                 if (!walk_ok) break;
                 cur += (u64)cnt * w;
             }
-            u32 sas_rows = count_of(0x11);
-            if (walk_ok && sas_rows && blob_off && cur + (u64)sas_rows * (b4 ? 4u : 2u) <= n) {
-                for (u32 r = 0; r < sas_rows; r++) {
-                    u32 bi = b4 ? rd32(d + cur + (u64)r * 4) : rd16(d + cur + (u64)r * 2);
-                    if (!b4) bi &= 0xFFFFu;
-                    out->sas_blob.push_back(bi);
+            // --- A14 (x2 devam): ModuleRef / ImplMap / FieldRVA / FieldLayout ---
+            u32 w_mf = cw(1, {4, 6});                        // MemberForwarded kodlu genislik
+            u32 w_1a = sidx;
+            u32 w_1c = 2 + w_mf + sidx + w_1a;
+            u32 w_1d = 4 + sim_w(4);
+            u32 w_10 = 4 + sim_w(4);
+            // ModuleRef isimleri
+            std::vector<std::string> modrefs;
+            u32 mr_rows = count_of(0x1A);
+            if (base_1a && mr_rows && base_1a + (u64)mr_rows * w_1a <= n) {
+                for (u32 r = 0; r < mr_rows; r++) {
+                    u64 ro = base_1a + (u64)r * w_1a;
+                    u32 ni = s4 ? rd32(d + ro) : rd16(d + ro);
+                    modrefs.push_back(str_at(ni));
+                }
+            }
+            // ImplMap: P/Invoke dll+isim (MethodDef satirlarina bagla)
+            u32 im_rows = count_of(0x1C);
+            if (base_1c && im_rows && base_1c + (u64)im_rows * w_1c <= n) {
+                for (u32 r = 0; r < im_rows; r++) {
+                    u64 ro = base_1c + (u64)r * w_1c;
+                    u16 mf_flags = rd16(d + ro);
+                    u32 mfc = s4 ? rd32(d + ro + 2) : rd16(d + ro + 2);
+                    u64 po = ro + 2 + w_mf;
+                    u32 ni = s4 ? rd32(d + po) : rd16(d + po);
+                    u64 po2 = po + sidx;
+                    u32 sc_i = s4 ? rd32(d + po2) : rd16(d + po2);
+                    if ((mfc & 1u) != 1u) continue;          // tag1 = MethodDef
+                    u32 mrow = mfc >> 2;
+                    if (mrow < 1 || mrow > out->methods.size()) continue;
+                    if (sc_i < 1 || sc_i > modrefs.size()) continue;
+                    Method& m = out->methods[mrow - 1];
+                    m.pinv_name = str_at(ni);
+                    m.pinv_dll = modrefs[sc_i - 1];
+                    m.pinv_cdecl = (mf_flags & 0x3u) == 0x1u; // PM_CALLCONV_CDECL
+                }
+            }
+            // FieldRVA: statik alan RVA'lari (ldsfld/stsfld mutlak erisim)
+            u32 fr_rows = count_of(0x1D);
+            if (base_1d && fr_rows && base_1d + (u64)fr_rows * w_1d <= n) {
+                for (u32 r = 0; r < fr_rows; r++) {
+                    u64 ro = base_1d + (u64)r * w_1d;
+                    u32 rva = rd32(d + ro);
+                    u32 fi = s4 ? rd32(d + ro + 4) : rd16(d + ro + 4);
+                    if (fi >= 1 && rva) out->field_rva[0x04000000u | fi] = rva;
+                }
+            }
+            // FieldLayout + ExplicitLayout TypeDef -> ldfld/stfld offsetleri
+            u32 fl_rows = count_of(0x10);
+            std::map<u32, i32> layout;
+            if (base_10 && fl_rows && base_10 + (u64)fl_rows * w_10 <= n) {
+                for (u32 r = 0; r < fl_rows; r++) {
+                    u64 ro = base_10 + (u64)r * w_10;
+                    u32 off = rd32(d + ro);
+                    u32 fi = s4 ? rd32(d + ro + 4) : rd16(d + ro + 4);
+                    if (fi >= 1) layout[fi] = (i32)off;
+                }
+            }
+            for (size_t ti = 0; ti < out->typedefs.size(); ti++) {
+                const TypeDef& td = out->typedefs[ti];
+                if (!(td.flags & 0x00000010u)) continue;     // ExplicitLayout
+                for (u32 fi = td.field_first; fi >= 1 && fi < td.field_last; fi++) {
+                    std::map<u32, i32>::const_iterator it = layout.find(fi);
+                    if (it != layout.end()) out->field_off[0x04000000u | fi] = it->second;
                 }
             }
         }

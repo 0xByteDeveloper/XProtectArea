@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <map>
 
 typedef uint32_t u32;
 typedef uint64_t u64;
@@ -53,11 +54,17 @@ struct Method {
     // 1.2.3 motor yaması için satır alanı dosya-ofsetleri
     u32 row_rva_off = 0;
     u32 row_impl_off = 0;
+    // 1.2.5-A14 (x2 devam): P/Invoke — ImplMap (0x1C) çözümü
+    std::string pinv_dll;    // ModuleRef (0x1A) ismi ("kernel32.dll")
+    std::string pinv_name;   // ImportName (#Strings)
+    bool pinv_cdecl = false; // PM_CALLCONV_CDECL (0x0001); değilse stdcall
 };
 
 struct TypeDef {
     std::string name, ns, type_full;
+    u32 flags = 0;                           // A14: ExplicitLayout tespiti
     u32 method_first = 0, method_last = 0;   // MethodDef 1-tabanlı aralık
+    u32 field_first = 0, field_last = 0;     // A14: Field 1-tabanlı aralık
 };
 
 struct Image {
@@ -77,6 +84,9 @@ struct Image {
     u64 blob_off = 0;            // #Blob stream dosya ofseti (parse_locals)
     u32 blob_sz = 0;
     bool blob4 = false;          // #Blob indeks genisligi 4 mu
+    // 1.2.5-A14 (x2 devam): P/Invoke + statik/explicit alanlar
+    std::map<u32, u32> field_rva;   // Field token (0x04xxxxxx) -> FieldRVA
+    std::map<u32, i32> field_off;   // Field token -> explicit-layout offset
 };
 
 bool parse(const u8* d, size_t n, Image* out);

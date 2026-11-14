@@ -83,10 +83,30 @@ struct X86Fn {
     u32 args_bytes = 0;          // ret imm için
     bool has_ret = false;
     u32 il_len = 0;
+    // A14: call xrt_resolve rel32 alanlari — motor fn_rva ile patch'ler
+    std::vector<std::pair<u32, u32> > rx_fix;   // (kod-ofseti, resolve_rva)
 };
+// 1.2.5-A14 (x2 devam): P/Invoke + statik/explicit alan haritasi
+struct XPinvFn {
+    u32 dll_hash = 0;        // fnv_al(dll) — xrt_core ile ayni
+    u32 name_hash = 0;       // fnv_a(name)
+    u32 args_bytes = 0;      // stdcall temizleme / cdecl add-esp
+    bool has_ret = false;
+    bool is_cdecl = false;
+};
+struct XPEnv {
+    const std::map<u32, XPinvFn>* pinv = nullptr;      // MethodDef token -> P/Invoke
+    u32 resolve_rva = 0;       // xrt_resolve RVA (ayni imaj; rel32 call)
+    u32 imagebase = 0;         // ldsfld/stsfld mutlak VA
+    const std::map<u32, u32>* sfld_rva = nullptr;      // Field token -> RVA
+    const std::map<u32, i32>* fld_off = nullptr;       // Field token -> explicit offset
+    bool allow_abs = false;    // ASLR yoksa mutlak adres serbest
+};
+
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             bool is_static, u32 param_count, X86Fn* out, bool is64 = false,
-            const std::vector<u32>* local_sz = nullptr);   // +A13/x7a: yerel slot boylari
+            const std::vector<u32>* local_sz = nullptr,   // +A13/x7a
+            const XPEnv* env = nullptr);                  // +A14: P/Invoke/alanlar
 
 // desteklenen opcode sayısı (parite ölçümü için)
 u32 supported_count();

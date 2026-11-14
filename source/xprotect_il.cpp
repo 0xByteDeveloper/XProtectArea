@@ -434,7 +434,7 @@ static void x_push_setcc(std::vector<u8>* c, u8 setxx /*0x94..*/) {
 // (metin2); x64 yolu Unit-test dogrulamasi icin.
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             bool is_static, u32 param_count, X86Fn* out, bool is64,
-            const std::vector<u32>* local_sz) {
+            const std::vector<u32>* local_sz, const XPEnv* env) {
     out->ok = false;
     out->has_ret = has_ret;
     out->il_len = cmds.empty() ? 0 : cmds.back().off + cmds.back().len;
@@ -536,7 +536,40 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         case 0x22: case 0x23: RED("r4/r8 sabiti (FPU v2)"); break;
         case 0x25: x_dup(&c); break;                             // dup
         case 0x26: e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 0x04); break;  // pop: add esp,4
-        case 0x27: case 0x28: case 0x29: case 0x6F: case 0x73:   // jmp/call/calli/callvirt/newobj
+        case 0x28: case 0x6F: {  // A14 (x2 devam): call/callvirt — yalniz P/Invoke
+            u32 tok = cm.token;
+            const XPinvFn* pf = 0;
+            if (env && env->pinv) {
+                std::map<u32, XPinvFn>::const_iterator it = env->pinv->find(tok);
+                if (it != env->pinv->end()) pf = &it->second;
+            }
+            if (!pf || !env || !env->resolve_rva) {
+                snprintf(red_buf, sizeof red_buf, "cagri: yonetilen metod (nesne-ops v2 kapsaminda) (%s)", inf->name);
+                RED(red_buf); break;
+            }
+            if (op == 0x6F) { RED("callvirt P/Invoke ustunde olmaz"); break; }
+            // IL args zaten yiginda ([esp]=arg1..); xrt_resolve cdecl:
+            //   push dll_hash, push name_hash, push fallback(0), call, add esp,12
+            e8(&c, 0x68); e32(&c, pf->dll_hash);          // push dll_hash
+            e8(&c, 0x68); e32(&c, pf->name_hash);         // push name_hash
+            e8(&c, 0x68); e32(&c, 0);                     // push fallback=0
+            e8(&c, 0xE8); e32(&c, 0);                     // call xrt_resolve — rel32 MOTORDA patch'lenir (RX-fix)
+            out->rx_fix.push_back(std::make_pair((u32)c.size() - 4, env->resolve_rva));
+            e8(&c, 0x5A);                                 // pop edx (donus adresi)
+            e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 12);       // add esp,12
+            e8(&c, 0x85); e8(&c, 0xC0);                   // test eax,eax
+            e8(&c, 0x75); e8(&c, 0x02);                   // jne +2
+            e8(&c, 0xCC);                                 // int3 (cozulemedi — duru)
+            e8(&c, 0x52);                                 // push edx (ret adresi geri)
+            e8(&c, 0xFF); e8(&c, 0xE0);                   // jmp eax (stdcall: arglari callee temizler)
+            if (pf->is_cdecl && pf->args_bytes) {
+                e8(&c, 0x83); e8(&c, 0xC4);               // add esp, imm8
+                e8(&c, (u8)pf->args_bytes);
+            }
+            if (pf->has_ret) e8(&c, 0x50);                // push eax (IL yiginina)
+            break;
+        }
+        case 0x27: case 0x29: case 0x73:   // jmp/calli/newobj
             snprintf(red_buf, sizeof red_buf, "cagri formu v1 disi (%s)", inf->name); RED(red_buf); break;
         case 0x2A: {  // ret
             if (has_ret) x_pop_eax(&c);
@@ -608,8 +641,47 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         case 0x6A: { x_pop_eax(&c); e8(&c, 0x99); x_push_edx(&c); x_push_eax(&c); } break;  // conv.i8 (cdq; push edx; push eax)
         case 0x6B: case 0x6C: case 0x76: RED("conv.r (FPU v2)"); break;
         case 0x6E: { x_pop_eax(&c); e8(&c, 0x31); e8(&c, 0xD2); x_push_edx(&c); x_push_eax(&c); } break;  // conv.u8
-        case 0x70: case 0x71: case 0x72: case 0x74: case 0x75: case 0x79: case 0x7B: case 0x7C: case 0x7D:
-        case 0x7E: case 0x7F: case 0x80: case 0x81: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
+        case 0x7B: case 0x7D: {  // A14: ldfld/stfld — yalniz ExplicitLayout offset
+            const i32* off = 0;
+            if (env && env->fld_off) {
+                std::map<u32, i32>::const_iterator it = env->fld_off->find(cm.token);
+                if (it != env->fld_off->end()) off = &it->second;
+            }
+            if (!off) { RED("ldfld/stfld: offset bilinmiyor (auto-layout alan CLR'ye ait — v2)"); break; }
+            if (op == 0x7B) {   // ldfld: [esp]=obj -> [esp]=deger
+                e8(&c, 0x8B); e8(&c, 0x04); e8(&c, 0x24);       // mov eax,[esp]
+                e8(&c, 0x8B); e8(&c, 0x80); e32(&c, (u32)*off); // mov eax,[eax+off]
+                e8(&c, 0x89); e8(&c, 0x04); e8(&c, 0x24);       // mov [esp],eax
+            } else {            // stfld: [esp]=deger, [esp+4]=obj
+                e8(&c, 0x8B); e8(&c, 0x04); e8(&c, 0x24);       // mov eax,[esp]
+                e8(&c, 0x8B); e8(&c, 0x4C); e8(&c, 0x24); e8(&c, 0x04); // mov ecx,[esp+4]
+                e8(&c, 0x89); e8(&c, 0x81); e32(&c, (u32)*off); // mov [ecx+off],eax
+                e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 0x08);       // add esp,8
+            }
+            break;
+        }
+        case 0x7E: case 0x7F: case 0x80: {  // A14: ldsfld/ldsflda/stsfld — FieldRVA
+            const u32* rva = 0;
+            if (env && env->sfld_rva) {
+                std::map<u32, u32>::const_iterator it = env->sfld_rva->find(cm.token);
+                if (it != env->sfld_rva->end()) rva = &it->second;
+            }
+            if (!rva || !env || !env->allow_abs || !env->imagebase) {
+                RED("ldsfld/stsfld: FieldRVA yok veya ASLR'li imzada mutlak adres yasak");
+                break;
+            }
+            u32 va = env->imagebase + *rva;
+            if (op == 0x7E) {   // ldsfld: push dword [abs]
+                e8(&c, 0xFF); e8(&c, 0x35); e32(&c, va);
+            } else if (op == 0x7F) {  // ldsflda: push imm32
+                e8(&c, 0x68); e32(&c, va);
+            } else {            // stsfld: pop eax; mov [abs],eax
+                e8(&c, 0x58); e8(&c, 0xA3); e32(&c, va);
+            }
+            break;
+        }
+        case 0x70: case 0x71: case 0x72: case 0x74: case 0x75: case 0x79: case 0x7C:
+        case 0x81: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
         case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97: case 0x98: case 0x99: case 0x9A:
         case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F: case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:
             snprintf(red_buf, sizeof red_buf, "nesne/alani/dizi op v1 disi (%s)", inf->name); RED(red_buf); break;

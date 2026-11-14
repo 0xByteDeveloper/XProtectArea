@@ -8,6 +8,18 @@
 // ============================================================
 #include "engine.hpp"
 #include "xprotect_dotnet.h"   // 1.2.3: .NET (dotnetfile.cc portu)
+
+/* A14 (x2 devam): xrt_core ile BIREBIR FNV-1a hash'ler (P/Invoke cozumu) */
+static u32 xfnv_a(const char* s) {
+    u32 h = 2166136261u;
+    while (*s) { h ^= (u8)*s++; h *= 16777619u; }
+    return h;
+}
+static u32 xfnv_al(const char* s) {
+    u32 h = 2166136261u;
+    while (*s) { u32 c = (u8)*s++; if (c >= 'A' && c <= 'Z') c += 32u; h ^= c; h *= 16777619u; }
+    return h;
+}
 #include "xprotect_il.h"       // 1.2.3: CIL + IL->x86 (il.cc portu)
 #include "engine_sym.hpp"
 #include "xr_cipher.h"   // 0.8.0 SectionCryptor (runtime ile ortak sozlesme)
@@ -560,6 +572,32 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // ofsetleri (row_rva_off/row_impl_off) yama asamasinda kullanilir.
     std::map<u32, xpdotnet::Method> dn_meta;   // rva -> method
     xpdotnet::Image dn_img;                    // A13/x7a: sas_blob (StandAloneSig)
+    // A14 (x2 devam): P/Invoke haritasi — ImplMap'ten dll/isim hash'leri
+    std::map<u32, xpdotnet::XPinvFn> dn_pinv;
+    xpdotnet::XPEnv dn_env;
+    bool dn_pinv_want = false;
+    if (opt.dotnet && dn_img.is_dotnet) {
+        for (size_t qi = 0; qi < dn_img.methods.size(); qi++) {
+            const xpdotnet::Method& qm = dn_img.methods[qi];
+            if (qm.pinv_name.empty() || qm.pinv_dll.empty()) continue;
+            xpdotnet::XPinvFn pf;
+            pf.dll_hash = xfnv_al(qm.pinv_dll.c_str());
+            pf.name_hash = xfnv_a(qm.pinv_name.c_str());
+            pf.args_bytes = qm.param_count * 4u;
+            pf.has_ret = qm.has_ret;
+            pf.is_cdecl = qm.pinv_cdecl;
+            dn_pinv[qm.token] = pf;
+            dn_pinv_want = true;
+        }
+        dn_env.pinv = &dn_pinv;
+        dn_env.sfld_rva = &dn_img.field_rva;
+        dn_env.fld_off = &dn_img.field_off;
+        { u16 dc = 0; if (pe.e_lfanew + 24 + 70 + 2 <= pe.buf.size())
+            memcpy(&dc, &pe.buf[pe.e_lfanew + 24 + 70], 2);
+          dn_env.allow_abs = (dc & 0x40) == 0; }        // DYNAMICBASE yoksa mutlak VA serbest
+        dn_env.imagebase = pe.imagebase;
+        // resolve_rva XRT yerlesiminden sonra atanir (asagida)
+    }
     if (opt.dotnet) {
         if (xpdotnet::parse(pe.buf.data(), pe.buf.size(), &dn_img) && dn_img.is_dotnet) {
             for (auto& dm : dn_img.methods) {
@@ -701,7 +739,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     bool rt_blob = rt_any || opt.iat_prot || opt.pack || lic_any
                 || (opt.vfiles && !opt.vfile_paths.empty())
                 || (opt.vreg && !opt.vregs.empty())
-                || strenc_want;   /* 1.2.2-A18: strenc ister */
+                || strenc_want   /* 1.2.2-A18: strenc ister */
+                || dn_pinv_want;   /* A14 (x2): P/Invoke xrt_resolve ister */
     u32 xrt_len      = pe.is64 ? (u32)XRT_BLOB64_LEN : (u32)XRT_BLOBX86_LEN;
     u32 xrt_code_off = 0, cfg_off = 0;
     u32 xrt_entry_rva = 0, xrt_resolve_rva = 0, cfg_rva = 0, xrt_unpack_rva = 0;
@@ -1170,6 +1209,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool is_region = sdk_rva.count(f.rva) != 0;   // 0.5.1: yalniz SDK bolgesi
         // 1.2.3: DOTNET yontem -> IL decode + IL->x86 derle (il.cc portu)
         std::vector<u8> dn_x86;
+        if (dn_pinv_want && !dn_env.resolve_rva) dn_env.resolve_rva = xrt_resolve_rva;
         bool is_dotnet = dn_meta.count(f.rva) != 0;
         if (is_dotnet) {
             const xpdotnet::Method& dm = dn_meta[f.rva];
@@ -1205,9 +1245,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             }
             xpil::X86Fn dx;
             if (!xpil::to_x86(dcmds, loc_n, dm.has_ret, dm.is_static, dm.param_count, &dx,
-                              false /*x86-32 (metin2 hedefi)*/, &loc_sz)) {
+                              false /*x86-32 (metin2 hedefi)*/, &loc_sz, &dn_env)) {
                 f.note = dx.why_red;
                 continue;
+            }
+            /* A14: call xrt_resolve rel32'leri fonksiyonun gerçek RVA'sına patch'le */
+            for (size_t ri = 0; ri < dx.rx_fix.size(); ri++) {
+                i32 rel = (i32)(dn_env.resolve_rva - (f.rva + dx.rx_fix[ri].first + 4));
+                for (int k = 0; k < 4; k++)
+                    dx.code[dx.rx_fix[ri].first + k] = (u8)((u32)rel >> (8 * k));
             }
             dn_x86 = dx.code;
             L("[DOTNET] " + f.name + " IL=0x" + hex32(dm.body_len) + "B -> x86=0x" + hex32((u32)dn_x86.size()) + "B (tip=" + std::string(ty == 1 ? "M" : (ty == 2 ? "U" : "V")) + ")");
@@ -1398,10 +1444,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg = sdk_rva.count(c.f->rva) != 0;
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
+                                         (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
@@ -1595,10 +1641,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool isreg2 = sdk_rva.count(c.f->rva) != 0;
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                         (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
+                                         (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont2,
                                          c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         memcpy(&secimg[so], st.data(), st.size());
     }
@@ -2062,10 +2108,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             bool isreg3 = sdk_rva.count(f.rva) != 0;
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
-                                             (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
-                                             (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
+                                             (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont3,
                                              c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
