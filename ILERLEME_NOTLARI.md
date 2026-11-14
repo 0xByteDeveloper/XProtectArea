@@ -388,3 +388,35 @@ sürümlerde ekli onlardan geri portla), fonksyon bulmuyor nerdeyse" +
   C++ olarak port edilecek (sıradaki iş).
 - PLAN-2: VF store-zinciri bisect (xvf_map_pe→DllMain→DllRegisterServer),
   VR IAT-hook 0x4002A000, EncryptByteCode rolling-key katmanı -> %95.
+
+## 2026-11-14 — il.cc/il.h + dotnetfile.cc PORT TAMAMLANDI (test-kanitli)
+
+YENI DOSYALAR (source/):
+- xprotect_dotnet.h/.cpp: .NET PE cozumleme (CLR header, metadata BSJB,
+  #~ tablolari, TypeDef/MethodDef, satir-ofsetleri RVA yamasi icin,
+  tiny/fat govde, EH sayaci, P/Invoke tanima). UO dotnetfile.cc
+  kavram-paritesi.
+- xprotect_il.h/.cpp: CIL opcode tablosu (1-bayt + 0xFE on-ekli, ECMA-335)
+  + decoder + IL->x86-32 derleyici (tamsayi alt-kumesi) + is64 test-yolu.
+  UO il.cc kavram-paritesi: UO CompileToVM yerine IL->x86->MEVCUT kanitli
+  lifter/mutasyon/pack hatti (U = mutasyon(lift(IL)) — Ultra semantigi).
+- test_dotnet_il.c + scripts/test_dotnet_gen.py: minimal .NET PE ureteci
+  + uc-tan-uca test.
+
+BUG-FIX KANITLARI (bilesen testleri yakaladi):
+1. PE opt-header magic offset (+24 COFF sonrasi), DataDirectory 0x4C
+   (PE32/PE64 ayni), ImageBase 0x1C/0x18.
+2. NumberOfStreams offset (version sonrasi +0), stream adi NUL atlama.
+3. #~ header: HeapSizes +4, Valid +6, Sorted +14, rows +22.
+4. TypeDef satir genisligi 14 (Extends/FieldList/MethodList alanlari).
+5. x64 prologue/epilogue REX.W (48 89 E5 / 48 89 EC) — 89 E5 32-bit
+   truncate crash yapiyordu.
+6. x86 modrm: 39 CMP = r/m,r -> C8 (cmp eax,ecx); 03 ADD = r32,r/m32 ->
+   C1 (reg=eax) — tuzak cifti objdump ile dogrulandi.
+7. Uretici: RVA yamasi meta kopyasindan SONRA; satir ofseti
+   22+12(sayac)+4+14.
+
+KANIT (test_dotnet_il /tmp/minidn.exe uzerinde): parse OK (Class1::
+Method1, rva=0x2118, body=6B, satir-ofsetleri) / decode 4 komut /
+IL->x86 = 25 bayt / CALISTIRMA 21+21=42 / ldstr RED mesaji / dongu
+blt.s geri-dal 3 tur = 3 / TUM TESTLER PASSED (fails=0).

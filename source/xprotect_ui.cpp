@@ -4198,6 +4198,8 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     }
                     else if (!wcscmp(argv[j], L"--strenc")) opt.strenc = true;
                     else if (!wcscmp(argv[j], L"--memprot")) opt.memprot = true;
+                else if (!wcscmp(argv[j], L"--nodotnet")) opt.dotnet = false;   // 1.2.3
+                else if (!wcscmp(argv[j], L"--dotnet")) opt.dotnet = true;
                     else if (!wcscmp(argv[j], L"--novmenc")) opt.vmenc = false;
                     else if (!wcscmp(argv[j], L"--noregs")) opt.vmregs = false;  /* 1.2.0-A9: Encrypt Registers kapat */
                     // 0.5.0: runtime katmani + import korumasi + SDK

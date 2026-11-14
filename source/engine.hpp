@@ -353,6 +353,7 @@ struct Options {
     bool vmregs = true;   // 1.2.0-A9: Encrypt Registers (cpEncryptRegs) — VM register dosyasi bellekte sifreli
     std::vector<std::string> funcs;   // isim ya da rva(hex) listesi; bos -> hepsi uygun olanlar
     bool all = false;
+    bool dotnet = true;      // 1.2.3: .NET (il.cc/dotnetfile portu) keşfi — CLR PE'de yöntemler aday olur
     std::vector<ManFn> manual;        // 0.4.1: kesin {rva,boyut,tip} listesi — tarayici adayina bakilmaksizin derlenir
     // --- 0.5.0: runtime katmani + import korumasi + SDK ---
     bool rt_selfcrc = false;   // Loader CRC: motor kodu self-CRC

@@ -7,6 +7,8 @@
 //       secenekler (antidebug/strenc/memprot) -> checksum -> kaydet
 // ============================================================
 #include "engine.hpp"
+#include "xprotect_dotnet.h"   // 1.2.3: .NET (dotnetfile.cc portu)
+#include "xprotect_il.h"       // 1.2.3: CIL + IL->x86 (il.cc portu)
 #include "engine_sym.hpp"
 #include "xr_cipher.h"   // 0.8.0 SectionCryptor (runtime ile ortak sozlesme)
 #include <algorithm>
@@ -552,6 +554,32 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     }
     snprintf(b, sizeof b, "[FONKSIYON] %zu aday (.text)", fns.size());
     L(b);
+
+    // --- 1.2.3: .NET yontem kesfi (dotnetfile.cc/il.cc portu) ---
+    // CLR PE (data-dizini 14) varsa MethodDef'leri aday yapar; satir
+    // ofsetleri (row_rva_off/row_impl_off) yama asamasinda kullanilir.
+    std::map<u32, xpdotnet::Method> dn_meta;   // rva -> method
+    if (opt.dotnet) {
+        xpdotnet::Image dimg;
+        if (xpdotnet::parse(pe.buf.data(), pe.buf.size(), &dimg) && dimg.is_dotnet) {
+            for (auto& dm : dimg.methods) {
+                if (!dm.rva || !dm.body_len) continue;              // gövdesiz (abstract/pinvoke/için)
+                if (dm.is_native || dm.is_abstract || dm.is_pinvoke) continue;
+                if (dm.fat_header && dm.local_sig) continue;        // v1: locals-imzalı fat RED
+                bool dup = false;
+                for (auto& ff : fns) if (ff.rva == dm.rva) { dup = true; break; }
+                if (dup) continue;
+                FnInfo f; f.rva = dm.rva; f.size = dm.body_len;
+                f.name = dm.type_name.empty() ? dm.name : (dm.type_name + "::" + dm.name);
+                f.note = "DOTNET";
+                fns.push_back(f);
+                dn_meta[dm.rva] = dm;
+            }
+            snprintf(b, sizeof b, "[DOTNET] %zu yontem adayi (metadata v%s, EP-token=0x%08X)",
+                     dn_meta.size(), dimg.ver_buf, dimg.entry_token);
+            L(b);
+        }
+    }
 
     // --- 0.4.1: MANUEL fonksiyonlar (UI Manual Address Base/End) ---
     // 0.5.0: opt.manual + SDK isaretleri birlesik liste (manual_all)
@@ -1126,9 +1154,28 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (!okraw || raw + f.size > pe.buf.size()) { f.note = "ham veri yok"; continue; }
         int ty = ftype_of(f);
         bool is_region = sdk_rva.count(f.rva) != 0;   // 0.5.1: yalniz SDK bolgesi
+        // 1.2.3: DOTNET yontem -> IL decode + IL->x86 derle (il.cc portu)
+        std::vector<u8> dn_x86;
+        bool is_dotnet = dn_meta.count(f.rva) != 0;
+        if (is_dotnet) {
+            const xpdotnet::Method& dm = dn_meta[f.rva];
+            std::vector<u8> dil;
+            if (!xpdotnet::read_body(pe.buf.data(), pe.buf.size(), dm, &dil)) { f.note = "RED: IL govde yok"; continue; }
+            std::vector<xpil::Cmd> dcmds;
+            std::string derr;
+            if (!xpil::decode(dil.data(), dil.size(), &dcmds, &derr)) { f.note = "RED: IL decode: " + derr; continue; }
+            xpil::X86Fn dx;
+            if (!xpil::to_x86(dcmds, 0, dm.has_ret, dm.is_static, dm.param_count, &dx, false /*x86-32 (metin2 hedefi)*/)) {
+                f.note = dx.why_red;
+                continue;
+            }
+            dn_x86 = dx.code;
+            L("[DOTNET] " + f.name + " IL=0x" + hex32(dm.body_len) + "B -> x86=0x" + hex32((u32)dn_x86.size()) + "B (tip=" + std::string(ty == 1 ? "M" : (ty == 2 ? "U" : "V")) + ")");
+        }
         if (ty == 1) {
             // --- MUTASYON (native): makine kodu kalir, yeniden uretilir ---
-            MutFn m = mutate_function(&pe.buf[raw], f.rva, f.size, pe.is64,
+            MutFn m = mutate_function(is_dotnet ? dn_x86.data() : &pe.buf[raw],
+                                      f.rva, is_dotnet ? (u32)dn_x86.size() : f.size, pe.is64,
                                       pe.imagebase, pe.sizeofimage,
                                       true /* 0.4.1: x86 dis-cagri rel32 fixup zaten destekli */,
                                       opt.mut_strength,
@@ -1142,8 +1189,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         }
         // --- V / U: lifter kaynagi (U'da mutasyon on gecisi) ---
         std::vector<u8> mbuf;
-        const u8* lcode = &pe.buf[raw];
-        u32 lsize = f.size;
+        const u8* lcode = is_dotnet ? dn_x86.data() : &pe.buf[raw];
+        u32 lsize = is_dotnet ? (u32)dn_x86.size() : f.size;
         int jl;
         MutFn mkeep;                            // U: istatistik/kayit tut
         if (ty == 2 && !is_region) {
@@ -1923,6 +1970,25 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // --- .text yamalama ---
     for (auto& c : comps) {
         FnInfo& f = *c.f;
+        // 1.2.3: DOTNET yontem — E9 yamasi YOK; MethodDef RVA -> stub/gate
+        // + ImplFlags miNative (CLR yontemi native cagirir; VMProtect
+        // .NET native-giris semantigi). Orijinal IL govdesi dokunulmaz.
+        if (dn_meta.count(f.rva)) {
+            const xpdotnet::Method& dm = dn_meta[f.rva];
+            u32 newrva = (c.ty == 1) ? (rt_any ? c.mut_gate_rva : c.mut_rva) : c.stub_rva;
+            if ((u64)dm.row_rva_off + 4 <= pe.buf.size())
+                memcpy(&pe.buf[dm.row_rva_off], &newrva, 4);
+            if ((u64)dm.row_impl_off + 2 <= pe.buf.size()) {
+                u16 imf; memcpy(&imf, &pe.buf[dm.row_impl_off], 2);
+                imf = (u16)((imf & ~(u16)3) | 1);   // miNative
+                memcpy(&pe.buf[dm.row_impl_off], &imf, 2);
+            }
+            f.virtualized = true;
+            snprintf(b, sizeof b, "[DOTNET] %s: MethodDef RVA -> 0x%06X + miNative (IL govde yerinde kalir)",
+                     f.name.c_str(), newrva);
+            L(b);
+            continue;
+        }
         bool okraw; u32 raw = pe.rva2raw(f.rva, &okraw);
         if (!okraw) { f.note += " | yama raw yok"; continue; }
         if (c.ty == 1) {

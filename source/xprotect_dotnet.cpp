@@ -140,6 +140,7 @@ bool parse(const u8* d, size_t n, Image* out) {
         p += 8;
         std::string name;
         while (p < n && d[p]) name += (char)d[p++];
+        p++;                                    // NUL atla
         p += (4 - ((p - meta_off) & 3)) & 3;   // 4-bayt hizalı isim + padding
         if (name == "#~" || name == "#-") { tab_off = meta_off + o; tab_sz = sz; }
         else if (name == "#Strings") { str_off = meta_off + o; str_sz = sz; }
@@ -221,8 +222,10 @@ bool parse(const u8* d, size_t n, Image* out) {
         const u8* row = d + ro;
         u32 namei = s4 ? rd32(row + 4) : rd16(row + 4);
         u32 nsi = s4 ? rd32(row + 4 + sidx) : rd16(row + 4 + sidx);
-        u32 fieldlist = s4 ? rd32(row + 4 + 2 * sidx + 4) : rd16(row + 4 + 2 * sidx + 4);
-        u32 methodlist = s4 ? rd32(row + 4 + 2 * sidx + 6) : rd16(row + 4 + 2 * sidx + 6);
+        // TypeDef satırı: Flags(0..3) Name(4..5) NS(6..7) Extends(8..9)
+        //                 FieldList(10..11) MethodList(12..13)
+        u32 fieldlist = s4 ? rd32(row + 10) : rd16(row + 10);
+        u32 methodlist = s4 ? rd32(row + 12) : rd16(row + 12);
         (void)fieldlist;
         TypeDef td;
         td.name = str_at(namei);
@@ -230,7 +233,7 @@ bool parse(const u8* d, size_t n, Image* out) {
         td.type_full = td.ns.empty() ? td.name : (td.ns + "." + td.name);
         td.method_first = methodlist;
         td.method_last = (r + 1 < sc.rows[2])
-            ? (s4 ? rd32(d + ro + td_w + 4 + 2 * sidx + 6) : rd16(d + ro + td_w + 4 + 2 * sidx + 6))
+            ? (s4 ? rd32(d + ro + td_w + 12) : rd16(d + ro + td_w + 12))
             : sc.rows[6] + 1;
         out->typedefs.push_back(td);
     }
@@ -337,6 +340,7 @@ bool parse(const u8* d, size_t n, Image* out) {
         }
     }
 #ifdef XPDN_DEBUG
+    fprintf(stderr, "[XPDN] str_off=%u str_sz=%u blob_off=%u\n", (unsigned)str_off, (unsigned)str_sz, (unsigned)blob_off);
     fprintf(stderr, "[XPDN] td_base=%u md_base=%u rows[0]=%u rows[2]=%u rows[6]=%u\n",
             td_base, md_base, sc.rows[0], sc.rows[2], sc.rows[6]);
     for (size_t _i = 0; _i < out->methods.size(); _i++)

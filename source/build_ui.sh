@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 ZIG="python3 -m ziglang"
 SRCS="xprotect_ui.cpp engine_main.cpp engine_pe.cpp engine_disasm.cpp engine_mut.cpp \
     engine_lift.cpp engine_stub.cpp engine_util.cpp engine_sym.cpp vm_blob.cpp xrt_blob.cpp \
-    engine_pack.cpp"
+    engine_pack.cpp xprotect_dotnet.cpp xprotect_il.cpp"
 LZMA="lzma/LzmaEnc.c lzma/LzFind.c"
 
 echo "== [0/2] LZMA C nesneleri =="
