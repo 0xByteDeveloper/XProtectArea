@@ -1,2 +1,18 @@
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
+engine_main.cpp:919:37: warning: format specifies type 'unsigned int' but the argument has type 'unsigned long long' [-Wformat]
+  917 |                                     "| k=%016llX k1=%016llX n=%u | P-ilk: %02X %02X %02X %02X | esz=%u",
+      |                                                               ~~
+      |                                                               %llu
+  918 |                                     (unsigned long long)xvf_k0(cfg_rva), (unsigned long long)xvf_k1(cfg_rva),
+  919 |                                     xvf_nonce(data_offs[fi]),
+      |                                     ^~~~~~~~~~~~~~~~~~~~~~~~
+engine_main.cpp:1119:43: warning: data argument not used by format string [-Wformat-extra-args]
+ 1118 |             snprintf(b, sizeof b, "[SDK-API] %zu isaret / %u API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)",
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1119 |                      apis.size(), n_apis, lsd_rva, xrt_sdk_rva);
+      |                                           ^
+engine_main.cpp:1199:74: error: use of undeclared identifier 'dimg'
+ 1199 |                 if (xpdotnet::parse_locals(pe.buf.data(), pe.buf.size(), dimg, dm.local_sig, &lt, &loc_sz)) {
+      |                                                                          ^~~~
+2 warnings and 1 error generated.

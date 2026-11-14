@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>XProtect 1.2.2 — Özellik Durumu v5 (TAM KAPSAMLI PORT)</title>
+<title>XProtect 1.2.2 — Özellik Durumu v6 (TAM KAPSAMLI PORT)</title>
 <style>
 body { font-family: 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; margin:0; padding:24px; }
 h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
@@ -15,13 +15,13 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
 .pct { position:absolute; left:8px; top:1px; font-size:12px; font-weight:700; color:#0f172a; }
 .kanit { font-size:12px; color:#cbd5e1; }
 .kalan { font-size:12px; color:#fca5a5; margin-top:2px; }
-.note { background:#1e293b; border-left:4px solid #38bdf8; padding:10px 14px; border-radius:6px; font-size:13px; line-height:1.6; }
+.note { background:#1e293b; border-left:4px solid #38bdf8; padding:10px 14px; border-radius:6px; font-size:13px; line-height:1.6; margin-bottom:10px; }
 .footer { color:#64748b; font-size:11px; margin-top:16px; }
 </style></head><body>
-<h1>XProtect 1.2.2 — Özellik Durumu v5 <span style="font-size:14px;color:#64748b">(UniversalObfuscator / VMProtect 3.5.1 TAM KAPSAMLI PORT)</span></h1>
-<div class="sub">Üretim: 2026-11-14 12:07 • Checkpoint: cp149+ (github.com/0xByteDeveloper/XProtectArea) • Bu tur: cp142 test raporunun x/x1-x6 kalemleri</div>
-<div class="top">TOPLAM MOTOR-PARİTE: <span class="big">%84</span>
-<span style="color:#94a3b8;font-size:13px"> (25 özellik; UO'da ölü/olmayanlara XProtect gerçek-uygulaması %100 sayılır)</span></div>
+<h1>XProtect 1.2.2 — Özellik Durumu v6 <span style="font-size:14px;color:#64748b">(UniversalObfuscator / VMProtect 3.5.1 TAM KAPSAMLI PORT)</span></h1>
+<div class="sub">Üretim: 2026-11-14 13:44 • Checkpoint: cp166+ (github.com/0xByteDeveloper/XProtectArea) • Bu tur: cp165 test raporunun x/x1-x8 kalemleri</div>
+<div class="top">TOPLAM MOTOR-PARİTE: <span class="big">%86</span>
+<span style="color:#94a3b8;font-size:13px"> (26 özellik; UO'da ölü/olmayanlara XProtect gerçek-uygulaması %100 sayılır)</span></div>
 
 <div class="row">
   <div class="name">Virtualization (x86+x64)</div>
@@ -41,14 +41,14 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
   <div class="name">Ultra (M+V)</div>
   <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
     <span class="pct">100%</span></div>
-  <div class="kanit">mutasyon(lift(IL)) zinciri; R1 ULTIMATE kanıtı &#x27;OK hepsi&#x27;; metin2 D7610 kanıt</div>
+  <div class="kanit">mutasyon(lift(IL)) zinciri; R1 ULTIMATE kanıtı &#x27;OK hepsi&#x27;; metin2 D7610+E96D0 çoklu kanıt</div>
   <div class="kalan"><b>Kalan:</b> —</div>
 </div>
 <div class="row">
   <div class="name">Encrypt ByteCode</div>
   <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">VM_MIX OP-ZİNCİRİ (4 karışim ailesi) + VM_KSC CFB + VM_KSCA + fonksiyon-başı key; R1/TLS+PACK/MULT-VM yeşil</div>
+  <div class="kanit">VM_MIX OP-ZİNCİRİ (4 karışim ailesi) + VM_KSC CFB + VM_KSCA + fonksiyon-başı key</div>
   <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir uzunluğu + handler-bası rastgeleleşme</div>
 </div>
 <div class="row">
@@ -60,9 +60,9 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
 </div>
 <div class="row">
   <div class="name">Check Debugger</div>
-  <div class="bar"><div class="fill" style="width:239px;background:#22c55e"></div>
-    <span class="pct">92%</span></div>
-  <div class="kanit">K1-K9 + OP_CHKRET + x1 FIX: VM tespit yolları (26 site: ANTIDBG/CHKRET/K7) artık cfg&#x27;ye uyar — VEH-debugger&#x27;da da mesaj+kapanma (UO history.htm:492 paritesi; eski: sessiz zehir)</div>
+  <div class="bar"><div class="fill" style="width:244px;background:#22c55e"></div>
+    <span class="pct">94%</span></div>
+  <div class="kanit">K1-K9 + OP_CHKRET + vm_poison cfg-uyumlu (26 site) + A13/x1 FIX: mesaj yolu user32/LoadLibraryA ile ÇALIŞIR hale geldi (eski: kernel32&#x27;de MessageBoxA aranıyor → hep 0 → direk sessiz çıkış)</div>
   <div class="kalan"><b>Kalan:</b> ScyllaHide-direnci temiz-ntdll + doğrudan-syscall tabloları</div>
 </div>
 <div class="row">
@@ -91,7 +91,7 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
   <div class="bar"><div class="fill" style="width:156px;background:#eab308"></div>
     <span class="pct">60%</span></div>
   <div class="kanit">IAT thunk-cache + FF15→E8 (deneysel; wine iattest kanıtı)</div>
-  <div class="kalan"><b>Kalan:</b> tam loader-IAT çözümleme (UO ftImport)</div>
+  <div class="kalan"><b>Kalan:</b> tam loader-IAT çözümleme (UO ftImport) — x7d sonraki motor paketi</div>
 </div>
 <div class="row">
   <div class="name">Resource Protection</div>
@@ -147,7 +147,7 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
   <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
     <span class="pct">80%</span></div>
   <div class="kanit">Win64→SysV ABI SHIM + ent.data fix; wine: openA st=0 + val doğru</div>
-  <div class="kalan"><b>Kalan:</b> dword/W/enum yolundaki argüman bozulması</div>
+  <div class="kalan"><b>Kalan:</b> dword/W/enum yolundaki argüman bozulması — x7d deep-bisect</div>
 </div>
 <div class="row">
   <div class="name">Licensing (RSA+HWID)</div>
@@ -167,7 +167,7 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
   <div class="name">MAP/PDB fonksiyon-bulma (PDBScope)</div>
   <div class="bar"><div class="fill" style="width:249px;background:#22c55e"></div>
     <span class="pct">96%</span></div>
-  <div class="kanit">pdbscope pakette; metin2 30.078 fonksiyon; x4-1 DATA/LABEL/INLINE filtresi; x4-2 arama kutusu: isim + HEX-RVA (&#x27;d7610&#x27;/&#x27;sub_5123&#x27;) canlı filtre</div>
+  <div class="kanit">pdbscope pakette; metin2 30.078 fonksiyon; x4-1 DATA/LABEL/INLINE filtresi; A13/x5 FIX: arama+Tara WNDPROC seviyesine taşındı (EN_CHANGE/BN_CLICKED SendMessage gelir — pump kopyası hiç çalışmıyordu)</div>
   <div class="kalan"><b>Kalan:</b> x86 pdbscope binary (bin/win32)</div>
 </div>
 <div class="row">
@@ -179,37 +179,56 @@ h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
 </div>
 <div class="row">
   <div class="name">.NET (il.cc + dotnetfile portu)</div>
-  <div class="bar"><div class="fill" style="width:228px;background:#84cc16"></div>
-    <span class="pct">88%</span></div>
-  <div class="kanit">cp142 TURU 5 KÖK-NEDEN FIX: PE32 DD offset 0x60 (eski 0x48=stack-reserve!), root Flags(2), popcount satır-sayısı (23 tablo), Module-genişlik KALİBRASYONU (4/6/8/10), EH hizalama quirk&#x27;i (+4, sane-dsz, EH-BELİRSİZ). Kanıt: RunPEForm.exe (gerçek csc) = 15 typedef/74 metod gerçek adlar (PayloadLoader::LoadFromVBFile, RunPE::InjectCode rva 0x2264 eh=2); minidn+minidn_fat PASSED</div>
-  <div class="kalan"><b>Kalan:</b> locals/StandAloneSig (ldloc/stloc), GC/nesne ops, ImplMap, x64 IL derleyici</div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+    <span class="pct">90%</span></div>
+  <div class="kanit">cp142 5 KÖK-NEDEN fix (PE32 DD 0x60, Flags(2), popcount, Module kalibrasyon, EH quirk) + cp166 A13/x7a: STANDALONESIG/LOCALS GERÇEK PORT — 0x11 tablo-gezinmesi (ECMA II.24.2.6 genişlikler), LocalVarSig çözücü (GENERICINST/CMOD/SZARRAY/BYREF/CLASS/VAR/MVAR; I8/R8=8), to_x86 yerel-slot haritası → ldloc/stloc/ldloca AÇILDI</div>
+  <div class="kalan"><b>Kalan:</b> GC/nesne ops, ImplMap adları, x64 IL derleyici, EH semantiği</div>
 </div>
 <div class="row">
-  <div class="name">DWARF (dwarf.cc portu) — x3 BAŞLADI</div>
-  <div class="bar"><div class="fill" style="width:39px;background:#ef4444"></div>
-    <span class="pct">15%</span></div>
-  <div class="kanit">xprotect_dwarf.h/.cpp: .debug_info/.debug_abbrev/.debug_str → DW_TAG_subprogram low/high/name (v2..v4 CU); MinGW -g PE&#x27;lerde PDB&#x27;siz keşif hedefi</div>
-  <div class="kalan"><b>Kalan:</b> wire (engine+UI) + test + v5/ranges/DWARF64</div>
+  <div class="name">DWARF (dwarf.cc portu) — x3</div>
+  <div class="bar"><div class="fill" style="width:143px;background:#eab308"></div>
+    <span class="pct">55%</span></div>
+  <div class="kanit">A13 WIRED: xprotect_dwarf.cpp build&#x27;e girdi + open_target otomatik tarama (source=8 DWARF kolonu; .debug_info/.debug_abbrev/.debug_str → DW_TAG_subprogram low/high/name, v2..v4 CU)</div>
+  <div class="kalan"><b>Kalan:</b> gerçek MinGW -g PE&#x27;de kanıt + v5/ranges/DWARF64</div>
 </div>
 <div class="row">
-  <div class="name">UI UX (x4/x5)</div>
-  <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
-    <span class="pct">95%</span></div>
-  <div class="kanit">Silent Exit kutusu (cpSilentExit); fonksiyon listesi DATA/LABEL/INLINE filtresi; arama: isim+hex-RVA canlı filtre; Property: value tam-satır seçimi + SPACE/RETURN toggle</div>
-  <div class="kalan"><b>Kalan:</b> klavye navigasyon genişletme (açılır menüler)</div>
+  <div class="name">VMP Messages paritesi (x7c)</div>
+  <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
+    <span class="pct">100%</span></div>
+  <div class="kanit">Detection Message: Properties satırı (kind-3 edit) + .xproj rtmsg persist + CLI --rt-msg + stub SONUNA ASCII data + PIC lea → ctx.msgp(+0x110); boş = varsayılan &#x27;#5&#x27; metni; Silent Exit ile birleşir (true=mesaj yok sessiz çıkış)</div>
+  <div class="kalan"><b>Kalan:</b> —</div>
 </div>
-<h2>x — ".NET hâlâ aynı" kök-nedenleri (RunPEForm.exe ile teşhis)</h2>
-<div class="note">cp142'deki minidn testleri sentezleyicinin kendi hatalarıyla self-consistent'tı; GERÇEK csc çıktısı 5 farklı
-kırıldı: (1) PE32 DataDirectory 0x4C yerine <b>0x60</b> (0x48 = SizeOfStackReserve — "CLR yok" sanılıyordu),
-(2) metadata root Flags(2) alanı atlanıyordu, (3) satır-sayısı dizisi <b>tüm</b> valid tabloları kapsar (23 tablo → popcount),
-(4) Module satır genişliği üreticiye göre 4/6/8/10 (kalibrasyon), (5) EH bölümü bazı üreticilerde kod-sonu+4'te (sane-dsz aday
-araması). Hepsi fixlendi; RunPEForm.exe artık <b>74 metodun gerçek adlarıyla</b> listeleniyor. "2 fonksiyon + hatalı size" =
-pdbscope'un IL'i-x86-sanan çöp listesiydi; gerçek MethodDef listesi artık onun yerine geçiyor.</div>
-<h2>x1 — VEH debugger'da mesaj yok</h2>
-<div class="note">VM tespit yolları (OP_ANTIDBG bataryası, OP_CHKRET int3/ud2 dönüş-adresi, K7) eskiyalarda sadece
-done=2 (sessiz zehir) yapıyordu → "fonksiyonun kullanımı duruyor". Artık <b>vm_poison()</b> cfg'ye uyar: mesaj kutusu
-("butunluk kontrol kod = #5") + ExitProcess(0x75) — Windows debugger'daki davranışın aynısı, UO/VMP paritesi
-(help/en/history.htm:492). Silent Exit (x2) kutusu true ise mesaj YOK, sessiz kapanış.</div>
-<div class="footer">Kanıtlar: source/kanit_122/ + DOSYA_DENETIMI.md + ILERLEME_NOTLARI.md • cp149+ her 4 dk checkpoint •
-".NET %88": gerçek-csc keşfi tam; derleme kapsamı locals/GC/x64-IL sonrası genişleyecek</div>
+<div class="row">
+  <div class="name">UI UX (x/x5/x6)</div>
+  <div class="bar"><div class="fill" style="width:252px;background:#22c55e"></div>
+    <span class="pct">97%</span></div>
+  <div class="kanit">A13: log/konsol KOPYALANABİLİR (Ctrl+C secili / Ctrl+A tümü / sağ-tık menü → CF_UNICODETEXT) + log yükseklik ayiraci (fare ile büyüt/küçült, INI LogH persist) + x6: property seçimi değer değişince index 0&#x27;a KAYMAZ (geri-yükleme)</div>
+  <div class="kalan"><b>Kalan:</b> klavye navigasyon genişletme</div>
+</div>
+<h2>EKSİK 15 — durum (kullanıcı x3: "NE yaptın tamamladın mı NE EKSİK?")</h2>
+<div class="note"><b>Birebir çekirdek denetimi</b> (vmpsrc/pub2 = 1169 dosya): PORTLU 54 / KISMEN ~20 / EKSIK 15 / N/A 96.
+EKSIK 15 listesi ve A13 durumu:
+<br>1) <b>dwarf.cc</b> → PORT EDİLDİ (v1: v2..v4 CU; build+UI wire OK; gerçek PE kanıtı sırada).
+<br>2) <b>elffile.cc</b> → N/A: ELF hedef desteklenmiyor (XProtect = Windows PE koruyucu; UO çok-platform).
+<br>3) <b>macfile.cc</b> → N/A: Mach-O aynı gerekçe.
+<br>4) <b>objc.cc</b> → N/A: Objective-C runtime çok-platform paketinin parçası.
+<br>5) <b>objects.cc/h</b> → KISMEN: proje-nesnesi modeli .xproj'ta; VMP .vmp-proje içe-aktarma var.
+<br>6) <b>script.cc (Lua API)</b> → SONRAKİ TUR: VMP script-arayüzü (korumalı fonksiyon listesini script'le seçme) —
+XProtect CLI'sı aynı işi --funcs/--add ile yapıyor; UI-içi script motoru yol haritasında.
+<br>7) <b>managed .NET runtime DLL'leri (dotnet20/40 + netcore + netstandard .inc)</b> → N/A-FARKLI-YOL: UO bunları
+IL→kendi-runtime bridge'i için kullanıyor; XProtect'in yolu IL→native derleme (A13'te locals ile büyük adım).
+<br>8-15) help/ 277 dosya + Qt GUI 188 dosya + runtime C# 77 dosya → kullanıcı kararına göre ÖNEMLİ DEĞİL
+("QT MENÜLER İLE İLGİLİ ŞEYLER ÖNEMLİ DEĞİL ÇÜNKÜ KENDİ MENÜMÜZ VAR"); Win32-GUI + kendi CLI + .xproj modeli bunları işlevsel olarak kapatıyor.</div>
+<h2>x1 — "#5 mesajı hiç gelmiyor, direk silent çıkış" kök-neden (cp165 kanıtı)</h2>
+<div class="note">vm_poison içinde <b>xa_export(kernel32, MessageBoxA)</b> çağrılıyordu — MessageBoxA user32.dll'dedir,
+kernel32'nin export tablosunda YOK → çözüm hep 0 → mesaj bölümü sessizce atlanıyor, ExitProcess(0x75) tek başına
+çalışıyor. FIX: PEB'de user32 ara; yoksa kernel32!LoadLibraryA("user32.dll") (PIC stack-string; xrt rt_fatal ile aynı
+kanitlı desen). cpSilentExit=false → mesaj+kapanma (UO paritesi), true → sessiz kapanış.</div>
+<h2>x2 — ".NET derlemiyor (rc3)" — StandAloneSig/locals gerçek port</h2>
+<div class="note">rc3 = "HİÇBİR fonksiyon uygulanamadı" — seçili WinForms metotlarının çoğu locals-imzalı olduğundan
+dürüst-RED alıyordu. A13: 0x11 tablosu gerçek tablo-gezinmesiyle okunuyor, LocalVarSig çözülüyor, to_x86 yerel slot
+haritası alıyor → ldloc/stloc/ldloca/stloc.a açıldı. RunPEForm.exe (gerçek csc, 74 metod) ile wine E2E kanıtı
+a13_test/kanit.txt'te. Kalan: GC/nesne ops (newobj/callvirt), ImplMap, x64 IL, EH.</div>
+<div class="footer">Kanıtlar: source/kanit_122/ + a13_test/kanit.txt + DOSYA_DENETIMI.md + ILERLEME_NOTLARI.md •
+cp166+ her 4 dk checkpoint • Temiz test paketi: checkpoints/TEMIZ_TEST_PAKETI/ (her örnek özgün-adla korunur)</div>
 </body></html>

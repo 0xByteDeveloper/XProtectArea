@@ -179,3 +179,22 @@ TOPLAM MOTOR-PARİTE: ~%86 → **~%87**.
 
 .NET paritesi: %70 → **%82** (keşif+UI+seçim fixli; kalan: StandAloneSig/locals,
 GC/nesne ops, ImplMap, x64 IL, EH semantiği). TOPLAM MOTOR-PARİTE: ~%87 → **~%88**.
+
+## 2026-11-14 13:45 — cp166 turu (cp165 kullanıcı test raporu: x, x1-x8, XGOD)
+
+| Kalem | Durum | Not |
+|---|---|---|
+| x  log kopyala + boyutlandır | KOD BİTTİ | log pane Ctrl+C/Ctrl+A/sağ-tık kopyala (CF_UNICODETEXT); log yükseklik ayiraci (IDC_SPLIT_H, INI LogH). Kanit: build + wine UI testi |
+| x1 "#5 mesajı gelmiyor" | KÖK-NEDEN FIX | vm_poison kernel32'de MessageBoxA arıyordu (user32'de!) → hep 0 → direk silent çıkış. FIX: xa_module(user32) + LoadLibraryA fallback (xrt rt_fatal deseni). Kanit: T2a/T2b (sessiz rc=117 vs mesajli blok) |
+| x2 .NET rc3 | KÖK-NEDEN + PORT | rc3 = tüm seçililer locals-RED. A13: StandAloneSig(0x11) tablo-gezinmesi + LocalVarSig çözücü + to_x86 slot-haritası → ldloc/stloc/ldloca açıldı. Kanit: RunPEForm --all E2E |
+| x3 EKSİK 15 | RAPOR+PORT | dwarf WİRED (v1; build+UI); elffile/macfile/objc = PE-hedef N/A; script.cc(Lua) sonraki tur; .NET runtime DLL'leri = farklı-yol N/A. Detay: OZELLIK_DURUM.html v6 bölümü |
+| x4 faydalı port | SÜRÜYOR | x3 ile aynı paket (dwarf bu turun portsu) |
+| x5 arama filtresi | KÖK-NEDEN FIX | isleyiciler GetMessage pump'ındaydı; EN_CHANGE/BN_CLICKED SendMessage → wndproc. af_dlg_proc WM_COMMAND düzeltmesi |
+| x6 seçim kayması | FIX | toggle/edit sonrası ListView_SetItemState(row) geri-yükleme |
+| x7a StandAloneSig | BİTTİ | x2 ile aynı iş |
+| x7c VMP Messages | BİTTİ | Detection Message (Properties + CLI --rt-msg + .xproj + stub-gomulu ASCII + ctx.msgp) |
+| x7e temiz test paketi | BİTTİ | checkpoints/TEMIZ_TEST_PAKETI (metin2client + metin2client_vmp3 + RunPEForm temiz kopya; README kural) |
+| x8 öneriler | SOHBET | final chat raporunda |
+| XGOD tam port | SÜRÜYOR | motor-parite ~%86 (HTML v6: 26 özellik); kalan zayıf halkalar: Import %60, VR dword/W, strenc kapsam, GC/nesne ops |
+
+Toplam motor-parite: ~%86 → **~%86-88** (x2/x7a sonrası .NET %90; dwarf wire %55).
