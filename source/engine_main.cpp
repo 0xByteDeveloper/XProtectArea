@@ -559,10 +559,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // CLR PE (data-dizini 14) varsa MethodDef'leri aday yapar; satir
     // ofsetleri (row_rva_off/row_impl_off) yama asamasinda kullanilir.
     std::map<u32, xpdotnet::Method> dn_meta;   // rva -> method
+    xpdotnet::Image dn_img;                    // A13/x7a: sas_blob (StandAloneSig)
     if (opt.dotnet) {
-        xpdotnet::Image dimg;
-        if (xpdotnet::parse(pe.buf.data(), pe.buf.size(), &dimg) && dimg.is_dotnet) {
-            for (auto& dm : dimg.methods) {
+        if (xpdotnet::parse(pe.buf.data(), pe.buf.size(), &dn_img) && dn_img.is_dotnet) {
+            for (auto& dm : dn_img.methods) {
                 if (!dm.rva || !dm.body_len) continue;              // gövdesiz (abstract/pinvoke/için)
                 if (dm.is_native || dm.is_abstract || dm.is_pinvoke) continue;
                 /* 1.2.4 (x2 fix): fat+locals govdesi ARTIK keşfedilir —
@@ -583,7 +583,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 dn_meta[dm.rva] = dm;
             }
             snprintf(b, sizeof b, "[DOTNET] %zu yontem adayi (metadata v%s, EP-token=0x%08X, EH-red hariç)",
-                     dn_meta.size(), dimg.ver_buf, dimg.entry_token);
+                     dn_meta.size(), dn_img.ver_buf, dn_img.entry_token);
             L(b);
         }
     }
@@ -1196,7 +1196,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             std::vector<u32> loc_sz;
             if (dm.local_sig) {
                 std::vector<u8> lt;
-                if (xpdotnet::parse_locals(pe.buf.data(), pe.buf.size(), dimg, dm.local_sig, &lt, &loc_sz)) {
+                if (xpdotnet::parse_locals(pe.buf.data(), pe.buf.size(), dn_img, dm.local_sig, &lt, &loc_sz)) {
                     loc_n = (u32)loc_sz.size();
                 } else {
                     f.note = "RED: locals imzasi cozulemedi (bilinmeyen ELEMENT_TYPE)";
