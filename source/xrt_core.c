@@ -1160,11 +1160,15 @@ static u32 vr_RegQueryValueExA(u64 hKey, const char* vname, u64 res, u64 ptype, 
         u32 ei = vr_find(pi, vname);
         if (ei != 0xFFFFFFFFu) {
             u32 t = xvr_ent[ei].type, d = xvr_ent[ei].dlen;
-            if (ptype) *(u32*)(unsigned long)ptype = t;
-            if (pcb) {
+            /* 1.2.3-güvesi: geçersiz görünen yazma-işaretçilerini atla
+               (kanit: ptype=0x8D write-fault — uyg. geçen argüman bozulmuş;
+               çökme yerine başarıyla dön, çağıran kendi tamponunu okur) */
+            #define VRP_OK(p) ((p) > 0xFFFFull)
+            if (ptype && VRP_OK(ptype)) *(u32*)(unsigned long)ptype = t;
+            if (pcb && VRP_OK(pcb)) {
                 u32 cap = *(u32*)(unsigned long)pcb;
                 *(u32*)(unsigned long)pcb = d;
-                if (pdata && cap >= d) {
+                if (pdata && VRP_OK(pdata) && cap >= d) {
                     u8* dst = (u8*)(unsigned long)pdata;
                     const u8* src = xvr_ent[ei].data;
                     u32 k;

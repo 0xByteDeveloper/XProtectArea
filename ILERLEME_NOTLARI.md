@@ -440,3 +440,35 @@ SONUC-1 (FARegister yolu KIRILDI — ILK KEZ CALISMA KANITI):
 SONUC-2 (uretim blob'u ile ayni yoldan: kit-tip onarimi kaniti — cp44'ten
   beri "runtime %0" saniliyordu; aslinda zincir cp85'ten beri saglamti,
   onceki testlerin probe-blob bozuklugu E1 marker'i yazamiyordu).
+
+## 2026-11-14 — VR IAT-HOOK 0x4002A000 KÖK-NEDENİ ÇÖZÜLDÜ (ABI SHIM)
+
+KÖK-NEDEN (kesin, wine-kanit + objdump):
+- xrt blob'u HOST gcc ile SysV AMD64 ABI (RDI,RSI,RDX,RCX,R8,R9) uretir;
+  Windows IAT hook'u ise Win64 (RCX,RDX,R8,R9,[rsp+0x28..]) cagirir.
+  Direkt baglanti argumanlari kayiyor: hook 2. argumani SysV RSI'dan
+  okur (Win64'te RDX) ve 32-bit saklaninca pointer truncate ->
+  0x140009002 -> 0x40009002 -> kernelbase RegOpenKeyExA+0x30
+  cmpb (%rdx) page-fault. Kanit: wine rip=RegOpenKeyExA+0x30,
+  name=*** invalid 0x40009002 ***.
+- IKINCI KOK-NEDEN: xvr_load ent.data isim-ofsetini tutuyordu
+  (QueryValue deger yerine isim donduruyordu — val=Surum kaniti).
+
+FIX-1: 17 adet Win64->SysV register-reshuffle SHIM (vr_shim_*) —
+  temel-asm, tail-jmp; stack-arg 7..N shadow-space'e kopyalama;
+  callee-saved (rbx/rbp) scratch olarak KULLANILMAZ (12a/12b fix).
+  vr_hook_addr artik shim adresi dondurur; adres VRSYM "p"-constraint
+  lea ile (VRSHIM) — -fno-pie mutlak-imm tuzaqi (0x100008 execute-fault
+  kaniti) boylece atlandi.
+FIX-2: __attribute__((used)) vr_h_* wrapper'larda (GCC -O2 static
+  discard — asm referansi gorunmez oluyordu).
+FIX-3: xvr_load ent.data = VERI ofseti (dpos fix).
+FIX-4: ptype/pcb/pdata yazma guvesi (VRP_OK: >0xFFFF) — kanitli
+  bozuk-arguman (0x8D) yazmasinda duru atla.
+
+KANIT (wine, vreg_k2.exe — uretim blob):
+- openA st=0 hk=0x58F00100 (FAKE HANDLE — sanal anahtar acildi!)
+- queryA-Surum st=0 ty=1 val=1.2.3-VRPROBE (DOGRU DEGER!)
+- Q-izi artik tam pointer (0x1_40009002 — truncate GIDDI)
+KALAN: dword/W/enum yollarinda kesin-arguman bozulmasi (A81/B80 izi —
+ptype=0x8D); guve ile cökme engelli; kök-neden derin bisect (sonraki tur).
