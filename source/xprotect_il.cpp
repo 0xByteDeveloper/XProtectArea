@@ -428,8 +428,11 @@ static void x_push_setcc(std::vector<u8>* c, u8 setxx /*0x94..*/) {
     x_push_eax(c);
 }
 
+// x64 modunda: SysV test-dizisi (args [rbp+16+i*8], callee temizlemez),
+// Win64 v2'de (golge-alan + RCX/RDX/R8/R9) eklenecek. Motor hedefi x86-32
+// (metin2); x64 yolu Unit-test dogrulamasi icin.
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
-            bool is_static, u32 param_count, X86Fn* out) {
+            bool is_static, u32 param_count, X86Fn* out, bool is64) {
     out->ok = false;
     out->has_ret = has_ret;
     out->il_len = cmds.empty() ? 0 : cmds.back().off + cmds.back().len;
@@ -437,17 +440,22 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
     std::vector<Fix> fx;
     std::map<u32, u32> il2code;          // IL ofseti -> kod ofseti (dal çözümü)
     u32 nargs = param_count + (is_static ? 0 : 1);   // arg0=this (instance)
-    out->args_bytes = nargs * 4;
+    out->args_bytes = nargs * (is64 ? 8 : 4);
+    out->is64 = is64;
     // --- prologue ---
-    e8(&c, 0x55);                        // push ebp
-    e8(&c, 0x89); e8(&c, 0xE5);          // mov ebp,esp
+    e8(&c, 0x55);                        // push ebp/rbp
+    e8(&c, 0x89); e8(&c, 0xE5);          // mov ebp/rbp,esp
     e8(&c, 0x53); e8(&c, 0x56); e8(&c, 0x57);  // push ebx;push esi;push edi  // push ebx;push esi;push edi
     // sub esp, locals*4 (hizalı)
-    u32 loc_bytes = ((locals_count * 4 + 15) & ~15u);
-    if (loc_bytes) { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }
+    u32 slot = is64 ? 8 : 4;
+    u32 loc_bytes = ((locals_count * slot + 15) & ~15u);
+    if (loc_bytes) {
+        if (is64) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }  // sub rsp,imm8
+        else { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }
+    }
     const i32 LOC_BASE = -12;            // saved ebx/esi/edi (12 bayt)
-    auto loc_disp = [&](u32 i) -> i32 { return (i32)(LOC_BASE - 4 * (i64)(i + 1)); };
-    auto arg_disp = [&](u32 i) -> i32 { return (i32)(8 + 4 * (i64)i); };
+    auto loc_disp = [&](u32 i) -> i32 { return (i32)(LOC_BASE - (i64)slot * (i64)(i + 1)); };
+    auto arg_disp = [&](u32 i) -> i32 { return (i32)((is64 ? 16 : 8) + (i64)slot * (i64)i); };
     // --- gövde ---
     for (size_t i = 0; i < cmds.size(); i++) {
         const Cmd& cm = cmds[i];
@@ -504,9 +512,10 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             x_push_i(&c, (i32)(op - 0x16)); break;
         case 0x1F: x_push_i(&c, (i32)cm.imm_i); break;
         case 0x20: x_push_i(&c, (i32)cm.imm_i); break;
-        case 0x21: { // ldc.i8 — iki push (üst = low)
+        case 0x21: { // ldc.i8 — x86-32: iki push (üst=low); x64: tek push imm32(sx)
             u64 v = (u64)cm.imm_i;
-            e8(&c, 0x68); e32(&c, (u32)(v >> 32)); e8(&c, 0x68); e32(&c, (u32)v);
+            if (is64) { e8(&c, 0x68); e32(&c, (u32)v); }
+            else { e8(&c, 0x68); e32(&c, (u32)(v >> 32)); e8(&c, 0x68); e32(&c, (u32)v); }
         } break;
         case 0x22: case 0x23: RED("r4/r8 sabiti (FPU v2)"); break;
         case 0x25: x_dup(&c); break;                             // dup
@@ -516,9 +525,11 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         case 0x2A: {  // ret
             if (has_ret) x_pop_eax(&c);
             e8(&c, 0x5F); e8(&c, 0x5E); e8(&c, 0x5B);   // pop edi; pop esi; pop ebx
-            e8(&c, 0x89); e8(&c, 0xEC);                 // mov esp,ebp
+            if (is64) { e8(&c, 0x48); e8(&c, 0x89); e8(&c, 0xEC); }   // mov rsp,rbp (64-bit!)
+            else { e8(&c, 0x89); e8(&c, 0xEC); }         // mov esp,ebp
             e8(&c, 0x5D);                               // pop ebp
-            if (out->args_bytes) { e8(&c, 0xC2); e8(&c, (u8)(out->args_bytes & 0xFF)); e8(&c, (u8)(out->args_bytes >> 8)); }
+            if (is64) e8(&c, 0xC3);                     // SysV: caller temizler
+            else if (out->args_bytes) { e8(&c, 0xC2); e8(&c, (u8)(out->args_bytes & 0xFF)); e8(&c, (u8)(out->args_bytes >> 8)); }
             else e8(&c, 0xC3);
         } break;
         case 0x2B: case 0x38: emit_jmp(&c, &fx, 0xE9, cm.target); break;   // br

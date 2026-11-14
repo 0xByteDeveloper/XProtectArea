@@ -77,6 +77,7 @@ std::string disasm(const std::vector<Cmd>& cmds, size_t n,
 //   this'i ayrı yazma: instance yöntemlerde arg0=this.
 struct X86Fn {
     bool ok = false;
+    bool is64 = false;
     std::string why_red;
     std::vector<u8> code;
     u32 args_bytes = 0;          // ret imm için
@@ -84,7 +85,7 @@ struct X86Fn {
     u32 il_len = 0;
 };
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
-            bool is_static, u32 param_count, X86Fn* out);
+            bool is_static, u32 param_count, X86Fn* out, bool is64 = false);
 
 // desteklenen opcode sayısı (parite ölçümü için)
 u32 supported_count();

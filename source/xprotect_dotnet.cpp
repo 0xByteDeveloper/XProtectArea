@@ -149,9 +149,10 @@ bool parse(const u8* d, size_t n, Image* out) {
     if (!tab_off || tab_off + 24 > n) { out->err = "#~ akisi yok"; return false; }
     Schema sc;
     memset(&sc, 0, sizeof sc);
-    sc.heapsizes = d[tab_off + 6];
-    u64 valid = (u64)rd32(d + tab_off + 8) | ((u64)rd32(d + tab_off + 12) << 32);
-    u64 sorted = (u64)rd32(d + tab_off + 16) | ((u64)rd32(d + tab_off + 20) << 32);
+    // #~: Reserved(2) Major(1) Minor(1) HeapSizes(1) Reserved(1) Valid(8) Sorted(8)
+    sc.heapsizes = d[tab_off + 4];
+    u64 valid = (u64)rd32(d + tab_off + 6) | ((u64)rd32(d + tab_off + 10) << 32);
+    u64 sorted = (u64)rd32(d + tab_off + 14) | ((u64)rd32(d + tab_off + 18) << 32);
     (void)sorted;
     sc.present[0] = has_flag(valid, 0);
     sc.present[1] = has_flag(valid, 1);
@@ -161,7 +162,12 @@ bool parse(const u8* d, size_t n, Image* out) {
     sc.present[5] = has_flag(valid, 5);
     sc.present[6] = has_flag(valid, 6);
     sc.present[7] = has_flag(valid, 8);   // Param = bit 8
-    u64 q = tab_off + 24;
+    u64 q = tab_off + 22;
+#ifdef XPDN_DEBUG
+    fprintf(stderr, "[XPDN] tab_off=0x%llX heapsizes=%u valid=%llX rows M=%u TD=%u MD=%u\n",
+            (unsigned long long)tab_off, sc.heapsizes, (unsigned long long)valid,
+            sc.rows[0], sc.rows[2], sc.rows[6]);
+#endif
     for (int i = 0; i < 8; i++) {
         if (!sc.present[i]) { sc.rows[i] = 0; continue; }
         if (q + 4 > n) { out->err = "satir sayisi kirik"; return false; }
@@ -180,6 +186,10 @@ bool parse(const u8* d, size_t n, Image* out) {
     u32 wField = 2 + sidx + (b4 ? 4 : 2);                    // Flags, Name, Signature
     u32 wMethodDef = 4 + 2 + 2 + sidx + (b4 ? 4 : 2) + 2;    // RVA, ImplFlags, Flags, Name, Signature, ParamList
     u32 wParam = 2 + 2 + sidx;                               // Sequence, Flags, Name
+#ifdef XPDN_DEBUG
+    fprintf(stderr, "[XPDN] wModule=%u wTypeRef=%u wTypeDef=%u wField=%u wMethodDef=%u wParam=%u\n",
+            wModule, wTypeRef, wTypeDef, wField, wMethodDef, wParam);
+#endif
     // satir dizisi: tablo bitlerine GORE sirali (idx -> tablo sira numarasi):
     // Module=0, TypeRef=1, TypeDef=2, FieldPtr=3, Field=4, MethodPtr=5, MethodDef=6, Param=8
     u64 off = q;
@@ -326,6 +336,9 @@ bool parse(const u8* d, size_t n, Image* out) {
             }
         }
     }
+#ifdef XPDN_DEBUG
+    fprintf(stderr, "[XPDN] typedefs=%zu methods=%zu\n", out->typedefs.size(), out->methods.size());
+#endif
     out->ok = true;
     out->err.clear();
     snprintf(out->ver_buf, sizeof out->ver_buf, "%u", md_ver);
