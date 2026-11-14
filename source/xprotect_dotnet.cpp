@@ -194,50 +194,112 @@ bool parse(const u8* d, size_t n, Image* out) {
     sc.present[5] = has_flag(valid, 5);
     sc.present[6] = has_flag(valid, 6);
     sc.present[7] = has_flag(valid, 8);   // Param = bit 8
-    u64 q = tab_off + valid_off + 16;   // Valid(8)+Sorted(8) sonrasi satir sayilari
-#ifdef XPDN_DEBUG
-    fprintf(stderr, "[XPDN] tab_off=0x%llX heapsizes=%u valid=%llX rows M=%u TD=%u MD=%u\n",
-            (unsigned long long)tab_off, sc.heapsizes, (unsigned long long)valid,
-            sc.rows[0], sc.rows[2], sc.rows[6]);
-#endif
+    /* 1.2.5 FIX (x/.NET kök-nedeni-3): satir-sayisi listesi VALID maskesindeki
+       TUM tablolar icin vardir (RunPEForm'da 23 tablo!) — desteklenen ilk 8'in
+       okunmasi yetmez; satir-verisi baslangici = baslik + 4*popcount(valid).
+       Desteklenen tablonun sayisi = maskedeki sirasi (rank). */
+    u32 npres = 0;
+    for (u64 v = valid; v; v >>= 1) npres += (u32)(v & 1);
+    u64 rows_start = tab_off + valid_off + 16 + (u64)npres * 4;
+    if (rows_start + 8 > n) { out->err = "satir-verisi tasiyor"; return false; }
+    auto count_of = [&](u32 tid) -> u32 {
+        if (!((valid >> tid) & 1ULL)) return 0;
+        u32 rank = 0;
+        for (u32 b = 0; b < tid; b++) if ((valid >> b) & 1ULL) rank++;
+        u64 co = tab_off + valid_off + 16 + (u64)rank * 4;
+        if (co + 4 > n) return 0;
+        return rd32(d + co);
+    };
     for (int i = 0; i < 8; i++) {
-        if (!sc.present[i]) { sc.rows[i] = 0; continue; }
-        if (q + 4 > n) { out->err = "satir sayisi kirik"; return false; }
-        sc.rows[i] = rd32(d + q);
-        q += 4;
+        static const u32 tid[8] = {0, 1, 2, 3, 4, 5, 6, 8};
+        sc.rows[i] = count_of(tid[i]);
     }
     bool s4 = (sc.heapsizes & 1) != 0;      // #Strings 4 bayt idx
     bool g4 = (sc.heapsizes & 2) != 0;      // #GUID 4 bayt idx
     bool b4 = (sc.heapsizes & 4) != 0;      // #Blob 4 bayt idx
-    (void)g4; (void)b4;
     u32 sidx = s4 ? 4 : 2;
-    // satir genişlikleri (v1 kümesi; SimpleIndex heap'ler)
-    u32 wModule = sidx + (g4 ? 4 : 2);                       // Name, Mvid
     u32 wTypeRef = 2 + 2 * sidx;                             // Scope, Name, Namespace
     u32 wTypeDef = 4 + 2 * sidx + 2 + 2 + 2;                 // Flags, Name, NS, Extends, FieldList, MethodList
-    u32 wField = 2 + sidx + (b4 ? 4 : 2);                    // Flags, Name, Signature
     u32 wMethodDef = 4 + 2 + 2 + sidx + (b4 ? 4 : 2) + 2;    // RVA, ImplFlags, Flags, Name, Signature, ParamList
     u32 wParam = 2 + 2 + sidx;                               // Sequence, Flags, Name
-#ifdef XPDN_DEBUG
-    fprintf(stderr, "[XPDN] wModule=%u wTypeRef=%u wTypeDef=%u wField=%u wMethodDef=%u wParam=%u\n",
-            wModule, wTypeRef, wTypeDef, wField, wMethodDef, wParam);
-#endif
-    // satir dizisi: tablo bitlerine GORE sirali (idx -> tablo sira numarasi):
-    // Module=0, TypeRef=1, TypeDef=2, FieldPtr=3, Field=4, MethodPtr=5, MethodDef=6, Param=8
-    u64 off = q;
-    auto row_base = [&](u32 tidx) -> u64 {
-        static const u32 order[8] = {0, 1, 2, 3, 4, 5, 6, 8};
-        static const u32 wmap[9] = {wModule, wTypeRef, wTypeDef, 2, wField, 2, wMethodDef, 0, wParam};
-        u64 o = off;
-        for (int i = 0; i < 8; i++) {
-            if (order[i] == tidx) break;
-            if (sc.present[i]) o += (u64)sc.rows[i] * wmap[order[i]];
-        }
-        return o;
+    (void)wParam;
+    auto str_at0 = [&](u32 idx) -> std::string {
+        if (!s4) idx &= 0xFFFF;
+        if (idx >= str_sz || str_off + idx >= n) return "";
+        u64 sp = str_off + idx;
+        std::string r;
+        while (sp < n && d[sp] && sp - str_off < str_sz) r += (char)d[sp++];
+        return r;
     };
-    // --- TypeDef + MethodDef okuma ---
-    u32 td_base = (u32)row_base(2);
-    u32 md_base = (u32)row_base(6);
+    /* 1.2.5 FIX (x/.NET kök-nedeni-4): Module satir genisligi ureticiye gore
+       degisiyor (standart 4/6; bazi ureticilerde 8/10 — RunPEForm kaniti 10).
+       Sabit genislik yerine TD1(flags=0)+MD1-3 desen dogrulamasiyla
+       KALIBRASYON yapilir; dogrulanan genisliklerle tabanlar hesaplanir. */
+    u32 wModule = sidx + (g4 ? 4 : 2);
+    u32 wField = 2 + sidx + (b4 ? 4 : 2);
+    u64 td_base = 0, md_base = 0;
+    bool kalibre = false;
+    auto md_pat = [&](u64 x) -> bool {
+        if (x + 14 > n) return false;
+        u32 rva = rd32(d + x);
+        u16 impl = rd16(d + x + 4), flg = rd16(d + x + 6);
+        u32 namei = s4 ? rd32(d + x + 8) : rd16(d + x + 8);
+        u32 sigi = (b4 ? rd32(d + x + 8 + sidx) : rd16(d + x + 8 + sidx)) & (b4 ? 0xFFFFFFFFu : 0xFFFFu);
+        u32 pli = (b4 ? rd32(d + x + 8 + sidx + (b4 ? 4 : 2)) : rd16(d + x + 8 + sidx + (b4 ? 4 : 2))) & 0xFFFFu;
+        if (rva != 0 && (rva < 0x1000 || rva >= 0x40000000u)) return false;
+        if (impl > 7) return false;
+        if (namei >= str_sz) return false;
+        if (blob_sz && sigi >= blob_sz) return false;
+        if (pli > sc.rows[7] + 1) return false;
+        return true;
+    };
+    static const u32 wM_cand[5] = {4, 6, 8, 10, 12};
+    for (int im = 0; im < 5 && !kalibre; im++) {
+        u32 wm = wM_cand[im];
+        u64 td = rows_start + (u64)wm + (sc.present[1] ? (u64)sc.rows[1] * wTypeRef : 0);
+        if (sc.rows[2] == 0) {                       // TypeDef yok: sadece MD dene
+            u64 md = td;
+            if (sc.rows[6] >= 3 && md_pat(md) && md_pat(md + wMethodDef) && md_pat(md + 2 * wMethodDef)) {
+                td_base = td; md_base = md; wModule = wm; kalibre = true;
+            } else if (sc.rows[6] == 0) {
+                td_base = td; md_base = md; wModule = wm; kalibre = true;
+            }
+            continue;
+        }
+        if (td + 14 > n) continue;
+        u32 fl1 = rd32(d + td);
+        u32 name1 = s4 ? rd32(d + td + 4) : rd16(d + td + 4);
+        if (fl1 != 0 || name1 >= str_sz) continue;
+        std::string n1 = str_at0(name1);
+        if (n1.empty() || (unsigned char)n1[0] < 0x20) continue;
+        u64 md = td + (u64)sc.rows[2] * wTypeDef
+               + (sc.present[3] ? (u64)sc.rows[3] * 2 : 0)
+               + (sc.present[4] ? (u64)sc.rows[4] * wField : 0);
+        if (sc.rows[6] >= 3) {
+            if (!(md_pat(md) && md_pat(md + wMethodDef) && md_pat(md + 2 * wMethodDef))) continue;
+        }
+        td_base = td; md_base = md; wModule = wm; kalibre = true;
+    }
+    if (!kalibre) {
+        /* kaliibrasyon tutmadi: hesaplanan degerlerle devam (eski davranis),
+           minidn gibi sentetik dosyalar icin guvenli yol */
+        u64 off = rows_start;
+        td_base = off + (sc.present[0] ? (u64)sc.rows[0] * wModule : 0)
+                + (sc.present[1] ? (u64)sc.rows[1] * wTypeRef : 0);
+        md_base = td_base + (u64)sc.rows[2] * wTypeDef
+                + (sc.present[3] ? (u64)sc.rows[3] * 2 : 0)
+                + (sc.present[4] ? (u64)sc.rows[4] * wField : 0);
+        wModule = sidx + (g4 ? 4 : 2);
+    }
+#ifdef XPDN_DEBUG
+    fprintf(stderr, "[XPDN] tab_off=0x%llX valid_off=%u heapsizes=%u valid=%llX npres=%u rows_start=0x%llX\n",
+            (unsigned long long)tab_off, valid_off, sc.heapsizes, (unsigned long long)valid, npres,
+            (unsigned long long)rows_start);
+    fprintf(stderr, "[XPDN] rows M=%u TR=%u TD=%u F=%u MD=%u P=%u | wM=%u wTR=%u wTD=%u wF=%u wMD=%u | td=%llX md=%llX kali=%d\n",
+            sc.rows[0], sc.rows[1], sc.rows[2], sc.rows[4], sc.rows[6], sc.rows[7],
+            wModule, wTypeRef, wTypeDef, wField, wMethodDef,
+            (unsigned long long)td_base, (unsigned long long)md_base, (int)kalibre);
+#endif
     u32 td_w = wTypeDef, md_w = wMethodDef;
     auto str_at = [&](u32 idx) -> std::string {
         if (!s4) idx &= 0xFFFF;
