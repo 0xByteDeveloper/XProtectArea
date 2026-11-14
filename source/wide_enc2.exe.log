@@ -1,0 +1,74 @@
+[PE] Z:\tmp\my-project\download\XProtect_1.2.2\source\wide_test.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1850
+  sec .text    RVA=0x001000 VSz=0x028316 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B794 Raw=0x028800 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005E Raw=0x034000 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034200 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x0018E4 Raw=0x034400 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035E00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x036000 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=573 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 569 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x00001021 boyut=0x00000030 tip=V
+[MANUEL] SDK_V_0x00001021 @RVA=0x001021 boyut=0x30 tip=V
+[STRENC] .rdata'da 63 string tespit
+[SDK-API] fnid=1 @0x00001084 span=15B
+[SDK-API] fnid=2 @0x000010A4 span=15B
+[SDK-API] fnid=3 @0x000010C4 span=15B
+[SDK-API] fnid=4 @0x000010E4 span=15B
+[SDK-API] fnid=5 @0x00001104 span=15B
+[SDK-API] fnid=6 @0x00001124 span=15B
+[SDK-API] fnid=7 @0x00001144 span=15B
+[SDK-API] fnid=8 @0x00001164 span=15B
+[SDK-API] fnid=9 @0x00001184 span=15B
+[SDK-API] fnid=10 @0x000011A4 span=15B
+[SDK-API] fnid=11 @0x000011C4 span=15B
+[SDK-API] fnid=12 @0x000011E4 span=15B
+[SDK-API] fnid=13 @0x00001204 span=15B
+[SDK-API] fnid=14 @0x00001224 span=15B
+[SDK-API] fnid=15 @0x00001244 span=15B
+[SDK-API] fnid=17 @0x00001264 span=15B
+[SDK-API] fnid=19 @0x00001284 span=15B
+[SDK-API] fnid=18 @0x000012A4 span=15B
+[SDK-API] fnid=20 @0x000012C4 span=15B
+[SDK-API] fnid=16 @0x000012E4 span=15B
+[SDK-API] fnid=21 @0x00001304 span=15B
+[SDK-API] fnid=22 @0x00001324 span=15B
+[SDK-API] fnid=23 @0x00001344 span=15B
+[SDK-API] fnid=24 @0x00001364 span=15B
+[SDK-API] fnid=25 @0x00001384 span=15B
+[SDK-API] fnid=26 @0x000013A4 span=15B
+[SDK-API] fnid=27 @0x000013C4 span=15B
+[SDK-API] fnid=28 @0x000013E4 span=15B
+[SDK-API] fnid=29 @0x00001404 span=15B
+[SDK-API] fnid=35 @0x00001424 span=15B
+[SDK-API] fnid=36 @0x00001444 span=15B
+[SDK-API] fnid=37 @0x00001464 span=15B
+[SDK-API-dbg] fnid-8/9 kolu: beg=0x00001164 fnid=8
+[SDK-API-dbg] fnid-8/9 kolu: beg=0x00001184 fnid=9
+[SDK-API] 32 isaret / 32 API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)
+[LIFT] 1/1 secili fonksiyon | V=1 M=0 U=0 (U-mutdus=0)
+[SEH] dinamik unwind: kayit=1 tabloRVA=0x04FDF0 (xrt ilk kapida RtlAddFunctionTable)
+[WM] watermark alanı: .vmp0+0x12E10 (232B) | sürüm imzası: 8 kopya | kullanıcı: 0 kopya (0 watermark)
+[STRENC-dbg] comp rva=0x001021 ty=0 str_refs=2
+[STRENC-dbg] rva=0x02A000 len=32 total=2 lifted=2 -> SIFRELE
+[STRENC] orijinal sifrelendi: 1 string (tablo RVA=0x4EC18)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x012EF8 | VM blob 31380B | vm_entry RVA=0x0447B0
+[YAMA] SDK_V_0x00001021 @RVA=0x001021 boyut=0x30 | bc=100B key=0x7AF9398A8F5388A5 | stubRVA=0x04FC80 retimm=4294967295 (trampoline)
+  00001021: alu5 (sz2)
+  00001029: jcc4 0x1051
+  0000102B: lea rax, [mem]
+  00001032: lea rax, [mem]
+  0000103C: lea rax, [mem]
+  00001040: movzx32<-16 [mem]
+  00001044: alu0 (sz4)
+  00001047: alu5 (sz2)
+  0000104B: lea rax, [mem]
+  0000104F: jcc5 0x1040
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+  [1.1.0-FIX] jcc->bolge-sonu: son OP_RET'e yonlendirildi
+  [STRDEC] str=0x0002A000 len=32 key=0x9F70A001
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\tmp\my-project\download\XProtect_1.2.2\source\wide_enc2.exe (299520 bayt)
+[OZET] tipler: V=1 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=ACIK | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

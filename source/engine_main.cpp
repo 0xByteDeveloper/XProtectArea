@@ -380,6 +380,37 @@ static void scan_strings(const PEFile& pe, std::vector<RStr>& out) {
         if (run >= 4 && c == 0) out.push_back({ rd->va + i - run, run });
         run = 0;
     }
+    /* 1.2.2-A18.2: UTF-16/WIDE string taramasi (UO EncryptString kapsami
+       1:1 — VMProtect 3.5.1 EncryptString wide-string satirlarini da
+       sifreler). Desen: (b0>=0x20 && b0<0x7F && b1==0) ciftleri x>=4,
+       sonlandiran (0,0). ASCII taramasi ile cakisma YOK (NUL ciftleri
+       ascii-kosunu kirar); yine de cakisma guvesi asagida.
+       Len = cift-bayt alani (terminator dahil degil — cozucu ayni bayt
+       araligini geri yazdigi icin 2-bayt karakterler butun olarakrestore
+       edilir; bilesen NULL-sonlu okumayi terminatorden yapar). */
+    run = 0;
+    for (u32 i = 0; i + 1 < rd->vsz && raw + i + 1 < pe.buf.size(); i += 2) {
+        u8 lo = pe.buf[raw + i], hi = pe.buf[raw + i + 1];
+        if (hi == 0 && lo >= 0x20 && lo < 0x7F) { run += 2; continue; }
+        if (hi == 0 && lo == 0 && run >= 8)
+            out.push_back({ rd->va + i - run, run });
+        run = 0;
+    }
+    /* cakisma guvesi: birden yeni eklenen wide araligi mevcut bir
+       araligin icine dustuyse at (yerlesim/decrypt cift-sifreleme
+       hatasina karsi) */
+    {
+        std::vector<RStr> uniq;
+        for (size_t a = 0; a < out.size(); a++) {
+            bool ov = false;
+            for (size_t b2 = 0; b2 < out.size(); b2++) {
+                if (a == b2) continue;
+                if (out[a].rva >= out[b2].rva && out[a].rva < out[b2].rva + out[b2].len) { ov = true; break; }
+            }
+            if (!ov) uniq.push_back(out[a]);
+        }
+        out.swap(uniq);
+    }
 }
 
 int protect(const std::string& in, const std::string& out, const Options& opt,
@@ -1296,7 +1327,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 sc = (cur + 7) & ~7u;
         for (auto& s : encstr) {
             str_copy[s.rva] = newva_guess + sc;
-            sc += (s.len + 7) & ~7u;          // kopya basina 8 bayt hizali
+            /* 1.2.2-A18.2-FIX: kopya sonrasi >=8 bayt SIFIR dolgu. Eski
+               hali len%8==0 olan stringlerde (wide daima cift-bayt! ASCII
+               de olabilir) kopya tam doluyordu; tuketici terminatör
+               okumasi (byte veya 2-bayt wchar) dogrudan PAYLASILAN state
+               baytina tasiyordu — STRDEC decrypt sonrasi state=1 yazildigindan
+               terminatör=1 okunuyor, string sonrasi +1 byte overread
+               (kanit: wide_sum 1421 != 1420, state bayti +1'i yuttu). */
+            sc += ((s.len + 7) & ~7u) + 8;    // kopya + hizali + dolgu
         }
         cur = sc;
     }

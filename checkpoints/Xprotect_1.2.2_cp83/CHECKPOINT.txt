@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp83  (2026-11-13, UTC+8)
+================================================================
+Odak: A18.2 wide-string taramasi + kopya-dolgu fix (wide_sum 1420 kanit)
+Zipler: checkpoints/Xprotect_1.2.2_cp83/Xprotect_1.2.2_cp83.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

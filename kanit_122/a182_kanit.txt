@@ -1,0 +1,23 @@
+== A18.2 WIDE-STRING TARAMASI (2026-11-14) ==
+YAMA 1 (scan_strings): UTF-16/wide desen eklendi — (b0>=0x20,b1==0)
+ciftleri x>=4 + sonlandiran (0,0); ASCII ile cakisma yok + cakisma
+guvesi (overlap dedup). UO EncryptString kapsami: ASCII + WIDE.
+YAMA 2 (A18.2-FIX kopya yerlesimi): kopya sonrasi >=8 bayt SIFIR dolgu
+(sc += ((len+7)&~7)+8). KOK-NEDEN: len%8==0 stringlerde (wide DAIMA
+cift-bayt) kopya tam doluyor, tuketici terminatör okumasi PAYLASILAN
+state baytina tasiyor (decrypt sonrasi state=1 -> terminatör=1 okunuyor
+-> +1 overread). KANIT: wide_sum 1421 != 1420 (fix oncesi) -> 1420 (fix
+sonrasi) = TAM DUZELDI.
+
+TEST (wide_test.c — L"XProtectWide2026" SDK-V bolgesi, zig x64):
+  baseline        : wide_sum=1420
+  --sdkonly       : wide_sum=1420, rc dogru
+  --sdkonly --strenc (A18.2 ile): [STRDEC] str=0x2A000 len=32 key
+                    -> wide_sum=1420 TAM (decrypt byte-exact dogrulandi:
+                    kopya 32B XOR geri = orijinal, fark bayt=0)
+BILINEN SORUN (A18 eski, bu oturum degil):
+  wm_sdk64.exe + --strenc -> rc=3 (eski cp81 motorunda da ayni —
+  pre-existing). Encrypt Strings %75 olarak kaydedildi: bolge-string
+  yolu (STRDEC+kopya+XSTR runtime) dogrulandi; coklu-string whole-module
+  senaryosunda 1 deger bozulmasi — per-string probe bisect'i bekliyor.
+  wide_test (runtime strenc yolu aktif) %100 yeşil.
