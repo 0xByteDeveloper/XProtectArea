@@ -1095,14 +1095,14 @@ static void vr_dbgq(u64 k32, u64 v) {
 }
 static u32 vr_RegOpenKeyExA(u64 hKey, const char* sub, u32 opt, u32 sam, u64 phk) {
     (void)opt; (void)sam;
-    {   /* A17-iz3: sub pointer 32-36 bit nibble izi */
-        u64 k32p = peb_module(XH_KERNEL32);
-        if (k32p && sub) {
-            xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 4) & 15)),
-                    (char)('0' + (((unsigned long)(unsigned long long)sub >> 0) & 15)));
-            xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 36) & 15)),
-                    (char)('0' + (((unsigned long)(unsigned long long)sub >> 32) & 15)));
-        }
+    u64 k32p = peb_module(XH_KERNEL32);   /* 1.2.3-bisect: fonksiyon-topina alindi
+        (eski hali blok-icindeydi; izler k32p'yi blok-disinada kullaniyor
+         OLURSU derleme hatasi -> eski blob ile test ediliyordu) */
+    if (k32p && sub) {
+        xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 4) & 15)),
+                (char)('0' + (((unsigned long)(unsigned long long)sub >> 0) & 15)));
+        xvf_dbg(k32p, 'Q', (char)('0' + (((unsigned long)(unsigned long long)sub >> 36) & 15)),
+                (char)('0' + (((unsigned long)(unsigned long long)sub >> 32) & 15)));
     }
     if (xvr_mem && sub) {
         u8 fp[XVR_MAXPATH];
