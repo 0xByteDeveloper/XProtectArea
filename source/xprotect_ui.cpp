@@ -642,7 +642,10 @@ static const wchar_t* src_name(int source) {
 // 0.4.0 — PDBScope entegrasyonu (kullanıcı aracı; TÜM fonksiyonlar)
 // pdbscope.exe pdbless <hedef> --format csv
 //   CSV başlık: rva,va,size,confidence,percent,class,kind,callers,sources,name
-// pdbscope.exe kendi dizininde / bin\win64|win32 / PATH içinde aranır.
+// pdbscope.exe kendi dizininde / bin\win64|win32 / PDBScope\ altında /
+// PATH içinde aranır. (1.2.3 fix: PDBScope\ klasörü 0.4.3 paket düzeni —
+// binary pakette eksik kalınca fonksiyon keşfi export/COFF'a düşüyordu;
+// kök neden tespiti: cp88, pdbscope.exe yeniden ship edildi.)
 // ============================================================
 static bool pdbscope_find(std::wstring* out) {
     static std::wstring cached;
@@ -652,6 +655,10 @@ static bool pdbscope_find(std::wstring* out) {
     cands.push_back(d + L"\\pdbscope.exe");
     cands.push_back(d + L"\\bin\\win64\\pdbscope.exe");
     cands.push_back(d + L"\\bin\\win32\\pdbscope.exe");
+    // 1.2.3: 0.4.3 paket düzeni — PDBScope\ altındaki binary'ler
+    cands.push_back(d + L"\\PDBScope\\pdbscope.exe");
+    cands.push_back(d + L"\\PDBScope\\bin\\win64\\pdbscope.exe");
+    cands.push_back(d + L"\\PDBScope\\bin\\win32\\pdbscope.exe");
     for (size_t i = 0; i < cands.size(); i++) {
         if (GetFileAttributesW(cands[i].c_str()) != INVALID_FILE_ATTRIBUTES) {
             cached = cands[i]; *out = cached; return true;

@@ -357,3 +357,34 @@
   debugger'la bu özellik test edilemez. VMP-parite yükseltme (Internal
   Memory Protection, kutu boşta): mutable state/scratch ayrı RW section +
   .vmp0 runtime sonunda RX — plan kaydı yapıldı (sonraki tur).
+
+---
+
+## 2026-11-14 (yeni oturum) — KULLANICI TESPİTİ: pdbscope EKSİK + il.cc DOSYALARI SORUSU
+
+Kullanıcı: "pdbscopeyi silmişsin (fonksyonları iyi bulan sistemdi eski
+sürümlerde ekli onlardan geri portla), fonksyon bulmuyor nerdeyse" +
+"il.cc var, bizde yok neden? ve böyle çok dosya var neden yok?"
+
+- BULGU-1 (KÖK NEDEN KANITLI): 0.4.3 paketinde PDBScope/pdbscope.exe +
+  PDBScope/bin/win64 + bin/win32 binary'leri VARDI (kanit: eski zip
+  envanteri). 1.2.2 paketinde pdbscope.exe HİÇ YOK — UI pdbscope.exe
+  subprocess çağırıyor (utf16=11 string kanıtı), binary bulunamayınca
+  keşif export/COFF/stub'a düşüyor -> metin2client gibi export'suz PE'de
+  "fonksiyon bulmuyor". MOTOR/SIMÜLATÖR KODU SİLİNMEDİ; binary ship'i
+  atlanmıştı.
+- FIX-1: pdbscope.exe x64 yeniden derlendi (PDBScope-2.0.0 src, mingw
+  g++ -O2 -static, 3181426B). Wine kanıtı: pdbless Test_vmp.exe ->
+  aday=1203 kabul=566 (CERTAIN=518 HIGH=34); pdbless metin2client.exe ->
+  aday=53514 kabul=30078 (CERTAIN=25391 HIGH=2490, kapsam %75.9).
+  Binary'ler pakete kondu: PDBScope/pdbscope.exe + PDBScope/bin/win64/ +
+  kök pdbscope.exe. x86 (bin/win32) zig ile arka planda derleniyor.
+- FIX-2: xprotect_ui.cpp pdbscope_find() artık PDBScope\ ve
+  PDBScope\bin\win64|win32 altını da arıyor (0.4.3 paket düzeni uyumu).
+- PLAN-1 (kullanıcının il.cc sorusu): UO core eksik-dosya envanteri
+  çıkarılıyor; il.cc/il.h + dotnetfile.cc .NET zinciri, dwarf.cc, objc.cc,
+  inifile.cc, lang.cc, processors.cc, script.cc, elffile/macfile okuyucuları
+  xprotect_il.cpp / xprotect_dotnet.cpp / xprotect_dwarf.cpp ... adlarıyla
+  C++ olarak port edilecek (sıradaki iş).
+- PLAN-2: VF store-zinciri bisect (xvf_map_pe→DllMain→DllRegisterServer),
+  VR IAT-hook 0x4002A000, EncryptByteCode rolling-key katmanı -> %95.
