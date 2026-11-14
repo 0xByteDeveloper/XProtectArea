@@ -1,9 +1,3 @@
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
-xprotect_dwarf.cpp:105:18: error: no member named 'sleb_size_unknown_fixup' in 'xpdwarf::Cursor'
-  105 |     case 0x19: c.sleb_size_unknown_fixup(); break;                         // (kullanilmiyor)
-      |                ~ ^
-xprotect_dwarf.cpp:138:15: error: use of undeclared identifier 'ib'
-  138 |         (void)ib;
-      |               ^~
-2 errors generated.
+== [2/2] XProtectUI32.exe (x86) ==

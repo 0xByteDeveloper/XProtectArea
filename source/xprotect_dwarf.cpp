@@ -102,7 +102,7 @@ static Val read_val(Cursor& c, u64 form, u8 addr_size) {
     case 0x16: c.u32_(); break;                                            // ref_sup
     case 0x17: c.uleb(); break;                                            // strx/udata
     case 0x18: c.u32_(); break;                                            // sec_offset
-    case 0x19: c.sleb_size_unknown_fixup(); break;                         // (kullanilmiyor)
+    case 0x19: { u64 f2 = c.uleb(); if (!c.ok) break; v = read_val(c, f2, addr_size); break; }   // indirect
     case 0x1A: c.u32_(); break;
     case 0x1B: c.uleb(); break;                                            // udata
     case 0x1C: c.u8_(); break;                                             // ref1?
@@ -135,7 +135,7 @@ bool parse(const unsigned char* d, size_t n, unsigned long long imagebase,
         if (!strcmp(nm, ".debug_info") && rawsz) { di = d + raw; din = rawsz < vsz ? rawsz : vsz; }
         else if (!strcmp(nm, ".debug_abbrev") && rawsz) { ab = d + raw; abn = rawsz < vsz ? rawsz : vsz; }
         else if (!strcmp(nm, ".debug_str") && rawsz) { st = d + raw; stn = rawsz < vsz ? rawsz : vsz; }
-        (void)ib;
+        (void)va;
     }
     if (!di || !ab) { if (err) *err = ".debug_info/.debug_abbrev yok"; return false; }
 
