@@ -499,3 +499,23 @@ ptype=0x8D); guve ile cökme engelli; kök-neden derin bisect (sonraki tur).
   (2118) ile secilir; UI secim yolu ayni kural.
 - Icerik-parite notu: IL->x86 tamsayi alt-kumesi (58 op); nesne/GC yollari
   duru-RED (durrett mesaji); x64 IL derleyici v2.
+
+## 2026-11-14 — SON DOGRULAMA TURU (uretim blob, tum yesil)
+
+| Test | Sonuc |
+|------|-------|
+| R1 ULTIMATE sdk_b1 (antidebug+strenc+memprot+loadercrc+filecrc+stripfix+debugmode) | 3/3 lift, "B1 OK hepsi (jmpext=3622 jccext=134)" rc=0 |
+| SDK-V t32.exe (sdkonly+antidebug+loadercrc+filecrc) | korumali rc=42 ✓ |
+| TLS+PACK tls_test | "TLS OK: callback EP'den once calisti" rc=0 (LZMA %40.4) |
+| MULT-VM(4)+vmadv+loadercrc | "B1 OK hepsi" rc=0 |
+| VF zinciri (vf_app+vf_probe.dll faRegister) | vf_probe.txt = VFDM+VFDRS (DllMain+DllRegisterServer CALISTI) |
+| VR zinciri (vreg_kanit + 2 kayit) | openA st=0 hk=0x58F00100 + queryA val=1.2.3-VRPROBE |
+| DOTNET (minidn Class1::Method1 U) | IL 6B->x86 16B -> MethodDef RVA=0x19F10 + miNative=1 cikti-dogrulanmis |
+| metin2 D7610 ULTRA (--add D7610:D766C:U) | LIFT 1/1, D7610 = E9(kapi)+0xCC dolumu ✓ |
+| pdbscope.exe (pakete geri kondu) | metin2client: 30.078 fonksiyon (CERTAIN=25.391); Test_vmp: 566 |
+| test_dotnet_il (bilesen suiti) | TUM TESTLER PASSED (parse/decode/42/RED/dongu) |
+
+TOPLAM MOTOR-PARITE: ~%82 (OZELLIK_DURUM.html v3 — 24 ozellik progressbarli).
+Bu oturumda yukselenler: EncryptByteCode %90->%95 (op-zinciri), Virtual Files
+%10->%85 (zincir calisiyor), Virtual Registry %20->%80 (ABI fix + deger kaniti),
+MAP/PDB %85->%95 (binary geri-ship + metin2 30k kanit), .NET %0->%70 (YENI).
