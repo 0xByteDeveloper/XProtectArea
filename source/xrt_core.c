@@ -1945,6 +1945,12 @@ static u32 xrt_ad_scylla(u64 k32, u64* clean_nqip_out) {
 #else
             if (cf[0] != 0xB8) continue;
 #endif
+            /* A21-GUVE (2026-11-14): unhook YALNIZ gercek inline-hook deseninde
+               (E9 jmp rel32 / FF25 jmp [imm]) — wine builtin ntdll diskten
+               FARKLIDir (runtime-uretimli stub'lar); kosulsuz unhook wine
+               ntdll'sini bozup sonsuz-recursion/stack-overflow verir
+               (kanit: vreg_ctl + vreg_prot4). ScyllaHide da ayni deseni arar. */
+            if (!(fn[0] == 0xE9 || (fn[0] == 0xFF && fn[1] == 0x25))) continue;
             for (k2 = 0; k2 < 32; k2++) if (fn[k2] != cf[k2]) { diff = 1; break; }
             if (!diff) {
                 if (hs[i] == XH_NQIP) *clean_nqip_out = (u64)(unsigned long)cf;
@@ -2107,20 +2113,12 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
         }
         /* ---- A21-uzanti: ProcessInstrumentationCallback sifirlama
            (UO teknik-2: NtSetInformationProcess(-1, 0x40, NULL, 0)) —
-           kullanici-modu hook motorlarinin callback'ini etkisizler) ---- */
-        {
-            u64 nt = peb_module(XH_NTDLL);
-            if (nt) {
-                u64 nsip = find_export(nt, XH_NSIP);
-                if (nsip) {
-#if defined(XRT_IS_X64)
-                    (void)api4(nsip, 0xFFFFFFFFFFFFFFFEull, 0x40, 0, 0);
-#else
-                    (void)api4(nsip, 0xFFFFFFFFu, 0x40, 0, 0);
-#endif
-                }
-            }
-        }
+           KALDIRILDI (2026-11-14 kanit: wine 10.0'da NtSetInformationProcess
+           (0x40) fixme-stub x3 + virtual_setup_exception STACK OVERFLOW
+           (vreg_ctl rc=3, vreg_kanit full-scan) — wine'in callback
+           mekanizmasi cagriyi yeniden tetikliyor. Gercek Windows'ta
+           A21+2 olarak planlandi; wine-guvenli yol: temiz-ntdll unhook
+           yeterli (xrt_ad_scylla). */
     }
     return 0;
 }

@@ -1,0 +1,20 @@
+== A17.2 VIRTUAL REGISTRY — wine-kanit ailesi (2026-11-14, DEVAM) ==
+vreg_kanit.c ailesi: openA + queryA(sz/dword) + queryW + enumA + negatif.
+BASELINE (korumasiz): openA st=2 (anahtar gercek registry'de yok) rc=7.
+KANITLAR:
+ K1) --vreg store gomme: "[VR] registry store gomuldu: 2 kayit" (2 spec).
+ K2) vreg_prot3 (--sdkonly global-only): exe CALISIYOR ama st=2 —
+     kok-neden: A20 global-only derlemede xrt_entry HIC cagrilmıyor
+     (stub yok) -> vreg IAT-hook kurulamiyor. A20 TASINMASI bulundu.
+ K3) A20-TAM EP kapisı EKLENDI (engine_main): comps.empty && runtime
+     isteniyorsa .vmp0 sonuna mgate (state-kilitli xrt_entry) + E9
+     orijinal EP; PE girisi gate'e yonlendirilir ([A20-GATE] log satiri).
+ K4) vreg_prot4/5: EP-gate'li exe EP'de STACK OVERFLOW (wine ntdll
+     0x6fffffc64393) — A21 scylla kosulsuz-unhook suclu SANDI; hook-desen
+     guvesi (E9/FF25) eklendi ama overflow SURUYOR -> bisect: EP-zamanli
+     xrt yolu wine'da baska bir exception-recursion tetikliyor.
+     SIRADAKI: XRT_PROBE blob ile stage-marker bisect (C:\vfrt.txt).
+ K5) A21-uzanti NSIP (ProcessInstrumentationCallback) KALDIRILDI:
+     wine 10.0 fixme-stub + stack overflow kaniti (vreg_ctl).
+EK: zig-CRT exe'lerinde wchroot+wine64 exit-code guvenilmez (return 7/42
+-> rc=3) — dogrulama printf-cikisi ile yapiliyor.

@@ -1717,6 +1717,33 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         }
     }
 
+    /* 1.2.2-A20-TAM: GLOBAL-ONLY EP kapisı. comps bos VE runtime isteniyor
+       (rt_any/vf/strenc) VE pack yokken: .vmp0 sonuna mgate (state-kilitli
+       xrt_entry cagrisi) + orijinal EP'ye E9; PE giris noktasi gate'e
+       yonlendirilir. Oncesi: global-only derlemede xrt_entry HIC calismiyor
+       (stub yok) -> vreg/antidebug/strenc/vfile hook'lari kurulamiyordu
+       (kanit: vreg_prot3 st=2 negatif — anahtar sunulmadi). */
+    if (comps.empty() && !opt.pack && (rt_any || vf_area || strenc_want)) {
+        while (secimg.size() & 15u) secimg.push_back(0xCC);
+        u32 gate_rva = vmp_rva + (u32)secimg.size();
+        std::vector<u8> g = pe.is64
+            ? build_mgate_x64(gate_rva, xrt_entry_rva, cfg_rva, 0)
+            : build_mgate_x86(gate_rva, xrt_entry_rva, cfg_rva, 0);
+        secimg.insert(secimg.end(), g.begin(), g.end());
+        i32 rj = (i32)((i64)pe.entry_rva - (i64)(gate_rva + (u32)g.size() + 5));
+        secimg.push_back(0xE9);
+        for (int k = 0; k < 4; k++)
+            secimg.push_back((u8)(((u32)rj >> (8 * k)) & 0xFF));
+        while (secimg.size() & 15u) secimg.push_back(0);
+        {   /* PE header giris noktasi -> gate (opt+16; PE32/PE32+ ayni) */
+            u32 peoff; memcpy(&peoff, &pe.buf[0x3C], 4);
+            u32 eoff = peoff + 24 + 16;
+            for (int k = 0; k < 4; k++) pe.buf[eoff + k] = (u8)((gate_rva >> (8 * k)) & 0xFF);
+            snprintf(b, sizeof b, "[A20-GATE] global-only EP kapisı: EP 0x%X -> 0x%X (xrt_entry + jmp)", pe.entry_rva, gate_rva);
+            L(b);
+            pe.entry_rva = gate_rva;
+        }
+    }
     if (!pe.add_section(".vmp0", secimg, chars, vmp_rva)) { L("[HATA] section eklenemedi"); return 1; }
 
     // ============================================================
