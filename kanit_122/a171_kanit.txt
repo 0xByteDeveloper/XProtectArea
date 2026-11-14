@@ -1,0 +1,24 @@
+== A17.1 faRegister — reg: ONEK PARSE FIX + VF runtime durumu (2026-11-14) ==
+FIX: engine_main vfile yol-ayristirmasi "reg:" onek icin compare(0,5)+
+substr(5) kullanıyordu — onek 4 karakter; 5. karakter yolun ilk harfi
+oldugu icin kiyas HIC eslesmedi -> act=2 (faLoad+faRegister) yolu
+DERLEME BERERI oluyordu. rfind(0)-startswith + substr(4) ile duzeltildi.
+KANIT: --vfile reg:Z:/... -> once "[VF] acilamadi reg:Z:/..." (ham yol),
+sonra "[VF] gomuldu: xvf_t.dll (218624B, faRegister)" (duzeltme sonrasi).
+
+VF RUNTIME (ACIK — sonraki oturum bisect):
+- xvf_t.dll (DllMain -> C:\xvf_dll_seen.txt 'L', DllRegisterServer ->
+  C:\xvf_drs_seen.txt 'R') gomuldu faRegister ile; korumali exe
+  calisinca izler YOK (DllMain/DllRegisterServer calismadi).
+- EP-gate host (vreg_kanit zig): app sorunsuz akar (NEGATIF cikti) ama
+  VF yukleme sessizce atlanıyor.
+- stub-gate host (wm_sdk64 mingw): rc=3 + HICBIR cikti yok (r=130 bile)
+  -> VF pipeline calisma-aninda cokuyor (xvf header/store decrypt ->
+  xvf_map_pe -> DllMain zinciri).
+- vreg_p1 (eski cp77 motoru) ayni sekilde rc=3 -> pre-existing.
+- cp44'ten beri VF "Dll yukleme" uctan-uca DOGRULANMAMISTI (kernel
+  kutu vardi); bugun kesinlesti: xvf store calisma-zinciri bozuk.
+- supheli alanlar: XVF1 header anahtar turetimi (cfg_rva), xvf_map_pe
+  DllMain cagrisi (call_dm=1), faRegister 0x38bf1ac1 baglanmasi.
+- A17.1 durum: DERLEME taraf %100 (gomme+action dogru), CALISMA tarafi
+  %0 kanitli -> VF/faRegister toplam %60 (parite tablosunda guncel).

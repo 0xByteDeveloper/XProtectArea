@@ -1,6 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp85  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp86  (2026-11-13, UTC+8)
 ================================================================
-Odak: A20-TAM gate + bss-span fix yeşil; vreg IAT-hook zinciri bisect notlari
-Zipler: checkpoints/Xprotect_1.2.2_cp85/Xprotect_1.2.2_cp85.zip (tam kaynak + ikililer)
+Odak: A17.1 reg: parse fix + VF runtime kesin tani (kanit DLL ile)
+Zipler: checkpoints/Xprotect_1.2.2_cp86/Xprotect_1.2.2_cp86.zip (tam kaynak + ikililer)
 Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

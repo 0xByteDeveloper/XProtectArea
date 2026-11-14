@@ -805,8 +805,13 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             const std::string& p = opt.vfile_paths[vfi];
             u32 act = 1;                                  // faLoad varsayilan
             std::string path = p;
-            if (path.size() > 5 && path.compare(0, 5, "reg:") == 0) { act = 2; path = path.substr(5); }
-            else if (path.size() > 8 && path.compare(0, 8, "install:") == 0) { act = 3; path = path.substr(8); }
+            /* 1.2.2-A17.1-FIX: "reg:" 4 KARAKTER — eski kod compare(0,5) +
+               substr(5) kullaniyordu: kiyas HIC eslesmedi (5. karakter
+               yoldan!) -> act=2/faRegister yolu DERLEME BERERI oluyordu
+               (kanit: [VF] acilamadi reg:Z:/... mesaji — acilan yol
+               reg: onekli ham string). rfind-0 startswith + substr(4). */
+            if (path.size() > 4 && path.rfind("reg:", 0) == 0) { act = 2; path = path.substr(4); }
+            else if (path.size() > 8 && path.rfind("install:", 0) == 0) { act = 3; path = path.substr(8); }
             FILE* fp = fopen(path.c_str(), "rb");
             if (!fp) { L(std::string("[VF] acilamadi (atlandi): ") + path); continue; }
             fseek(fp, 0, SEEK_END); long sz = ftell(fp); fseek(fp, 0, SEEK_SET);
