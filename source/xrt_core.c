@@ -1797,17 +1797,20 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
                    DllRegisterServer ihracati bağlanır VE çağrılır; COM
                    self-registration senaryosu UO faRegister 1:1) */
                 u64 mapret = xvf_map_pe((const u8*)(unsigned long)buf, dsz, k32);
+                xvf_dbg(k32, 'R', 'M', mapret ? '1' : '0');   /* 1.2.3-bisect: map donusu */
                 if (act == 2 && mapret) {
                     /* A17.1: DllRegisterServer (fnv_a=0x38bf1ac1) bağla+çağır.
                        mapret = maplenen modul base (xvf_map_pe donusu);
                        find_export ihraç-tablosu yürütmesi PIC-guvenli. */
                     u64 drs = find_export(mapret, 0x38bf1ac1u);
+                    xvf_dbg(k32, 'R', 'S', drs ? '1' : '0');  /* 1.2.3-bisect: export bulundu mu */
                     if (drs) {
 #if defined(XRT_IS_X64)
                         (void)api0(drs);
 #else
                         (void)api0((u32)drs);
 #endif
+                        xvf_dbg(k32, 'R', 'C', '.');          /* 1.2.3-bisect: cagri dondu */
                     }
                 }
 #if defined(XVF_TRACE)

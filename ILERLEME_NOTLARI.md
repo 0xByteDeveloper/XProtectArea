@@ -420,3 +420,23 @@ KANIT (test_dotnet_il /tmp/minidn.exe uzerinde): parse OK (Class1::
 Method1, rva=0x2118, body=6B, satir-ofsetleri) / decode 4 komut /
 IL->x86 = 25 bayt / CALISTIRMA 21+21=42 / ldstr RED mesaji / dongu
 blt.s geri-dal 3 tur = 3 / TUM TESTLER PASSED (fails=0).
+
+## 2026-11-14 — VF STORE-ZINCIRI BISECT (xvf_map_pe→DllMain→DllRegisterServer)
+
+YONTEM: XVF_TRACE'li xrt blob (build_xrt_trace.sh — uretim blob'u
+xrt_blob.cpp.prod'a yedeklenir; restore_xrt_prod.sh ile geri konur) +
+yeni probe cifti: vf_probe.c (DllMain→"VFDM", DllRegisterServer→"VFDRS")
++ vf_app.c (app ok, exit 42). R' izleri eklendi: RM (map donusu), RS
+(export bulundu), RC (cagri dondu).
+
+SONUC-1 (FARegister yolu KIRILDI — ILK KEZ CALISMA KANITI):
+  vf_app_p.exe (--antidebug + --vfiles --vfile reg:vf_probe.dll) wine'da:
+  vfrt.txt = KM MC1 D29 VA. HD. SE. RE. ID0 N.0 P10 S00 ID1 N.1 P11 S01
+             IM. DM.  |  vf_probe.txt = VFDM
+  => xvf_map_pe TAM CALISIYOR: VirtualAlloc+headers+sections+reloc+
+     import-patch (2 descriptor) + DllMain CALISTI (probe DLL yazdi!).
+  Kalan tek halka: DllRegisterServer (VFDRS yazmadi) — RM/RS/RC izleri
+  ile bisect suruyor (export-bulma mi, cagri mi).
+SONUC-2 (uretim blob'u ile ayni yoldan: kit-tip onarimi kaniti — cp44'ten
+  beri "runtime %0" saniliyordu; aslinda zincir cp85'ten beri saglamti,
+  onceki testlerin probe-blob bozuklugu E1 marker'i yazamiyordu).
