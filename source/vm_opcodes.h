@@ -16,12 +16,37 @@
 // sifrelenir (encoder + decoder ayni makrodan turetir).
 #define VM_ROLL(k) ((((unsigned long long)(k)) * 0x100000001B3ULL) \
     ^ (((unsigned long long)(k)) >> 23) ^ 0x51ED270B4C5A3D0FULL)
-#define VM_KS(key, pos) ((unsigned char)( \
-    ( ((((unsigned long long)(key)) ^ ((unsigned long long)(pos)) * 0x9E3779B97F4A7C15ULL) \
-        * 0x2545F4914F6CDD1DULL + 0x9E3779B97F4A7C15ULL) \
-    ^ ( ((((VM_ROLL(key))) ^ ((unsigned long long)((pos) >> 3)) * 0xD1B54A32D192ED03ULL) \
-        * 0x94D049BB133111EBULL) ) \
-    ) >> 56))
+
+/* 1.2.3 EncryptByteCode OP-ZINCIRI (UniversalObfuscator cc* ailesi
+   kavram-paritesi): UO her VM opcode handler'i icin 4-100 rastgele
+   islemden kripto zinciri kurar (ccAdd/ccSub/ccXor/ccInc/ccDec/ccRol/
+   ccRor/ccNot/ccNeg/ccBswap — intel.cc AddReadCommand alan-alan
+   cozer). XProtect es-anlam: her 8-bayt blok icin (key,pos>>3)'ten
+   secilen 4 karisim ailesinden biri (ccXor-ccMul / ccAdd-ccXor /
+   ccRol-ccMul / ccNot-ccMul) — encoder (engine_main) ve decoder
+   (vm_core) ayni makroyu paylastigi icin TEK KAYNAKTA degisir,
+   bayt-bayt uyum korunur. Blok-basi yuvarlanan anahtar: VM_KSC'nin
+   CFB geri-beslemesi (prev sifreli bayt) ile ayni semantik. */
+#define VM_MIX(key, pos) ({ \
+    unsigned long long _k = (unsigned long long)(key); \
+    unsigned long long _p = (unsigned long long)(pos); \
+    unsigned long long _h, _sel; \
+    _h = _k ^ (_p * 0x9E3779B97F4A7C15ULL); \
+    _h *= 0x2545F4914F6CDD1DULL; \
+    _h += 0x9E3779B97F4A7C15ULL; \
+    _h ^= _h >> 29; \
+    _sel = ((_k ^ (_p >> 3) * 0xD1B54A32D192ED03ULL) >> 61); \
+    switch ((unsigned)(_sel & 3u)) { \
+      case 0: _h *= 0x94D049BB133111EBULL; _h ^= _h >> 31; break; \
+      case 1: _h += 0xA24BAED4963EE407ULL; _h ^= _h >> 27; break; \
+      case 2: _h = (_h << 13) | (_h >> 51); _h *= 0xFF51AFD7ED55814DULL; \
+              _h ^= _h >> 33; break; \
+      default: _h ^= ~(_h << 7); _h *= 0x9E3779B97F4A7C15ULL; \
+               _h ^= _h >> 25; break; \
+    } \
+    _h; \
+})
+#define VM_KS(key, pos) ((unsigned char)(VM_MIX(key, pos) >> 56))
 
 // 0.8.0 crypt_command — CFB geribesleme katmani: her baytin akisi BIR
 // ONCEKI SIFRELI bayta baglanir (cipher-feedback). encoder sira ile
