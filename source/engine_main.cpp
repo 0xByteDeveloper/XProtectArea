@@ -1174,9 +1174,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (is_dotnet) {
             const xpdotnet::Method& dm = dn_meta[f.rva];
             if (dm.eh_count) {
-                /* 1.2.4 (x2 fix): EH'li gövde — try/catch/finally semantiği
-                   olmadan üretilen x86 yanlış olur; net mesajla RED. */
-                f.note = "RED: EH tablosu (try/catch) desteklenmiyor";
+                /* 1.2.4/1.2.5: EH'li gövde — try/catch/finally semantiği
+                   olmadan üretilen x86 yanlış olur; net mesajla RED.
+                   eh_count==0xFFFFFFFF = "EH okunamadi (belirsiz bicim)". */
+                f.note = (dm.eh_count == 0xFFFFFFFFu)
+                    ? "RED: EH tablosu okunamadi (belirsiz bicim)"
+                    : "RED: EH tablosu (try/catch) desteklenmiyor";
                 continue;
             }
             std::vector<u8> dil;

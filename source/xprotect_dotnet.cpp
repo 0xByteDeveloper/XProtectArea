@@ -422,14 +422,30 @@ bool parse(const u8* d, size_t n, Image* out) {
                        bakiyordu, o byte maxstack'in alcak byte'i (8) ve her
                        fat govde EH saniliyordu (Method2 yanlis RED). */
                     if ((rd16(bh) & 0x0008) != 0) {               // EHTable
-                        // EH clause'ları 4-bayt hizalı; flags=0x40 -> FAT (24B) yoksa küçük (12B)
-                        u64 ehp = (u64)m.body_off + codesz;
-                        ehp = (ehp + 3) & ~(u64)3;
-                        if (ehp + 4 <= n) {
+                        /* 1.2.5 (x/.NET): EH bolumu standartta 4-hizali,
+                           ama bazi ureticilerde kod-sonu+kadar kaymali
+                           (RunPEForm kaniti: +1/+4). Aday ofsetlerde sane
+                           dsz ara (small: dsz=4+12n; fat: 0x4x, dsz=4+24n);
+                           hicbiri tutmazsa EH-BELIRSIZ (0xFFFFFFFF) — kod
+                           uretilmez, duru-RED dogru semantik. */
+                        u64 base_eh = (u64)m.body_off + codesz;
+                        m.eh_count = 0xFFFFFFFFu;
+                        u32 eh_cap = codesz / 4 + 2;
+                        for (u32 sh = 0; sh <= 4 && m.eh_count == 0xFFFFFFFFu; sh++) {
+                            u64 ehp = (sh == 0) ? ((base_eh + 3) & ~(u64)3) : (base_eh + sh);
+                            if (ehp + 4 > n) break;
                             u32 dsz = rd32(d + ehp);
-                            u32 csize = (dsz >> 24) == 0x40 ? 24 : 12;
-                            u32 cnt = (dsz & 0x00FFFFFF) / csize;
-                            for (u32 e = 0; e < cnt; e++) m.eh_count++;
+                            u32 body = dsz & 0x00FFFFFFu;
+                            if ((dsz >> 24) == 0x40) {
+                                /* 1.2.5: sinir-kontrolu DONGU ICINDE — ara
+                                   adayin dsz'i tesadufen bicime uysa bile
+                                   mantik-disi clause sayisi kabul edilmez */
+                                if (body >= 4 && (body - 4) % 24 == 0 && body / 24 <= eh_cap)
+                                    m.eh_count = body / 24;
+                            } else {
+                                if (body >= 4 && (body - 4) % 12 == 0 && body / 12 <= eh_cap)
+                                    m.eh_count = body / 12;
+                            }
                         }
                     }
                 }
