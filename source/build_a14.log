@@ -56,3 +56,6 @@ engine_lift.cpp:561:53: warning: format specifies type 'unsigned int' but the ar
       |                                                ~~   ^~~~~~~~
       |                                                %llx
 7 warnings generated.
+== TAMAM ==
+-rwxr-xr-x 1 z z 1480192 Nov 14 20:18 XProtectUI.exe
+-rwxr-xr-x 1 z z 1522176 Nov 14 20:34 XProtectUI32.exe

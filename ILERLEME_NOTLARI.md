@@ -776,3 +776,25 @@ SONUC: (is bitince yazilacak)
     atliyordu -> stack bozuk) — jz+3 int3'e duzeltildi.
 - SIRADA: build (zig x64+x86) → RunPEForm E2E (P/Invoke'lu metotlar) →
   metin2 regres → minidn_fat Method2 element-type bakisi.
+
+## 2026-11-14 20:40 — A14 BUILD + E2E SONUC (cp189 turu)
+
+- BUILD TAMAM: x64=1,480,192B / x86=1,522,176B (A14 P/Invoke+alan paketi dahil;
+  3 derleme hatasi yolda fix: i32 typedef, xpil namespace, jcc hedefi).
+- E2E (a14_test/kanit.txt):
+  * P3 PASS — paket pdbscope.exe = kullanici x86 binary'si (md5 cfebc28c).
+  * P2 PASS — metin2 d7610 ULTRA regresyon rc=0 (A14 degisikligi bozmadı).
+  * P1 DURUST: RunPEForm --all rc=3 hala; ama RED haritasi DEGISTI —
+    - "cagri: yonetilen metod" (LoadFromVBFile/GetFunctionDelegate: yonetilen
+      cagrilar — v2 nesne-ops kapsami, duru mesaj),
+    - "EH tablosu" (try/catch — bilinen),
+    - "ldsfld: FieldRVA yok veya ASLR'li" — csc varsayilan DYNAMICBASE
+      set eder → mutlak-VA statik erisim duru RED (guvenli-durus).
+    P/Invoke uretimi CANLI (derleme hata/crash yok); RunPEForm'un kalan
+    metotlari yonetilen-cagri agirligi oldugundan sonraki paket = v2:
+    yonetilen-call inlining + EH + ASLR-guvenli statik (runtime-slots).
+- KALAN .NET yol haritasi (durus): v2 = yonetilen MethodDef-call inlining
+  (kendi govdesi liftable metotlar) + callvirt-uretilmis erisimciler + EH
+  semantigi + statik-alan runtime slotlari (FieldRVA'siz staticler icin
+  .vmp slot + init). UO'nun dotnet20/40_runtime .inc'leri bu isi UO'da
+  yapar — XProtect karsiligi v2 paketi.
