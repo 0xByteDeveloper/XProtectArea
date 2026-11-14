@@ -218,7 +218,9 @@ enum ProjectOption {
     cpVirtualFiles          = 0x08000000,
     cpInternalMemoryProtection = 0x04000000,
     cpLoader                = 0x02000000,
-    cpFileCRC               = 0x20000000    // 0.5.0: XProtect ozel — disk dosya CRC (core.h disi)
+    cpFileCRC               = 0x20000000,  // 0.5.0: XProtect ozel — disk dosya CRC (core.h disi)
+    cpSilentExit            = 0x00000010   // 1.2.5 (x2): true = hata mesaji YOK (sessiz kapanis;
+                                           //   adamaya zaman/bilgi kazandirma — rt_msg kapatir)
 };
 
 // ---------------- PE cozumleyici: export + COFF + PDB + MAP + stub ----------------
@@ -796,6 +798,10 @@ static bool pdbscope_scan_ex(const std::wstring& target, std::vector<PeFunc>& ou
         std::string name = f[c_name];
         if (ncols >= 13 && name.empty()) name = f[10];
         if (cls == "CERTAIN" || cls == "HIGH" || cls == "func") strong++;
+        /* 1.2.5 (x4-1): DATA/LABEL/INLINE satirlari KOD degil (degisken,
+           RTTI, etiket) — secilince derleme RED üretiyordu; listeden düşür
+           (kullanici: "fonksiyon olmayan şeylerde var, seçince hata veriyo"). */
+        if (kind == "DATA" || kind == "LABEL" || kind == "INLINE") continue;
         if (!rva) continue;
         PeFunc pf;
         pf.rva = rva; pf.size = size;
@@ -1178,9 +1184,10 @@ static void fill_prop() {
             { cpInternalMemoryProtection, L"Internal Memory Protection" },
             { cpLoader, L"Loader" },
             { cpFileCRC, L"File CRC (disk)" },
+            { cpSilentExit, L"Silent Exit (mesaj kutusu yok)" },
         };
         prop_add_row(0, L(LS_PROTECTION), L"", 0);
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 21; i++)
             prop_add_row(1, opts[i].nm, (g_proj.options & opts[i].bit) ? L"Yes" : L"No", opts[i].bit);
     } else if (g_prop_sel_kind == 2 && g_prop_sel_idx >= 0 && (size_t)g_prop_sel_idx < g_proj.funcs.size()) {
         const ProjFunc& f = g_proj.funcs[g_prop_sel_idx];
@@ -1937,10 +1944,44 @@ static void af_fill_list(AFState* st) {
     // LVN_GETDISPINFO ile saglanir -> aninda acilis + wine/Windows ayni davranis.
     if (!g_proj.open) { st->rows.clear(); ListView_SetItemCount(st->list, 0); return; }
     std::wstring flt; ctl_txt(st->filter, &flt);
+    /* 1.2.5 (x4-2): filtre 3 bicimde calisir — (1) isim alt-dizisi
+       (buyuk-kucuk duyarsiz), (2) hex adres: "d7610"/"0xd7610"/"sub_D7610"
+       → tam RVA eslesmesi, (3) hex aralik: adres bir fonksiyonun
+       [rva, rva+size) araligindaysa o fonksiyon listelenir. Bos kutu =
+       tum sonuclar. */
+    std::wstring flt_ci;
+    for (wchar_t ch : flt) flt_ci += (wchar_t)towlower(ch);
+    unsigned long long flt_rva = 0;
+    bool flt_hex = false;
+    if (!flt_ci.empty()) {
+        std::wstring h = flt_ci;
+        if (h.rfind(L"0x", 0) == 0) h = h.substr(2);
+        else if (h.rfind(L"sub_", 0) == 0) h = h.substr(4);
+        if (!h.empty() && h.size() <= 16) {
+            bool allok = true;
+            unsigned long long v = 0;
+            for (wchar_t ch : h) {
+                int d;
+                if (ch >= L'0' && ch <= L'9') d = ch - L'0';
+                else if (ch >= L'a' && ch <= L'f') d = 10 + (ch - L'a');
+                else { allok = false; break; }
+                v = v * 16 + (unsigned long long)d;
+            }
+            if (allok) { flt_rva = v; flt_hex = true; }
+        }
+    }
     st->rows.clear();
     for (size_t i = 0; i < g_pe.funcs.size(); i++) {
         const PeFunc& f = g_pe.funcs[i];
-        if (!flt.empty() && f.name.find(flt) == std::wstring::npos) continue;
+        bool hit = flt.empty();
+        if (!hit) {
+            std::wstring ln;
+            for (wchar_t ch : f.name) ln += (wchar_t)towlower(ch);
+            if (ln.find(flt_ci) != std::wstring::npos) hit = true;
+            else if (flt_hex && f.rva == flt_rva) hit = true;
+            else if (flt_hex && flt_rva >= f.rva && flt_rva < f.rva + (f.size ? f.size : 1)) hit = true;
+        }
+        if (!hit) continue;
         st->rows.push_back(i);
     }
     ListView_SetItemCount(st->list, 0);   // eski gorunumu dusur
@@ -2766,6 +2807,11 @@ static void start_compile() {
     }
     if (g_proj.funcs.empty() || (opt.funcs.empty() && opt.manual.empty())) opt.all = true;
     opt.antidebug = (g_proj.options & cpCheckDebugger) != 0;
+    /* 1.2.5 (x2): Silent Exit kutusu — true = mesaj kutusu YOK (sessiz
+       kapanis); false = UO/VMP davranisi (mesaj + kapanma, history.htm:492).
+       rt_exit her zaman acik: tespit -> kapanma. */
+    opt.rt_msg = (g_proj.options & cpSilentExit) == 0;
+    opt.rt_exit = true;
     opt.checkvm = (g_proj.options & cpCheckVirtualMachine) != 0;   // 1.1.0-A7: motor baglandi
     opt.kerneldbg = (g_proj.options & cpCheckKernelDebugger) != 0;  // 1.2.2-A15: K5+K6 ayri gate
     opt.strenc = (g_proj.options & cpCryptValues) != 0;
@@ -4077,6 +4123,15 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
                 NMITEMACTIVATE* ia = (NMITEMACTIVATE*)lp;
                 prop_row_edit(ia->iItem);
             }
+            /* 1.2.5 (x5): SPACE = secili satiri degistir (true↔false / ac) —
+               klavyeyle hizli kullanım (kullanici istegi). */
+            else if (nm->code == LVN_KEYDOWN) {
+                NMLVKEYDOWN* kd = (NMLVKEYDOWN*)lp;
+                if (kd->wVKey == VK_SPACE || kd->wVKey == VK_RETURN) {
+                    int sel = ListView_GetNextItem(g_prop, -1, LVNI_SELECTED);
+                    if (sel >= 0) prop_row_edit(sel);
+                }
+            }
             return 0;
         }
         return 0;
@@ -4424,6 +4479,8 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
     g_prop = CreateWindowExW(0, WC_LISTVIEWW, NULL,
         WS_CHILD | WS_TABSTOP | LVS_REPORT | LVS_SHOWSELALWAYS,
         0, 0, 0, 0, g_main, (HMENU)IDC_MAIN_PROP, hI, NULL);
+    /* 1.2.5 (x5): tum-satir secimi — value hucre de secili gorunur */
+    ListView_SetExtendedListViewStyle(g_prop, LVS_EX_FULLROWSELECT);
     // 0.4.0: sag panel dizin gorunumu (Functions/Licenses klasoru secimi)
     g_dir = CreateWindowExW(0, WC_LISTVIEWW, NULL,
         WS_CHILD | WS_TABSTOP | LVS_REPORT | LVS_SHOWSELALWAYS,
