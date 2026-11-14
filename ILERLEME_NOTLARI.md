@@ -519,3 +519,46 @@ TOPLAM MOTOR-PARITE: ~%82 (OZELLIK_DURUM.html v3 — 24 ozellik progressbarli).
 Bu oturumda yukselenler: EncryptByteCode %90->%95 (op-zinciri), Virtual Files
 %10->%85 (zincir calisiyor), Virtual Registry %20->%80 (ABI fix + deger kaniti),
 MAP/PDB %85->%95 (binary geri-ship + metin2 30k kanit), .NET %0->%70 (YENI).
+
+## 2026-11-14 — KULLANICI x1-x4 TURU (cp135+ oturumu)
+
+ORTAM KURTARMA: cp130-134 push'lari eski-token hatasindan birikmisti; yeni PAT
+kuruldu -> backlog push TAMAM (76ad1c4..21204cd..c4adede). 4dk daemon yeniden
+basladi (cp135+ push=pushed).
+
+x1 (Check Debugger "#5" mesaji hata mi?):
+  DEGIL — tasarim geregi. UO tabani VMProtect 3.5.1 resmi yardim dosyasi
+  help/en/history.htm:492: "if a debugger is detected during the protected
+  application execution, the app shows a corresponding message and closes".
+  Yani UO/VMP de tespit -> MESAJ KUTUSU -> kapanma yapar. Ayranci ayni dosya
+  :215: varsayilan mesajlar ("Debugger is detected", "File is corrupted"...)
+  expert-modda degistirilebilir (bizde bu alt-ozellik yok -> HTML'de not).
+  Runtime kaniti: core/win_runtime32.dll IAT'inde MessageBoxA + TerminateProcess
+  + NtRaiseHardError mevcut. Bizim karsilik: xrt_core.c rt_fatal (XFLAG_MSG +
+  XFLAG_EXIT, kod 5 = antidebug/tamper) — DAVRANIS PARITESI VAR.
+
+x2 (.NET C# Form exe'de fonksiyon bulamama + "rc4 rc3 garip hatalar"):
+  KOK-NEDEN-1: engine_main keşif filtresi "fat_header && local_sig -> continue"
+  — WinForms/WPF metotlarinin TAMAMI fat+locals oldugundan "[DOTNET] 0 yontem
+  adayi" oluyor; UI yalnizca pdbscope'un IL-baytlarini-x86-gibi-okuyan sub_
+  coplerini listeliyor. FIX: filtre kaldirildi (locals imzasi IL decode icin
+  gereksiz — ldloc indeks-temelli) + EH'li govder keşifte DOTNET-EH, derlemede
+  net "RED: EH tablosu (try/catch) desteklenmiyor".
+  KOK-NEDEN-2: UI pdbscope bagimli liste. FIX: xprotect_ui.cpp dotnet_funcs_for()
+  — CLR derlemesinde MethodDef tablosundan gercek adlar (NS.Class::Method,
+  source=7 "DOTNET" kolonu); scan_thread + merge_pdbscope iki yoluna baglandi;
+  yontem araligina dusen sub_/entrypoint copleri listeden temizleniyor.
+  KOK-NEDEN-3: "rc4 rc3" aciksiz kodlar. FIX: UI WM_APP_DONE + CLI cikti artik
+  "rc=N (anlam)" (1=PE, 2=lisans, 3=fonksiyon-yok, 4=PACK, 5=cfg-tasma); rc=3
+  ve rc=4 icin ayri mesaj kutulari (rc=4: PACK/LZMA hatasi).
+
+x4 (UO vs XProtect dosya denetimi):
+  DOSYA_DENETIMI.md uretildi (vmpsrc/pub2 tam agac = 1169 dosya):
+  birebir denetimde PORTLU=54 / KISMEN=~20 / EKSIK=15 / N/A=96;
+  klasor-paritesi 1000+ (Qt GUI 188, help 277, runtime C# 77...).
+  EKSIK 15: dwarf.cc, elffile.cc, macfile.cc, objc.cc, objects.cc/h,
+  script.cc (Lua API), managed .NET runtime DLL'leri (dotnet20/40 + netcore +
+  netstandard .inc'leri — bizim yol: IL->native).
+
+x3 cevabi: "UO dosyalarini direkt XProtect'e atsak?" — HAYIR (chat raporunda
+gerekceleriyle; secici port suruyor).
