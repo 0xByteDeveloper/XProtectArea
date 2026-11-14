@@ -169,8 +169,22 @@ bool parse(const u8* d, size_t n, Image* out) {
     memset(&sc, 0, sizeof sc);
     // #~: Reserved(2) Major(1) Minor(1) HeapSizes(1) Reserved(1) Valid(8) Sorted(8)
     sc.heapsizes = d[tab_off + 4];
-    u64 valid = (u64)rd32(d + tab_off + 6) | ((u64)rd32(d + tab_off + 10) << 32);
-    u64 sorted = (u64)rd32(d + tab_off + 14) | ((u64)rd32(d + tab_off + 18) << 32);
+    /* 1.2.5 FIX (x/.NET kök-nedeni-3): başlıkta Valid maskesi spec'te +6'da
+       (22 baytlık başlık), ama gerçek üreticilerin bir kısmında +8'de (24
+       bayt — RunPEForm.exe kanıt). Bit2 (TypeDef) + bit6 (MethodDef) her
+       .NET derlemesinde zorunludur — maskede ikisi görünene kadar +2
+       kaydır; bulunamazsa net hata. */
+    u64 valid = 0;
+    u32 valid_off = 0;
+    for (u32 vo = 6; vo <= 8; vo += 2) {
+        u64 v = (u64)rd32(d + tab_off + vo) | ((u64)rd32(d + tab_off + vo + 4) << 32);
+        if ((v & 0x44ULL) == 0x44ULL) { valid = v; valid_off = vo; break; }
+    }
+    if (!valid_off) {
+        out->err = "#~ Valid maskesi cozumlenemedi (TypeDef/MethodDef yok)";
+        return false;
+    }
+    u64 sorted = (u64)rd32(d + tab_off + valid_off + 8) | ((u64)rd32(d + tab_off + valid_off + 12) << 32);
     (void)sorted;
     sc.present[0] = has_flag(valid, 0);
     sc.present[1] = has_flag(valid, 1);
@@ -180,7 +194,7 @@ bool parse(const u8* d, size_t n, Image* out) {
     sc.present[5] = has_flag(valid, 5);
     sc.present[6] = has_flag(valid, 6);
     sc.present[7] = has_flag(valid, 8);   // Param = bit 8
-    u64 q = tab_off + 22;
+    u64 q = tab_off + valid_off + 16;   // Valid(8)+Sorted(8) sonrasi satir sayilari
 #ifdef XPDN_DEBUG
     fprintf(stderr, "[XPDN] tab_off=0x%llX heapsizes=%u valid=%llX rows M=%u TD=%u MD=%u\n",
             (unsigned long long)tab_off, sc.heapsizes, (unsigned long long)valid,
