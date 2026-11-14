@@ -71,6 +71,12 @@ struct Image {
     char ver_buf[16] = {0};
     std::vector<TypeDef> typedefs;
     std::vector<Method> methods;
+    // 1.2.5-A13 (x2/x7a): StandAloneSig (0x11) tablosu — satir basina blob
+    // indeksi; ldloc/stloc icin yerel imzalari buradan cozulur.
+    std::vector<u32> sas_blob;   // satir r -> blob idx (1-tabanli token r-1)
+    u64 blob_off = 0;            // #Blob stream dosya ofseti (parse_locals)
+    u32 blob_sz = 0;
+    bool blob4 = false;          // #Blob indeks genisligi 4 mu
 };
 
 bool parse(const u8* d, size_t n, Image* out);

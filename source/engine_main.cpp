@@ -1187,25 +1187,25 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             std::vector<xpil::Cmd> dcmds;
             std::string derr;
             if (!xpil::decode(dil.data(), dil.size(), &dcmds, &derr)) { f.note = "RED: IL decode: " + derr; continue; }
-            /* 1.2.4 (x2 fix): locals kullanim on-kontrolu — to_x86 locals
-               bilgisi olmadan dogru yigin-cercevesi uretemez; net mesaj
-               ("stloc.0 yerel yok (0)") yerine aciklama ver. StandAloneSig
-               tablosu (0x11) tam tablo-gezinmesi gerektirir (MemberRef/
-               CustomAttribute kodlu-indeks genislikleri) — sonraki tur. */
+            /* 1.2.5-A13 (x2/x7a): StandAloneSig/locals ARTIK DESTEKLI —
+               parse() 0x11 tablosunu gezdi; yerel imzasi cozulur, to_x86
+               slot haritasini alir. Eski davranis ("locals-imzali govde
+               kapsam-disi") kaldirildi — WinForms metotlarinin buyuk
+               kismi artik derlenebilir (ldloc/stloc/ldloca/starg). */
+            u32 loc_n = 0;
+            std::vector<u32> loc_sz;
             if (dm.local_sig) {
-                bool yerel = false;
-                for (auto& dc : dcmds) {
-                    u16 c = dc.code;
-                    if ((c >= 0x06 && c <= 0x0D) || c == 0x11 || c == 0x12 || c == 0x13 ||
-                        c == 0x100 + 0x0C || c == 0x100 + 0x0D || c == 0x100 + 0x0E) { yerel = true; break; }
-                }
-                if (yerel) {
-                    f.note = "RED: locals-imzali govde (ldloc/stloc; StandAloneSig v1 kapsam-disi)";
+                std::vector<u8> lt;
+                if (xpdotnet::parse_locals(pe.buf.data(), pe.buf.size(), dimg, dm.local_sig, &lt, &loc_sz)) {
+                    loc_n = (u32)loc_sz.size();
+                } else {
+                    f.note = "RED: locals imzasi cozulemedi (bilinmeyen ELEMENT_TYPE)";
                     continue;
                 }
             }
             xpil::X86Fn dx;
-            if (!xpil::to_x86(dcmds, 0, dm.has_ret, dm.is_static, dm.param_count, &dx, false /*x86-32 (metin2 hedefi)*/)) {
+            if (!xpil::to_x86(dcmds, loc_n, dm.has_ret, dm.is_static, dm.param_count, &dx,
+                              false /*x86-32 (metin2 hedefi)*/, &loc_sz)) {
                 f.note = dx.why_red;
                 continue;
             }

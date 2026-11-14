@@ -357,6 +357,58 @@ bool parse(const u8* d, size_t n, Image* out) {
             m.type_name = td.type_full;
         }
     }
+    // --- 1.2.5-A13 (x2/x7a): StandAloneSig (0x11) tablo-gezinmesi ---
+    // ECMA II.24.2.6: tablolar valid-mask sirasindadır; MethodDef'ten
+    // 0x11'e kadar her PRESENT tablonun genisligi toplanir (kodlu indeks
+    // genislikleri satir-sayilarindan). Sonuc: her StandAloneSig satirinin
+    // #Blob indeksi — ldloc/stloc yerel imzalari buradan cozulur.
+    out->blob_off = blob_off;
+    out->blob_sz = (u32)blob_sz;
+    out->blob4 = b4;
+    {
+        auto sim_w = [&](u32 t) -> u32 { return count_of(t) < 65536 ? 2u : 4u; };
+        auto cw = [&](u32 bits, std::initializer_list<u32> ts) -> u32 {
+            u32 mx = 0;
+            for (u32 t : ts) { u32 c = count_of(t); if (c > mx) mx = c; }
+            return mx < (1u << (16 - bits)) ? 2u : 4u;
+        };
+        u32 tdr_w = cw(2, {2, 1, 0x1B});                 // TypeDefOrRef
+        u32 hca_mx = 0;                                  // HasCustomAttribute: tum tablolar
+        for (u32 b = 0; b <= 0x2B; b++) { u32 c = count_of(b); if (c > hca_mx) hca_mx = c; }
+        u32 hca_w = hca_mx < (1u << 11) ? 2u : 4u;
+        if (has_flag(valid, 0x11)) {
+            u64 cur = md_base + (u64)sc.rows[6] * wMethodDef;
+            bool walk_ok = true;
+            for (u32 t = 0x07; t <= 0x10 && walk_ok; t++) {
+                u32 cnt = count_of(t);
+                if (!cnt) continue;
+                u32 w = 0;
+                switch (t) {
+                case 0x07: w = sim_w(8); break;          // ParamPtr -> Param idx
+                case 0x08: w = 2 + 2 + sidx; break;      // Param: Seq, Flags, Name
+                case 0x09: w = sim_w(2) + tdr_w; break;  // InterfaceImpl: Class, Interface
+                case 0x0A: w = cw(3, {2, 1, 0x1A, 6, 0x1B}) + sidx + (b4 ? 4u : 2u); break; // MemberRef
+                case 0x0B: w = 2 + cw(2, {4, 8, 0x17}) + (b4 ? 4u : 2u); break;             // Constant
+                case 0x0C: w = hca_w + cw(3, {6, 0xA}) + (b4 ? 4u : 2u); break;             // CustomAttribute
+                case 0x0D: w = cw(1, {4, 8}) + (b4 ? 4u : 2u); break;                       // FieldMarshal
+                case 0x0E: w = 2 + cw(2, {2, 6, 0x20}) + (b4 ? 4u : 2u); break;             // DeclSecurity
+                case 0x0F: w = 2 + 4 + sim_w(2); break;  // ClassLayout: Packing, ClassSize, Parent
+                case 0x10: w = 4 + sim_w(4); break;      // FieldLayout: Offset, Field
+                default:   walk_ok = false; break;       // bilinmeyen ara tablo -> vazgec
+                }
+                if (!walk_ok) break;
+                cur += (u64)cnt * w;
+            }
+            u32 sas_rows = count_of(0x11);
+            if (walk_ok && sas_rows && blob_off && cur + (u64)sas_rows * (b4 ? 4u : 2u) <= n) {
+                for (u32 r = 0; r < sas_rows; r++) {
+                    u32 bi = b4 ? rd32(d + cur + (u64)r * 4) : rd16(d + cur + (u64)r * 2);
+                    if (!b4) bi &= 0xFFFFu;
+                    out->sas_blob.push_back(bi);
+                }
+            }
+        }
+    }
     // --- param sayısı: imza blobundan (v1 basit ayrıştırıcı) ---
     for (size_t mi = 0; mi < out->methods.size(); mi++) {
         Method& m = out->methods[mi];
@@ -476,16 +528,97 @@ bool read_body(const u8* d, size_t n, const Method& m, std::vector<u8>* il) {
 }
 
 // StandAloneSig yerel-değişken imzasını çöz (slot boyutları + tipler)
+// 1.2.5-A13 (x2/x7a): artık GERÇEK — parse() artık StandAloneSig (0x11)
+// tablosunu gezdi (sas_blob); LocalVarSig = 0x07 CALLCONV_LOCAL_SIG +
+// compressed count + type-list (ECMA II.23.2.10). Slot: 4 bayt (I8/R8=8);
+// VALUETYPE gerçek boyu bilinmediğinden 4 (dürüst limit — WinForms
+// metotlarının büyük kısmı I4/ref/array local'lidir).
+static bool xdn_comp_u(const u8* s, u64 len, u64* ip, u32* out) {
+    if (*ip >= len) return false;
+    u8 c = s[(*ip)++];
+    if (!(c & 0x80)) { *out = c; return true; }
+    if (!(c & 0x40)) { if (*ip >= len) return false; *out = ((u32)(c & 0x3F) << 8) | s[(*ip)++]; return true; }
+    if (*ip + 3 > len) return false;
+    *out = ((u32)(c & 0x1F) << 24) | ((u32)s[*ip] << 16) | ((u32)s[*ip + 1] << 8) | s[*ip + 2];
+    *ip += 3;
+    return true;
+}
+// bir ELEMENT_TYPE'ı yut (kodu çöz, slot boyunu döndür) — II.23.1.16
+static bool xdn_skip_type(const u8* s, u64 len, u64* ip, u32* sz) {
+    if (*ip >= len) return false;
+    u8 t = s[(*ip)++];
+    switch (t) {
+    case 0x0F: case 0x10: case 0x1D:          // PTR / BYREF / SZARRAY -> iç tip
+        *sz = 4; return xdn_skip_type(s, len, ip, sz);
+    case 0x1F: case 0x20: {                   // CMOD_OPT/REQD: token + iç tip
+        u32 tk; u32 z;
+        if (!xdn_comp_u(s, len, ip, &tk)) return false;
+        if (!xdn_skip_type(s, len, ip, &z)) return false;
+        *sz = 4; return true;
+    }
+    case 0x11: case 0x12: {                   // VALUETYPE / CLASS: TypeDefOrRef token
+        u32 tk;
+        *sz = 4;
+        return xdn_comp_u(s, len, ip, &tk);
+    }
+    case 0x45: {                              // GENERICINST: klass byte + tip + n × tip
+        u32 z, n;
+        if (*ip >= len) return false;
+        (*ip)++;                              // GENERICINST klass/valuetype baytı
+        if (!xdn_skip_type(s, len, ip, &z)) return false;
+        if (!xdn_comp_u(s, len, ip, &n)) return false;
+        if (n > 64) return false;
+        for (u32 i = 0; i < n; i++) { u32 z2; if (!xdn_skip_type(s, len, ip, &z2)) return false; }
+        *sz = 4;
+        return true;
+    }
+    case 0x13: case 0x1E: {                   // VAR / MVAR: numara
+        u32 v; *sz = 4;
+        return xdn_comp_u(s, len, ip, &v);
+    }
+    case 0x0A: case 0x0D: *sz = 8; return true;   // I8 / R8
+    case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+    case 0x08: case 0x09: case 0x0B: case 0x0C: case 0x0E: case 0x16: case 0x17:
+    case 0x18: case 0x19: case 0x1C:          // void/bool/char/i1..u4/r4/string/
+        *sz = 4; return true;                 // object(class ref)/I/U/typedref...
+    default: return false;                    // bilinmeyen -> RED
+    }
+}
 bool parse_locals(const u8* d, size_t n, const Image& img, u32 local_sig_token,
                   std::vector<u8>* types, std::vector<u32>* sizes) {
     if (!local_sig_token || (local_sig_token >> 24) != 0x11) return false;
-    // StandAloneSig satırı: Signature(blob idx) — tablo 0x11 bizim 8'lik kümede yok;
-    // v1: blob'a token-index ile doğrudan gidemeyiz — StandAloneSig satır ofsetini
-    // hesaplamak için tablo 0x11'i de ayrıştırmamız gerekir. Kısayol: engine
-    // tarafında yerel imzası çözülemeyen fat-gövde = RED (net mesaj).
-    (void)d; (void)n; (void)img;
+    u32 row = local_sig_token & 0x00FFFFFFu;
+    if (!row || row > img.sas_blob.size()) return false;
+    u32 blobi = img.sas_blob[row - 1];
+    if (!blobi || !img.blob_sz || !img.blob_off) return false;
+    u64 bp = img.blob_off + blobi;
+    if (bp >= n) return false;
+    // compressed uzunluk
+    u32 len = 0; u64 sp = 0;
+    u8 c0 = d[bp];
+    if (c0 & 0x80) {
+        if (c0 & 0x40) { if (bp + 4 > n) return false;
+            len = ((u32)(c0 & 0x1F) << 24) | ((u32)d[bp + 1] << 16) | ((u32)d[bp + 2] << 8) | d[bp + 3]; sp = 4; }
+        else { if (bp + 2 > n) return false; len = ((u32)(c0 & 0x3F) << 8) | d[bp + 1]; sp = 2; }
+    } else { len = c0; sp = 1; }
+    if (!len || bp + sp + len > n) return false;
+    const u8* s2 = d + bp + sp;
+    u64 ip = 0;
+    if (s2[0] != 0x07) return false;          // CALLCONV_LOCAL_SIG
+    ip = 1;
+    u32 cnt = 0;
+    if (!xdn_comp_u(s2, len, &ip, &cnt)) return false;
+    if (cnt > 4096) return false;             // CLR 9000 limiti altinda makul tavan
     types->clear(); sizes->clear();
-    return false;
+    for (u32 i = 0; i < cnt; i++) {
+        if (ip >= len) return false;
+        u8 t = s2[ip];
+        u32 sz = 0;
+        if (!xdn_skip_type(s2, len, &ip, &sz)) return false;
+        types->push_back(t);
+        sizes->push_back(sz);
+    }
+    return true;
 }
 
 } // namespace xpdotnet

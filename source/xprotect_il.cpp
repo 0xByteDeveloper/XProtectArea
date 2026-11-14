@@ -433,7 +433,8 @@ static void x_push_setcc(std::vector<u8>* c, u8 setxx /*0x94..*/) {
 // Win64 v2'de (golge-alan + RCX/RDX/R8/R9) eklenecek. Motor hedefi x86-32
 // (metin2); x64 yolu Unit-test dogrulamasi icin.
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
-            bool is_static, u32 param_count, X86Fn* out, bool is64) {
+            bool is_static, u32 param_count, X86Fn* out, bool is64,
+            const std::vector<u32>* local_sz) {
     out->ok = false;
     out->has_ret = has_ret;
     out->il_len = cmds.empty() ? 0 : cmds.back().off + cmds.back().len;
@@ -448,15 +449,28 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
     if (is64) { e8(&c, 0x48); e8(&c, 0x89); e8(&c, 0xE5); }   // mov rbp,rsp (64-bit!)
     else { e8(&c, 0x89); e8(&c, 0xE5); } // mov ebp,esp
     e8(&c, 0x53); e8(&c, 0x56); e8(&c, 0x57);  // push ebx;push esi;push edi  // push ebx;push esi;push edi
-    // sub esp, locals*4 (hizalı)
+    // sub esp, locals (hizali)
     u32 slot = is64 ? 8 : 4;
-    u32 loc_bytes = ((locals_count * slot + 15) & ~15u);
+    // 1.2.5-A13 (x7a): yerel slot haritasi — parse_locals boylarindan;
+    // 8-bayt yerel (I8/R8) x86'da 2 slot ayirir (4-bayt erisim dusuk yarimi
+    // okur; tam-I8 aritmetigi v1 kapsam-disi). Boyut yoksa duzgun slot.
+    std::vector<u32> loff(locals_count);
+    u32 loc_total = 0;
+    for (u32 i = 0; i < locals_count; i++) {
+        loff[i] = loc_total;
+        u32 sz = (local_sz && i < local_sz->size() && (*local_sz)[i]) ? (*local_sz)[i] : slot;
+        loc_total += is64 ? slot : ((sz >= 8) ? 8u : 4u);
+    }
+    u32 loc_bytes = ((loc_total + 15) & ~15u);
     if (loc_bytes) {
         if (is64) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }  // sub rsp,imm8
         else { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }
     }
     const i32 LOC_BASE = -12;            // saved ebx/esi/edi (12 bayt)
-    auto loc_disp = [&](u32 i) -> i32 { return (i32)(LOC_BASE - (i64)slot * (i64)(i + 1)); };
+    auto loc_disp = [&](u32 i) -> i32 {
+        u32 lo = (i < loff.size()) ? loff[i] : slot * i;
+        return (i32)(LOC_BASE - (i64)(lo + slot));
+    };
     auto arg_disp = [&](u32 i) -> i32 { return (i32)((is64 ? 16 : 8) + (i64)slot * (i64)i); };
     // --- gövde ---
     for (size_t i = 0; i < cmds.size(); i++) {

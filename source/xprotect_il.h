@@ -85,7 +85,8 @@ struct X86Fn {
     u32 il_len = 0;
 };
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
-            bool is_static, u32 param_count, X86Fn* out, bool is64 = false);
+            bool is_static, u32 param_count, X86Fn* out, bool is64 = false,
+            const std::vector<u32>* local_sz = nullptr);   // +A13/x7a: yerel slot boylari
 
 // desteklenen opcode sayısı (parite ölçümü için)
 u32 supported_count();
