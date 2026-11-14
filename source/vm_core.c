@@ -601,6 +601,8 @@ static u64 vm_natcall5(u64 t, const u64* regs, u64 a5) {
 #define XA_NQSI  0x7A43974Au   /* 1.1.0: NtQuerySystemInformation */
 #define XA_NQIP  0xEA2DDA8Au   /* 1.2.0-A8: NtQueryInformationProcess (K8) */
 #define XA_CLOSEH 0xFABA0065u  /* 1.2.0-A8: CloseHandle (K9) */
+#define XA_MSGBOX 0x23A979E4u  /* 1.2.5 (x1/x2): MessageBoxA (VM-poison mesaj yolu) */
+#define XA_EXITP  0x0E80FD3Au  /* 1.2.5 (x1/x2): ExitProcess (VM-poison cikis yolu) */
 
 /* CONTEXT ofsetleri (winnt.h birebir) — yalniz DEBUG_REGISTERS alani.
    0.8.2 dersi: EFLAGS/RAX ofsetleri (TF-isleyicisi icin) yanlisti; K3
@@ -780,6 +782,65 @@ static u32 xa_call1_86(u32 t, u32 a1) {
     return ret;
 }
 #endif
+
+/* 1.2.5 (x1/x2 FIX): VM tespit yollari (OP_ANTIDBG bataryasi, OP_CHKRET
+   int3/ud2 donus-adresi, K7 hipervizor...) eskiyalarda SESSIZ zehir
+   yapardı (done=2 → fonksiyon gobekte durur, mesaj/cikis YOK) — kullanici
+   bulgusu: "VEH debugger'da mesaj cikmiyo, fonksiyonun kullanimi duruyor".
+   Artik cfg bayraklarina uyar: scratch[5] bit2=rt_msg (MessageBoxA
+   "butunluk kontrol kod = #5"), bit3=rt_exit (ExitProcess(0x75)).
+   Bayraklar stub'dan yazilir (engine_stub: cfg 0x08/0x10 ile ayni anlamlar).
+   UO/VMP paritesi: help/en/history.htm:492 "shows a corresponding message
+   and closes". */
+static void vm_poison(VMContext* c) {
+#if defined(VM_WINDOWS)
+    {
+        u64 k32 = xa_module(XA_K32);
+        if (c->scratch[5] & 4) {                       /* rt_msg */
+            u64 mb = xa_export(k32, XA_MSGBOX);
+            if (mb) {
+                /* PIC: stack-string (rodata YASAK — cp44 dersi). GCC
+                   char-char atamalari .rodata+memcpy'ye cevirebildigi
+                   icin volatile u32 paketleri kullanilir (anlik-deger
+                   kod icine gomulur; xrt VP4/A4 ayni teknik). */
+                volatile u32 tw[3], mw[9];
+                tw[0] = 0x6F725058u;   /* 'X','P','r','o' */
+                tw[1] = 0x74636574u;   /* 't','e','c','t' */
+                tw[2] = 0x00000000u;
+                mw[0] = 0x6F727058u;   /* 'X','p','r','o' */
+                mw[1] = 0x74636574u;   /* 't','e','c','t' */
+                mw[2] = 0x7562203Au;   /* ':',' ','b','u' */
+                mw[3] = 0x6C6E7574u;   /* 't','u','n','l' */
+                mw[4] = 0x6B206B75u;   /* 'u','k',' ','k' */
+                mw[5] = 0x72746E6Fu;   /* 'o','n','t','r' */
+                mw[6] = 0x6B206C6Fu;   /* 'o','l',' ','k' */
+                mw[7] = 0x3D20646Fu;   /* 'o','d',' ','=' */
+                mw[8] = 0x00352320u;   /* ' ','#','5',0 */
+                {
+                    u64 msgp = (u64)(unsigned long)(void*)mw;
+                    u64 ttlp = (u64)(unsigned long)(void*)tw;
+#if defined(VM_IS_X64)
+                    xa_call4(mb, 0, msgp, ttlp, 0x10);
+#else
+                    xa_call4_86((u32)mb, 0, (u32)msgp, (u32)ttlp, 0x10);
+#endif
+                }
+            }
+        }
+        if (c->scratch[5] & 8) {                       /* rt_exit */
+            u64 ep = xa_export(k32, XA_EXITP);
+            if (ep) {
+#if defined(VM_IS_X64)
+                xa_call4(ep, 0x75, 0, 0, 0);           /* 1-arg cagri; oteki arglar onemsiz */
+#else
+                xa_call1_86((u32)ep, 0x75);
+#endif
+            }
+        }
+    }
+#endif /* VM_WINDOWS */
+    c->done = 2;   /* zehir (tespit sonrasi VM durur) */
+}
 
 #endif /* VM_WINDOWS */
 
@@ -1278,7 +1339,7 @@ static void vm_run(VMContext* c) {
                 __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
                                  : "=a"(ca), "=c"(ccx2), "=d"(cd2) : "a"(1) : "memory");
 #endif
-                if (ccx2 & 0x80000000u) c->done = 2;   /* hipervizor icinde */
+                if (ccx2 & 0x80000000u) vm_poison(c);   /* hipervizor icinde */
                 /* 1.2.2-A20: K7c — hypervisor leaf 0x40000000 VENDOR taramasi
                    (VBOX/KVM/HyperV/Xen/Parallels/VMware; UO checkvm deseni,
                    loader-parite: xrt_antidebug ile ayni sabitler). */
@@ -1291,12 +1352,12 @@ static void vm_run(VMContext* c) {
                                      : "=a"(va_), "=c"(vc), "=d"(vd) : "a"(0x40000000u) : "memory");
 #endif
                     if (va_) {
-                        if (vb == 0x4b4d564bu && vc == 0x564b4d56u && vd == 0x0000004du) c->done = 2; /* KVMKVMKVM */
-                        if (vb == 0x7263694du && vc == 0x666f736fu && vd == 0x76482074u) c->done = 2; /* Microsoft Hv */
-                        if (vb == 0x786f4256u && vc == 0x786f4256u && vd == 0x786f4256u) c->done = 2; /* VBoxVBoxVBox */
-                        if (vb == 0x206c7270u && vc == 0x65707968u && vd == 0x00002076u) c->done = 2; /* prl hyperv  */
-                        if (vb == 0x566e6558u && vc == 0x65584d4du && vd == 0x4d4d566eu) c->done = 2; /* XenVMMXenVMM */
-                        if (vb == 0x61774d56u && vc == 0x4d566572u && vd == 0x65726177u) c->done = 2; /* VMwareVMware */
+                        if (vb == 0x4b4d564bu && vc == 0x564b4d56u && vd == 0x0000004du) vm_poison(c); /* KVMKVMKVM */
+                        if (vb == 0x7263694du && vc == 0x666f736fu && vd == 0x76482074u) vm_poison(c); /* Microsoft Hv */
+                        if (vb == 0x786f4256u && vc == 0x786f4256u && vd == 0x786f4256u) vm_poison(c); /* VBoxVBoxVBox */
+                        if (vb == 0x206c7270u && vc == 0x65707968u && vd == 0x00002076u) vm_poison(c); /* prl hyperv  */
+                        if (vb == 0x566e6558u && vc == 0x65584d4du && vd == 0x4d4d566eu) vm_poison(c); /* XenVMMXenVMM */
+                        if (vb == 0x61774d56u && vc == 0x4d566572u && vd == 0x65726177u) vm_poison(c); /* VMwareVMware */
                     }
                 }
                 /* 1.2.2-A15: K7b - CPUID rdtsc-ZAMANLAMA yakalamasi (UO CheckVM
@@ -1317,7 +1378,7 @@ static void vm_run(VMContext* c) {
                         u64 d = (((u64)t1hi << 32) | t1lo) - (((u64)t0hi << 32) | t0lo);
                         if (d < dmin) dmin = d;
                     }
-                    if (dmin > 10000ull) c->done = 2;
+                    if (dmin > 10000ull) vm_poison(c);
 #else
                     u32 t0lo, t0hi, t1lo, t1hi, ea, ecxd, edd;
                     u32 dmin = ~0u;
@@ -1329,7 +1390,7 @@ static void vm_run(VMContext* c) {
                         __asm__ volatile("rdtsc" : "=a"(t1lo), "=d"(t1hi));
                         if (t1lo - t0lo < dmin) dmin = t1lo - t0lo;
                     }
-                    if (dmin > 10000u) c->done = 2;
+                    if (dmin > 10000u) vm_poison(c);
 #endif
                 }
             }
@@ -1339,26 +1400,26 @@ static void vm_run(VMContext* c) {
 #if defined(VM_IS_X64)
             { u64 peb; __asm__ volatile("movq %%gs:0x60, %0" : "=r"(peb));
               u8* p = (u8*)u2p(peb);
-              if (p[2] || (p[0xBC] & 0x70)) c->done = 2; }
+              if (p[2] || (p[0xBC] & 0x70)) vm_poison(c); }
 #else
             { u32 peb; __asm__ volatile("movl %%fs:0x30, %0" : "=r"(peb));
               u8* p = (u8*)u2p((u64)peb);
-              if (p[2] || (p[0x68] & 0x70)) c->done = 2; }
+              if (p[2] || (p[0x68] & 0x70)) vm_poison(c); }
 #endif
             if (!c->done && (u32)c->scratch[3]) {
-                if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) c->done = 2;
+                if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) vm_poison(c);
             }
 #if defined(VM_IS_X64)
             if (!c->done) {
                 u64 fl;
                 __asm__ volatile("pushfq\n\t popq %0" : "=r"(fl));
-                if (fl & 0x100) c->done = 2;
+                if (fl & 0x100) vm_poison(c);
             }
 #else
             if (!c->done) {
                 u32 fl;
                 __asm__ volatile("pushfl\n\t popl %0" : "=r"(fl));
-                if (fl & 0x100) c->done = 2;
+                if (fl & 0x100) vm_poison(c);
             }
 #endif
             }
@@ -1373,7 +1434,7 @@ static void vm_run(VMContext* c) {
                     if (xa_call4(gtc, 0xFFFFFFFFFFFFFFFEull, cal, 0, 0)) {
                         u64 dr = mrd(cal + XA_CTX_DR0, 8) | mrd(cal + XA_CTX_DR1, 8)
                                | mrd(cal + XA_CTX_DR2, 8) | mrd(cal + XA_CTX_DR3, 8);
-                        if (dr) c->done = 2;
+                        if (dr) vm_poison(c);
                     }
 #else
                     u8 cbuf[XA_CTX_SIZE + 16];
@@ -1382,7 +1443,7 @@ static void vm_run(VMContext* c) {
                     if (xa_call2_86((u32)gtc, 0xFFFFFFFEu, cal)) {
                         u32 dr = (u32)mrd((u64)cal + XA_CTX_DR0, 4) | (u32)mrd((u64)cal + XA_CTX_DR1, 4)
                                | (u32)mrd((u64)cal + XA_CTX_DR2, 4) | (u32)mrd((u64)cal + XA_CTX_DR3, 4);
-                        if (dr) c->done = 2;
+                        if (dr) vm_poison(c);
                     }
 #endif
                 }
@@ -1413,18 +1474,18 @@ static void vm_run(VMContext* c) {
                        -> +3221227219!). Cozum: u32 kirp -> i32 isaret
                        genislet -> i64. (VMMIN K8b-kaniti: 0xDEAD0008.) */
                     i64 st = (i64)(int)(u32)xa_qip5(nqip, 7, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0 && dbo != 0) c->done = 2;
+                    if (st >= 0 && dbo != 0) vm_poison(c);
                     dbo = 0;
                     st = (i64)(int)(u32)xa_qip5(nqip, 30, (u64)(unsigned long)(void*)&dbo);
-                    if (st >= 0) c->done = 2;
+                    if (st >= 0) vm_poison(c);
 #else
                     i64 st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 7,
                                               (u32)(unsigned long)(void*)&dbo, 8, 0);
-                    if (st >= 0 && dbo != 0) c->done = 2;
+                    if (st >= 0 && dbo != 0) vm_poison(c);
                     dbo = 0;
                     st = (i64)(long)xa_call5_86((u32)nqip, 0xFFFFFFFFu, 30,
                                           (u32)(unsigned long)(void*)&dbo, 8, 0);
-                    if (st >= 0) c->done = 2;
+                    if (st >= 0) vm_poison(c);
 #endif
                 }
             }
@@ -1433,9 +1494,9 @@ static void vm_run(VMContext* c) {
                 u64 ch = xa_export(xa_module(XA_K32), XA_CLOSEH);
                 if (ch) {
 #if defined(VM_IS_X64)
-                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) c->done = 2;
+                    if (xa_call4(ch, 0xDEADC0DEull, 0, 0, 0)) vm_poison(c);
 #else
-                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) c->done = 2;
+                    if (xa_call1_86((u32)ch, 0xDEADC0DEu)) vm_poison(c);
 #endif
                 }
             }
@@ -1457,7 +1518,7 @@ static void vm_run(VMContext* c) {
                     i64 st = (i64)(long)xa_call4_86((u32)nqsi, 0x23, (u32)(unsigned long)(void*)ib, 2,
                                               (u32)(unsigned long)(void*)&rl);
 #endif
-                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) c->done = 2;
+                    if (st >= 0 && ib[0] != 0 && ib[1] == 0) vm_poison(c);
                 }
             }
             /* (K6) SURUCU TARAMASI — SystemModuleInformation (0x0B) */
@@ -1507,7 +1568,7 @@ static void vm_run(VMContext* c) {
                                 w == 0x000000656369746EULL ||   /* ntice  */
                                 w == 0x0000747865656369ULL ||   /* iceext */
                                 w == 0x0000007265737973ULL)     /* syser  */
-                                c->done = 2;
+                                vm_poison(c);
                         }
                     }
                 }
@@ -2141,7 +2202,7 @@ static void vm_run(VMContext* c) {
             u64 ra = mrd(c->init_rsp, PUSHSZ);
             u8 b0 = (u8)mrd(ra, 1), b1 = (u8)mrd(ra + 1, 1);
             if (b0 == 0xCC || (b0 == 0xCD && b1 == 0x03)
-                || (b0 == 0x0F && b1 == 0x0B)) c->done = 2;
+                || (b0 == 0x0F && b1 == 0x0B)) vm_poison(c);
 
         } else {
             c->done = 1;   // bilinmeyen opcode -> guvenli dur

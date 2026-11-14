@@ -21,7 +21,7 @@ static void put64(std::vector<u8>& v, u64 x) {
 std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc) {
+                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit) {
     std::vector<u8> s;
     Patch32 p_key{}, p_l1{}, p_bc{}, p_len{}, p_rel{}, p_call2{};
     u32 off_pop = 0;
@@ -71,7 +71,7 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
     // 1.2.0-A9: scratch[5] bit1 = Encrypt Registers bayragi (rdec/renc
     // bunu okur; bit0 = ksadv eski kipini korur).
     put(s, {0xC6,0x84,0x24,0xF0,0x00,0x00,0x00});                    // mov byte [rsp+0xF0],
-    put(s, {(u8)((ksadv ? 1 : 0) | (regsenc ? 2 : 0))});
+    put(s, {(u8)((ksadv ? 1 : 0) | (regsenc ? 2 : 0) | (rt_msg ? 4 : 0) | (rt_exit ? 8 : 0))});   /* 1.2.5: bit2=rt_msg bit3=rt_exit (vm_poison okur) */
     put(s, {0xC7,0x84,0x24,0x00,0x01,0x00,0x00});                    // mov dword [rsp+0x100],
     for (int k = 0; k < 4; k++) put(s, {(u8)(vm_id >> (8 * k))});
     // --- 0.5.0: XProtect Runtime kapisi (bir-kez butunluk kontrolu) ---
@@ -197,7 +197,7 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
 std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len, u32 retimm,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc) {
+                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit) {
     // BUGFIX #12 (x86 w+Enter cokmesi): retimm eskiden u16 idi.
     // engine.hpp'deki "ret yok" sentinel'i 0xFFFFFFFF (u32) u16'ya
     // kirpilinca 0xFFFF oluyor, asagidaki sentinel kontrolu atlaniyor
@@ -241,7 +241,7 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
     // KOŞULSUZ yazim (x64 dersi: koşullu yazim klasiK modda anahtari bozdu)
     // 1.2.0-A9: scratch[5] bit1 = Encrypt Registers bayragi.
     put(s, {0xC6,0x84,0x24,0xF0,0x00,0x00,0x00});                    // mov byte [esp+0xF0],
-    put(s, {(u8)((ksadv ? 1 : 0) | (regsenc ? 2 : 0))});
+    put(s, {(u8)((ksadv ? 1 : 0) | (regsenc ? 2 : 0) | (rt_msg ? 4 : 0) | (rt_exit ? 8 : 0))});   /* 1.2.5: bit2=rt_msg bit3=rt_exit (vm_poison okur) */
     put(s, {0xC7,0x84,0x24,0x00,0x01,0x00,0x00});                    // mov dword [esp+0x100],
     for (int k = 0; k < 4; k++) put(s, {(u8)(vm_id >> (8 * k))});
     // --- 0.5.0: XProtect Runtime kapisi (bir-kez butunluk kontrolu) ---
