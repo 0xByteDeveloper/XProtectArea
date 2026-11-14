@@ -11,11 +11,17 @@ static void app(const char* tag) {
         CloseHandle(h);
     }
 }
+#ifdef __cplusplus
+extern "C"
+#endif
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r) {
     (void)h; (void)r;
     if (reason == DLL_PROCESS_ATTACH) app("VFDM\n");
     return TRUE;
 }
+#ifdef __cplusplus
+extern "C"
+#endif
 HRESULT __stdcall DllRegisterServer(void) {
     app("VFDRS\n");
     return 0; /* S_OK */
