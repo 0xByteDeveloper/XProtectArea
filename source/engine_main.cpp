@@ -1399,10 +1399,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
                                          (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
         cur += (u32)st.size();
@@ -1596,10 +1596,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                          (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
         memcpy(&secimg[so], st.data(), st.size());
     }
     // 0.5.0: IAT thunklari (gecikmeli import cozumleyicileri)
@@ -2063,10 +2063,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                              (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                              (rt_any || vf_area || strenc_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want) ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
         }

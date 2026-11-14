@@ -21,9 +21,10 @@ static void put64(std::vector<u8>& v, u64 x) {
 std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit) {
+                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit,
+                               const std::string& msgtext) {
     std::vector<u8> s;
-    Patch32 p_key{}, p_l1{}, p_bc{}, p_len{}, p_rel{}, p_call2{};
+    Patch32 p_key{}, p_l1{}, p_bc{}, p_len{}, p_rel{}, p_call2{}, p_msg{};
     u32 off_pop = 0;
     u32 off_xrt_call = 0;
 
@@ -51,6 +52,14 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
     put(s, {0x58});                                     // pop rax
     put(s, {0x48,0x2D}); p_l1 = {(u32)s.size(), 0}; put32(s, 0);    // sub rax, L1_rva
     put(s, {0x48,0x89,0x44,0x24,0x18});                 // mov [rsp+0x18], rax (base)
+    // 1.2.5-A13 (x7): ozel tespit mesaji (UO/VMP Messages paritesi) — metin
+    // stub'un SONUNA data olarak yasilir (hic calismaz), PIC lea ile
+    // ctx+0x110 (VMContext.msgp) yazilir; 0 = varsayilan "#5" metni.
+    if (!msgtext.empty()) {
+        p_msg = {(u32)s.size() + 3, 0};
+        put(s, {0x48,0x8D,0x88}); put32(s, 0);          // lea rcx,[rax+msg_rva]
+        put(s, {0x48,0x89,0x8C,0x24,0x10,0x01,0x00,0x00}); // mov [rsp+0x110],rcx
+    }
     put(s, {0x48,0x05}); p_bc = {(u32)s.size(), 0}; put32(s, 0);    // add rax, bc_rva
     put(s, {0x48,0x89,0x04,0x24});                      // mov [rsp], rax (bc)
     put(s, {0x48,0xB8}); p_len = {(u32)s.size(), 0}; put64(s, 0);   // mov rax,bc_len
@@ -191,13 +200,24 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
         i32 nr = (i32)(stub_rva + off_natgt - (stub_rva + off_natgt_je + 4));
         for (int k = 0; k < 4; k++) s[off_natgt_je + k] = (u8)((u32)nr >> (8 * k));
     }
+    // 1.2.5-A13 (x7): mesaj metni — kodun SONUNA data (hic calismaz);
+    // lea disp32'si buraya isaret eder. NUL dahil, 255 bayt sinir.
+    if (!msgtext.empty()) {
+        u32 msg_off = (u32)s.size();
+        size_t n = msgtext.size();
+        if (n > 255) n = 255;
+        for (size_t k = 0; k < n; k++) s.push_back((u8)msgtext[k]);
+        s.push_back(0);
+        for (int k = 0; k < 4; k++) s[p_msg.off + k] = (u8)((stub_rva + msg_off) >> (8 * k));
+    }
     return s;
 }
 
 std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len, u32 retimm,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
-                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit) {
+                               u32 perm_seed, u32 vm_id, int ksadv, int regsenc, int rt_msg, int rt_exit,
+                               const std::string& msgtext) {
     // BUGFIX #12 (x86 w+Enter cokmesi): retimm eskiden u16 idi.
     // engine.hpp'deki "ret yok" sentinel'i 0xFFFFFFFF (u32) u16'ya
     // kirpilinca 0xFFFF oluyor, asagidaki sentinel kontrolu atlaniyor
@@ -207,6 +227,7 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
     std::vector<u8> s;
     u32 off_key, off_key2, off_l1, off_bc, off_len, off_call2, off_pop;
     u32 off_xrt_call = 0;
+    Patch32 p_msg{};                                    // 1.2.5-A13 (x7)
 
     put(s, {0x60});                                     // pushad
     put(s, {0x81,0xEC}); put32(s, VM_STUB_SUB86);       // sub esp
@@ -225,6 +246,13 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
     put(s, {0x58});                                     // pop eax
     put(s, {0x2D}); off_l1 = (u32)s.size(); put32(s, 0);            // sub eax,L1_rva
     put(s, {0x89,0x44,0x24,0x18});                      // mov [esp+0x18], eax
+    // 1.2.5-A13 (x7): ozel tespit mesaji — ctx+0x110 (VMContext.msgp);
+    // ecx burada ucretsiz (xrt kapisi ve vm_entry kendi yukler).
+    if (!msgtext.empty()) {
+        p_msg = {(u32)s.size() + 2, 0};
+        put(s, {0x8D,0x88}); put32(s, 0);               // lea ecx,[eax+msg_rva]
+        put(s, {0x89,0x8C,0x24}); put32(s, 0x110);      // mov [esp+0x110],ecx
+    }
     put(s, {0x05}); off_bc = (u32)s.size(); put32(s, 0);            // add eax,bc_rva
     put(s, {0x89,0x04,0x24});                           // mov [esp], eax
     put(s, {0xB8}); off_len = (u32)s.size(); put32(s, 0);           // mov eax,len
@@ -322,6 +350,16 @@ std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
     {
         i32 nr = (i32)(stub_rva + off_natgt - (stub_rva + off_natgt_je + 4));
         for (int k = 0; k < 4; k++) s[off_natgt_je + k] = (u8)((u32)nr >> (8 * k));
+    }
+    // 1.2.5-A13 (x7): mesaj metni — kodun SONUNA data (ret sonrasi hic
+    // calismaz); lea disp32'si buraya isaret eder. NUL dahil, 255 bayt.
+    if (!msgtext.empty()) {
+        u32 msg_off = (u32)s.size();
+        size_t n = msgtext.size();
+        if (n > 255) n = 255;
+        for (size_t k = 0; k < n; k++) s.push_back((u8)msgtext[k]);
+        s.push_back(0);
+        for (int k = 0; k < 4; k++) s[p_msg.off + k] = (u8)((stub_rva + msg_off) >> (8 * k));
     }
     return s;
 }

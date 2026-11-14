@@ -72,6 +72,8 @@ typedef struct {
     u64 done;       // +0xC0  0=devam 1=ret 2=zehir
     u64 scratch[8]; // +0xC8
     u64 regs_epoch; // +0x108 (A20: Encrypt Registers anahtar rotasyonu)
+    u64 msgp;       // +0x110 (A13/x7: ozel tespit mesaji ASCII, 0=varsayilan
+                    //        "butunluk kontrol kod = #5"; stub cfg sayfasindan)
 } VMContext;
 
 /* --- 1.2.0-A9 Encrypt Registers (cpEncryptRegs GERCEK portu) ---
@@ -603,6 +605,13 @@ static u64 vm_natcall5(u64 t, const u64* regs, u64 a5) {
 #define XA_CLOSEH 0xFABA0065u  /* 1.2.0-A8: CloseHandle (K9) */
 #define XA_MSGBOX 0x23A979E4u  /* 1.2.5 (x1/x2): MessageBoxA (VM-poison mesaj yolu) */
 #define XA_EXITP  0x0E80FD3Au  /* 1.2.5 (x1/x2): ExitProcess (VM-poison cikis yolu) */
+/* 1.2.5-A13 (x1 FIX): MESAJ YOLU KIRIKTI — xa_export(kernel32, MessageBoxA)
+   hep 0 donduruyor (MessageBoxA user32.dll'de, kernel32'de DEGIL) -> mesaj
+   hic cikmiyor, rt_exit yalniz calisiyor = "direk silent cikis" (kullanici
+   cp165 raporu). FIX: once PEB'de yuklu user32 ara; yoksa kernel32!
+   LoadLibraryA("user32.dll") yukle (xrt rt_fatal ayni desen, kanitli). */
+#define XA_U32    0xC0323159u  /* "user32.dll"  (genis, kucuk-harf) */
+#define XA_LLDA   0x53B2070Fu  /* LoadLibraryA */
 
 /* CONTEXT ofsetleri (winnt.h birebir) — yalniz DEBUG_REGISTERS alani.
    0.8.2 dersi: EFLAGS/RAX ofsetleri (TF-isleyicisi icin) yanlisti; K3
@@ -722,6 +731,13 @@ static u64 xa_call4(u64 t, u64 a1, u64 a2, u64 a3, u64 a4) {
     r[1] = a1; r[2] = a2; r[8] = a3; r[9] = a4;
     return vm_natcall(t, r);
 }
+/* 1.2.5-A13: 1-arg (LoadLibraryA — vm_poison user32 yukleme yolu) */
+static u64 xa_call1(u64 t, u64 a1) {
+    u64 r[16]; int i;
+    for (i = 0; i < 16; i++) r[i] = 0;
+    r[1] = a1;
+    return vm_natcall(t, r);
+}
 /* 1.2.0-A8: 5-arg (NtQueryInformationProcess, K8) — 5. arg Win64
    ABI'de [rsp+0x20]'dedir; vm_natcall5 yoluyla yazilir. */
 static u64 xa_call5(u64 t, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5) {
@@ -796,28 +812,52 @@ static void vm_poison(VMContext* c) {
 #if defined(VM_WINDOWS)
     {
         u64 k32 = xa_module(XA_K32);
+        u64 u32m = xa_module(XA_U32);
         if (c->scratch[5] & 4) {                       /* rt_msg */
-            u64 mb = xa_export(k32, XA_MSGBOX);
+            u64 mb;
+            if (!u32m && k32) {
+                /* user32 yuklu degil -> LoadLibraryA("user32.dll")
+                   (PIC: stack-string, volatile u32 paketleri) */
+                u64 ll = xa_export(k32, XA_LLDA);
+                if (ll) {
+                    volatile u32 un[3];
+                    un[0] = 0x72657375u;   /* 'u','s','e','r' */
+                    un[1] = 0x642E3233u;   /* '3','2','.','d' */
+                    un[2] = 0x00006C6Cu;   /* 'l','l',0,0 */
+#if defined(VM_IS_X64)
+                    u32m = xa_call1(ll, (u64)(unsigned long)(void*)un);
+#else
+                    u32m = xa_call1_86((u32)ll, (u32)(unsigned long)(void*)un);
+#endif
+                }
+            }
+            mb = u32m ? xa_export(u32m, XA_MSGBOX) : 0;
             if (mb) {
                 /* PIC: stack-string (rodata YASAK — cp44 dersi). GCC
                    char-char atamalari .rodata+memcpy'ye cevirebildigi
                    icin volatile u32 paketleri kullanilir (anlik-deger
-                   kod icine gomulur; xrt VP4/A4 ayni teknik). */
-                volatile u32 tw[3], mw[9];
+                   kod icine gomulur; xrt VP4/A4 ayni teknik).
+                   A13/x7: cfg'de ozel mesaj varsa (ctx->msgp) onu
+                   kullan — UO/VMP "Messages" paritesi. */
+                volatile u32 tw[3];
+                volatile u32 mw[9];
+                u64 msgp = c->msgp;
                 tw[0] = 0x6F725058u;   /* 'X','P','r','o' */
                 tw[1] = 0x74636574u;   /* 't','e','c','t' */
                 tw[2] = 0x00000000u;
-                mw[0] = 0x6F727058u;   /* 'X','p','r','o' */
-                mw[1] = 0x74636574u;   /* 't','e','c','t' */
-                mw[2] = 0x7562203Au;   /* ':',' ','b','u' */
-                mw[3] = 0x6C6E7574u;   /* 't','u','n','l' */
-                mw[4] = 0x6B206B75u;   /* 'u','k',' ','k' */
-                mw[5] = 0x72746E6Fu;   /* 'o','n','t','r' */
-                mw[6] = 0x6B206C6Fu;   /* 'o','l',' ','k' */
-                mw[7] = 0x3D20646Fu;   /* 'o','d',' ','=' */
-                mw[8] = 0x00352320u;   /* ' ','#','5',0 */
+                if (!msgp) {
+                    mw[0] = 0x6F727058u;   /* 'X','p','r','o' */
+                    mw[1] = 0x74636574u;   /* 't','e','c','t' */
+                    mw[2] = 0x7562203Au;   /* ':',' ','b','u' */
+                    mw[3] = 0x6C6E7574u;   /* 't','u','n','l' */
+                    mw[4] = 0x6B206B75u;   /* 'u','k',' ','k' */
+                    mw[5] = 0x72746E6Fu;   /* 'o','n','t','r' */
+                    mw[6] = 0x6B206C6Fu;   /* 'o','l',' ','k' */
+                    mw[7] = 0x3D20646Fu;   /* 'o','d',' ','=' */
+                    mw[8] = 0x00352320u;   /* ' ','#','5',0 */
+                    msgp = (u64)(unsigned long)(void*)mw;
+                }
                 {
-                    u64 msgp = (u64)(unsigned long)(void*)mw;
                     u64 ttlp = (u64)(unsigned long)(void*)tw;
 #if defined(VM_IS_X64)
                     xa_call4(mb, 0, msgp, ttlp, 0x10);
