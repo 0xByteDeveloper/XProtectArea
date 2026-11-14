@@ -1,0 +1,18 @@
+[PE] Z:\tmp\my-project\saha\matris\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0xBC30 (290B) | sürüm imzası: 10 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00BD52 | VM blob 48165B | vm_entry RVA=0x54D750
+[RELOC] reloc girdisi silindi: 0, yeni boyut=174136
+[STRIPFIX] .reloc dizini silindi (174136 bayt)
+[STRIPFIX] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (ASLR kapali)
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_StripFixups.exe (5264896 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=ACIK | stripdbg=kapali
+rc=0

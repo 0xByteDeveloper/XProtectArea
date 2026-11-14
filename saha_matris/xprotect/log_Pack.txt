@@ -1,0 +1,38 @@
+[PE] Z:\tmp\my-project\saha\matris\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0x149F0 (232B) | sürüm imzası: 8 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x014AD8 | VM blob 48165B | vm_entry RVA=0x54D750
+[RELOC] reloc girdisi silindi: 0, yeni boyut=174136
+[PACK] .text RVA=0x00001000 3881472 B -> LZMA 1253601 B (%32.3)
+[PACK] .data RVA=0x0044E000 197120 B -> LZMA 69714 B (%35.4)
+[PACK] .data1 RVA=0x004C4000 2560 B -> LZMA 375 B (%14.6)
+[PACK] EP 0x239B82 -> unpack stub 0x69A320 (.vmp1) | OEP 0x239B82 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[PACK] dosya compaction: 5301248 -> 3868672 bayt
+[XRT] runtime katmani: flags=0x10 | self=0x00000000 (0B) | text=0x00000000 (0x3B38F4, reloc-atla 0B) | file=0x4E2DF687 (atla: cksum+496, .vmp0 2459648..2544640) | pack=0x557000
+[XRT] xrt_entry=0x00552B50 cfg=0x00556980 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: ExitProcess
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_Pack.exe (3868672 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00557000) | sectcrypt=kapali | stripfix=kapali | stripdbg=kapali
+rc=0
+0024:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+002c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0034:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+003c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0048:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+006c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0074:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+008c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00a8:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00b0:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5
+003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1359
+00f4:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+011c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.

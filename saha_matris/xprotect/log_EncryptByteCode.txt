@@ -1,0 +1,71 @@
+[PE] Z:\tmp\my-project\saha\matris\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[MANUEL] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C tip=V
+[LIFT] 1/1 secili fonksiyon | V=1 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0xBDC0 (290B) | sürüm imzası: 10 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x542000 boyut=0x00BEE2 | VM blob 48165B | vm_entry RVA=0x54D750
+[YAMA] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C | bc=214B key=0x41C3AAC9287A7137 | stubRVA=0x54DD00 retimm=8 (trampoline)
+  000D7610: push ebp
+  000D7611: mov ebp, esp (sz4)
+  000D7613: alu1 (sz4)
+  000D7616: push esi
+  000D7617: mov esi, ecx (sz4)
+  000D7619: call 0xdc1a0 (ncall)
+  000D761E: alu6 (sz1)
+  000D7620: jcc5 0xd762b
+  000D7622: mov eax, imm=0x1
+  000D7624: pop esi
+  000D7625: mov esp, ebp (sz4)
+  000D7627: pop ebp
+  000D7628: ret 0x8
+  000D762B: mov eax, [mem] (sz1)
+  000D762E: mov [mem], eax (sz1)
+  000D7631: mov eax, [mem] (sz4)
+  000D7634: mov [mem], eax (sz4)
+  000D7637: lea eax, [mem]
+  000D763A: push eax
+  000D763B: push ecx
+  000D763C: mov ecx, esi (sz4)
+  000D763E: mov [mem], imm8=0x2
+  000D7642: call 0xd7670 (ncall)
+  000D7647: alu6 (sz1)
+  000D7649: jcc5 0xd7661
+  000D764B: push 0x8033bc
+  000D7650: call 0x141660 (ncall)
+  000D7655: alu0 (sz4)
+  000D7658: xor-rr KAPI-dekompoze (sz1)
+  000D765A: pop esi
+  000D765B: mov esp, ebp (sz4)
+  000D765D: pop ebp
+  000D765E: ret 0x8
+  000D7661: mov ecx, esi (sz4)
+  000D7663: call 0x152520 (ncall)
+  000D7668: pop esi
+  000D7669: mov esp, ebp (sz4)
+  000D766B: pop ebp
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[RELOC] reloc girdisi silindi: 1, yeni boyut=174132
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_EncryptByteCode.exe (5265408 bayt)
+[OZET] tipler: V=1 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0
+0024:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+002c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0034:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+003c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0048:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+006c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0074:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+008c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00a8:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00b0:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5
+003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1359
+00f4:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+011c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.

@@ -1,0 +1,32 @@
+[PE] Z:\tmp\my-project\saha\matris\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[STRENC] .rdata'da 6451 string tespit
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0x159F0 (232B) | sürüm imzası: 8 kopya | kullanıcı: 0 kopya (0 watermark)
+[STRENC] atla (reloc kesismesi): rva=0x003C2CA3
+[SECTION] .vmp0 RVA=0x542000 boyut=0x015AD8 | VM blob 48165B | vm_entry RVA=0x54D750
+[RELOC] reloc girdisi silindi: 0, yeni boyut=174136
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_EncryptStrings.exe (5305344 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=ACIK | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0
+0024:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+002c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0034:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+003c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0048:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0070:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0078:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0090:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00ac:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00b4:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5
+003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1359
+00f8:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0120:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0128:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.

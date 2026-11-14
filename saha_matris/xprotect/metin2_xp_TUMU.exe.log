@@ -1,0 +1,108 @@
+[PE] Z:\tmp\my-project\saha\matris\metin2client.exe | Machine=0x014C | PE32(x86) | ImageBase=0x400000 | GirisRVA=0x239B82
+  sec .text    RVA=0x001000 VSz=0x3B38F4 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x3B5000 VSz=0x09865E Raw=0x3B3E00 Chars=0x40000040
+  sec .data    RVA=0x44E000 VSz=0x0751EC Raw=0x44C600 Chars=0xC0000040
+  sec .data1   RVA=0x4C4000 VSz=0x0008E0 Raw=0x47C800 Chars=0xC0000040
+  sec .rsrc    RVA=0x4C5000 VSz=0x051A98 Raw=0x47D200 Chars=0x40000040
+  sec .reloc   RVA=0x517000 VSz=0x02A838 Raw=0x4CEE00 Chars=0x42000040
+[KESIF] export=2 coff-fonksiyon=0
+[FONKSIYON] 0 aday (.text)
+[MANUEL] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C tip=U
+[STRENC] .rdata'da 6451 string tespit
+[ULTRA] bolge kipi: mutasyon atlandi -> saf V (A20)
+[LIFT] 1/1 secili fonksiyon | V=0 M=0 U=1 (U-mutdus=0)
+[LSD] lisans blok: modulus=yok urun=yok watermark=var build_date=0x7EA0B09 lsd_rva=0x5569E8
+[DEBUGMODE] INT3 dolumu aktif: bolge-kalanlari 0xCC (govde + tramp junk)
+[WM] watermark alanı: .vmp0+0x15F80 (408B) | sürüm imzası: 8 kopya | kullanıcı: 8 kopya (1 watermark)
+[WM] kullanıcı watermark[1]: value=xp-2026-saha (8 kopya)
+[STRENC-dbg] comp rva=0x0D7610 ty=2 str_refs=0
+[STRENC] atla (reloc kesismesi): rva=0x003C2CA3
+[SECTION] .vmp0 RVA=0x542000 boyut=0x016118 | VM blob 48165B | vm_entry RVA=0x54D750
+[YAMA] MANUAL_0xD7610 @RVA=0x0D7610 boyut=0x5C | bc=569B key=0x41C3AAC9D87C964B | stubRVA=0x557EA0 retimm=8 (trampoline)
+  [ULTRA] on-mutasyon: ikame=6 junk=13 kapi=5 | 92B->207B (x2.25)
+  000D7610: push ebp
+  000D7611: mov ebp, esp (sz4)
+  000D7613: jmp 0xd761b
+  000D7615: alu0 (sz4)
+  000D761B: alu1 (sz4)
+  000D761E: push esi
+  000D761F: push ecx
+  000D7620: pop esi
+  000D7621: call 0xdc1a0 (ncall)
+  000D7626: jmp 0xd7635
+  000D7628: mov ecx, imm=0x71efdae4
+  000D762D: alu6 (sz4)
+  000D762F: push 0x926db1c8
+  000D7634: pop ecx
+  000D7635: or-rr KAPI-dekompoze (sz1)
+  000D7637: jcc5 0xd765f
+  000D763D: mov eax, imm=0x1
+  000D763F: push 0x88ce88e2
+  000D7644: pop ecx
+  000D7645: pop esi
+  000D7646: mov esp, ebp (sz4)
+  000D7648: mov ecx, imm=0xea1f574d
+  000D764D: alu0 (sz4)
+  000D7653: pop ebp
+  000D7654: ret 0x8
+  000D7657: mov ecx, imm=0x2ccdd24e
+  000D765C: lea ecx, [mem]
+  000D765F: mov eax, [mem] (sz1)
+  000D7662: mov [mem], eax (sz1)
+  000D7665: jmp 0xd767b
+  000D7667: mov ecx, imm=0x92d5c349
+  000D766C: alu0 (sz4)
+  000D7672: lea ecx, [mem]
+  000D7675: push 0x515aef34
+  000D767A: pop ecx
+  000D767B: mov eax, [mem] (sz4)
+  000D767E: mov [mem], eax (sz4)
+  000D7681: lea eax, [mem]
+  000D7684: push eax
+  000D7685: push ecx
+  000D7686: lea ecx, [mem]
+  000D7689: mov ecx, esi (sz4)
+  000D768B: mov [mem], imm8=0x2
+  000D768F: call 0xd7670 (ncall)
+  000D7694: jmp 0xd76a7
+  000D7696: alu0 (sz4)
+  000D769C: alu0 (sz4)
+  000D76A2: mov ecx, imm=0xafe3c9da
+  000D76A7: or-rr KAPI-dekompoze (sz1)
+  000D76A9: jcc5 0xd76cf
+  000D76AF: push 0x8033bc
+  000D76B4: call 0x141660 (ncall)
+  000D76B9: alu1 (sz4)
+  000D76BC: alu1 (sz1)
+  000D76BE: pop esi
+  000D76BF: jmp 0xd76c6
+  000D76C1: mov ecx, imm=0x11ae142
+  000D76C6: mov esp, ebp (sz4)
+  000D76C8: pop ebp
+  000D76C9: lea ecx, [mem]
+  000D76CC: ret 0x8
+  000D76CF: push esi
+  000D76D0: pop ecx
+  000D76D1: call 0x152520 (ncall)
+  000D76D6: pop esi
+  000D76D7: mov ecx, imm=0xd907998a
+  000D76DC: mov esp, ebp (sz4)
+  000D76DE: pop ebp
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[RELOC] reloc girdisi silindi: 1, yeni boyut=174132
+[MEMPROT] .text Chars=0x60000020 (yazilamaz)
+[MEMPROT] .vmp0 Chars=0xE0000060 (CRC kipi: yazilabilir, VEH kurulu)
+[PACK] .text RVA=0x00001000 3881472 B -> LZMA 1253540 B (%32.3)
+[PACK] .data RVA=0x0044E000 197120 B -> LZMA 69714 B (%35.4)
+[PACK] .data1 RVA=0x004C4000 2560 B -> LZMA 375 B (%14.6)
+[PACK] .rsrc RVA=0x004C5000 334848 B -> LZMA 209078 B (%62.4)
+[PACK] EP 0x239B82 -> unpack stub 0x6CF3B0 (.vmp1) | OEP 0x239B82 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[PACK] dosya compaction: 5306880 -> 3957760 bayt
+[STRIPFIX] .reloc dizini silindi (174132 bayt)
+[STRIPDBG] debug dizini silindi (112 bayt)
+[XRT] runtime katmani: flags=0xE37 | self=0x420DB3FE (84344B) | text=0x44DBE6B3 (0x3B38F4, reloc-atla 0B) | file=0x7911E491 (atla: cksum+496, .vmp0 2334208..2424832) | pack=0x559000
+[XRT] xrt_entry=0x00552B50 cfg=0x00556980 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: ExitProcess
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_TUMU.exe (3957760 bayt)
+[OZET] tipler: V=0 M=0 U=1 | vmn=1 | antidebug=ACIK | resprot=ACIK | checkvm=ACIK | strenc=ACIK | memprot=ACIK | vmenc=ACIK | vmregs=ACIK | chkret=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=1,text=1,file=1) | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00559000) | sectcrypt=kapali | stripfix=ACIK | stripdbg=ACIK
+rc=0

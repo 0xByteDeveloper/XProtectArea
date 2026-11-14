@@ -1,0 +1,73 @@
+65F: mov eax, [mem] (sz1)
+  000D7662: mov [mem], eax (sz1)
+  000D7665: jmp 0xd767b
+  000D7667: mov ecx, imm=0x92d5c349
+  000D766C: alu0 (sz4)
+  000D7672: lea ecx, [mem]
+  000D7675: push 0x515aef34
+  000D767A: pop ecx
+  000D767B: mov eax, [mem] (sz4)
+  000D767E: mov [mem], eax (sz4)
+  000D7681: lea eax, [mem]
+  000D7684: push eax
+  000D7685: push ecx
+  000D7686: lea ecx, [mem]
+  000D7689: mov ecx, esi (sz4)
+  000D768B: mov [mem], imm8=0x2
+  000D768F: call 0xd7670 (ncall)
+  000D7694: jmp 0xd76a7
+  000D7696: alu0 (sz4)
+  000D769C: alu0 (sz4)
+  000D76A2: mov ecx, imm=0xafe3c9da
+  000D76A7: or-rr KAPI-dekompoze (sz1)
+  000D76A9: jcc5 0xd76cf
+  000D76AF: push 0x8033bc
+  000D76B4: call 0x141660 (ncall)
+  000D76B9: alu1 (sz4)
+  000D76BC: alu1 (sz1)
+  000D76BE: pop esi
+  000D76BF: jmp 0xd76c6
+  000D76C1: mov ecx, imm=0x11ae142
+  000D76C6: mov esp, ebp (sz4)
+  000D76C8: pop ebp
+  000D76C9: lea ecx, [mem]
+  000D76CC: ret 0x8
+  000D76CF: push esi
+  000D76D0: pop ecx
+  000D76D1: call 0x152520 (ncall)
+  000D76D6: pop esi
+  000D76D7: mov ecx, imm=0xd907998a
+  000D76DC: mov esp, ebp (sz4)
+  000D76DE: pop ebp
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[RELOC] reloc girdisi silindi: 1, yeni boyut=174132
+[MEMPROT] .text Chars=0x60000020 (yazilamaz)
+[MEMPROT] .vmp0 Chars=0xE0000060 (CRC kipi: yazilabilir, VEH kurulu)
+[PACK] .text RVA=0x00001000 3881472 B -> LZMA 1253540 B (%32.3)
+[PACK] .data RVA=0x0044E000 197120 B -> LZMA 69714 B (%35.4)
+[PACK] .data1 RVA=0x004C4000 2560 B -> LZMA 375 B (%14.6)
+[PACK] .rsrc RVA=0x004C5000 334848 B -> LZMA 209078 B (%62.4)
+[PACK] EP 0x239B82 -> unpack stub 0x6CF3B0 (.vmp1) | OEP 0x239B82 stub'e gomuldu
+[PACK] DYNAMIC_BASE/HIGH_ENTROPY_VA temizlendi (sabit taban)
+[PACK] dosya compaction: 5306880 -> 3957760 bayt
+[STRIPFIX] .reloc dizini silindi (174132 bayt)
+[STRIPDBG] debug dizini silindi (112 bayt)
+[XRT] runtime katmani: flags=0xE37 | self=0x420DB3FE (84344B) | text=0x44DBE6B3 (0x3B38F4, reloc-atla 0B) | file=0x7911E491 (atla: cksum+496, .vmp0 2334208..2424832) | pack=0x559000
+[XRT] xrt_entry=0x00552B50 cfg=0x00556980 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: ExitProcess
+[KAYIT] Z:\tmp\my-project\saha\matris\xprotect\metin2_xp_TUMU.exe (3957760 bayt)
+[OZET] tipler: V=0 M=0 U=1 | vmn=1 | antidebug=ACIK | resprot=ACIK | checkvm=ACIK | strenc=ACIK | memprot=ACIK | vmenc=ACIK | vmregs=ACIK | chkret=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=1,text=1,file=1) | iat=kapali | sdk=ACIK | pack=ACIK(LZMA, XPK1=0x00559000) | sectcrypt=kapali | stripfix=ACIK | stripdbg=ACIK
+rc=0
+0024:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+002c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0034:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+003c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0048:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+006c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0074:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+008c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00a8:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+00b0:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5
+003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1359
+00f4:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+011c:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
+0124:fixme:ntdll:init_cpu_info Failed to get logical processor information, status 0xc0000002.
