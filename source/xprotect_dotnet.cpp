@@ -44,21 +44,24 @@ static bool pe_sections(const u8* d, size_t n, std::vector<Sec>* out, u32* data_
     u32 e_lfanew = rd32(d + 0x3C);
     if (e_lfanew + 0x18 > n || memcmp(d + e_lfanew, "PE\0\0", 4) != 0) return false;
     u16 nsec = rd16(d + e_lfanew + 6);
-    u16 opt_h = rd16(d + e_lfanew + 24);   // OptionalHeader.Magic (COFF 20 bayt)
+    u16 opt_sz = rd16(d + e_lfanew + 20);  // SizeOfOptionalHeader (COFF alanı)
+    u16 opt_h = rd16(d + e_lfanew + 24);   // OptionalHeader.Magic
     if (opt_h != 0x10B && opt_h != 0x20B) return false;
     *is64 = (opt_h == 0x20B);
     const u8* oh = d + e_lfanew + 24;
-    u32 magic_of_dirs = *is64 ? 0x70 : 0x60;
-    *num_dirs = rd32(oh + magic_of_dirs);
+    // PE32 ve PE64'te DataDirectory ayni yerde: NumberOfRvaAndSizes=0x48,
+    // dizin=0x4C (ECMA/PE spec — VMProtect pefile.cc ile ayni yerlesim)
+    *num_dirs = rd32(oh + 0x48);
     if (*num_dirs > 16) *num_dirs = 16;
     memset(data_dirs, 0, 16 * 8);
     for (u32 i = 0; i < *num_dirs; i++) {
-        const u8* de = oh + magic_of_dirs + 4 + i * 8;
+        const u8* de = oh + 0x4C + i * 8;
         data_dirs[i * 2] = rd32(de);
         data_dirs[i * 2 + 1] = rd32(de + 4);
     }
-    *imagebase = rd32(oh + (*is64 ? 0x18 : 0x1C));
-    size_t so = e_lfanew + 24 + opt_h;
+    *imagebase = *is64 ? rd32(oh + 0x18) : rd32(oh + 0x1C);
+    if (*is64) { u64 ib = 0; memcpy(&ib, oh + 0x18, 8); *imagebase = (u32)ib; }
+    size_t so = e_lfanew + 24 + opt_sz;
     for (u16 i = 0; i < nsec; i++) {
         size_t s = so + (size_t)i * 40;
         if (s + 40 > n) break;
@@ -128,8 +131,8 @@ bool parse(const u8* d, size_t n, Image* out) {
     u32 vlen = rd32(d + meta_off + 12);
     u64 p = meta_off + 16 + vlen;
     if (p + 6 > n) { out->err = "metadata basligi kirik"; return false; }
-    u16 nstreams = rd16(d + p + 4);
-    p += 6;
+    u16 nstreams = rd16(d + p);            // NumberOfStreams (version'dan sonra)
+    p += 2;
     u64 tab_off = 0, tab_sz = 0, str_off = 0, str_sz = 0, us_off = 0, us_sz = 0, blob_off = 0, blob_sz = 0;
     for (int i = 0; i < nstreams; i++) {
         if (p + 8 > n) break;
@@ -173,7 +176,7 @@ bool parse(const u8* d, size_t n, Image* out) {
     // satir genişlikleri (v1 kümesi; SimpleIndex heap'ler)
     u32 wModule = sidx + (g4 ? 4 : 2);                       // Name, Mvid
     u32 wTypeRef = 2 + 2 * sidx;                             // Scope, Name, Namespace
-    u32 wTypeDef = 4 + 2 * sidx + 2 + 2;                     // Flags, Name, NS, Extends, FieldList, MethodList
+    u32 wTypeDef = 4 + 2 * sidx + 2 + 2 + 2;                 // Flags, Name, NS, Extends, FieldList, MethodList
     u32 wField = 2 + sidx + (b4 ? 4 : 2);                    // Flags, Name, Signature
     u32 wMethodDef = 4 + 2 + 2 + sidx + (b4 ? 4 : 2) + 2;    // RVA, ImplFlags, Flags, Name, Signature, ParamList
     u32 wParam = 2 + 2 + sidx;                               // Sequence, Flags, Name
