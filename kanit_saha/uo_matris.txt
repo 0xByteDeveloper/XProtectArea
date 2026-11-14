@@ -21,3 +21,4 @@ VirtualFiles               OK 6144000
 EncryptStrings             OK 6144000
 Pack                       OK 6144000
 Loader                     OK 6144000
+TUMU                       OK 4224000
