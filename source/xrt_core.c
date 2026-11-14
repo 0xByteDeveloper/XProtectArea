@@ -1741,7 +1741,10 @@ static void xvr_load(const u8* blob, u32 blen, u64 k32) {
             nl = ld32(blob + off); off += 4;
             if (off + nl > blen) return;
             {
-                u32 j, dpos = off;
+                /* 1.2.3-FIX: dpos artk VERI ofseti — eski kod isim-ofsetini
+                   tutuyordu (ent.data isme isaret ediyordu; QueryValue
+                   deger yerine "Surum" ismini donduruyordu). */
+                u32 j;
                 u8* np = (u8*)(unsigned long)(xvr_mem + blen);       /* isim alani */
                 for (j = 0; j < nl && j < 250; j++) np[(unsigned long)i * 256 + j] = blob[off + j];
                 np[(unsigned long)i * 256 + (nl < 250 ? nl : 249)] = 0;
@@ -1755,7 +1758,7 @@ static void xvr_load(const u8* blob, u32 blen, u64 k32) {
                 xvr_ent[i].name = np + (unsigned long)i * 256;
                 xvr_ent[i].type = ty;
                 xvr_ent[i].dlen = dl;
-                xvr_ent[i].data = (const u8*)(unsigned long)(xvr_mem + dpos);  /* scratch kopyasi */
+                xvr_ent[i].data = (const u8*)(unsigned long)(xvr_mem + off);   /* VERI ofseti (fix) */
                 off += dl;
             }
         }
