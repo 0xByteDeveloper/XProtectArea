@@ -719,3 +719,32 @@ SONUC: (is bitince yazilacak)
   N fonksiyon). src_name case 8.
 - SONU: build a13 suruyor (zig x64+x86); sonrasinda wine E2E: metin2 d7610
   antidebug mesaj path, RunPEForm locals-derleme, log kopyalama/boyutlandirma.
+
+## 2026-11-14 14:30 — A13 WINE E2E KANITLARI (cp166 turu sonu)
+
+- x1/x7c MESAJ YOLU RUNTIME KANITLI:
+  trt0.exe --all --antidebug --checkvm → wine(KVM) çalıştırıldı:
+  * relay (WINEDEBUG=+relay): Call KERNEL32.LoadLibraryA("user32.dll") ret=0x140047d28
+    (korumalı imaj içinden, PIC yolu) → Call user32.MessageBoxA(0,
+    "XProtect: butunuluk kontrolu kod = #6", "XProtect", MB_ICONERROR) —
+    code 6 = XRT global checkvm (5=antidebug | 6=checkvm | 7=kerneldbg).
+  * SCREENSHOT KANITI: a13_test/t10_shot.png — mesaj kutusu EKRANDA, OK
+    bekliyor (blokluyor). Dosya: download/a13_cp166/mesajbox_kanit.png.
+  * EXIT-KOD KANALI BU CHROOT'TA ÖLÜ (ExitProcess(117) probe → rc=3;
+    temiz trt0 da rc=3) — rc tabanlı testler wine'da geçersiz; relay+görüntü
+    tek dürüst kanal (kanit.txt'e not edildi).
+- x2/x7a: minidn_fat E2E: [DOTNET] 3 aday → Method1 fat+locals DERLENDİ
+  (IL 0x6B → x86 0x16B) → rc=0 KAYIT. Method2: "locals imzasi cozulemedi
+  (bilinmeyen ELEMENT_TYPE)" (sentetik üreticinin imzası — dürüst RED);
+  Method3: EH (bilinen). RunPEForm --all: 42 aday, locals-RED SIFIR — kalan
+  RED'ler call/newobj/ldfld/ldstr (v1 kapsamı dışı nesne-ops; sonraki paket).
+- T3: --rt-msg "Xprotect: Ozel tespit mesaji A13" → OZET logu mesaj=...
+  + stub baytlarında arama VAR (PASS). Custom message gomulu kanıtlı.
+- VM-blob statik doğrulama: vm64.bin içinde LoadLibraryA hash (0x53B2070F),
+  user32 hash (0xC0323159), MessageBoxA hash, ExitProcess hash, '#5' metni
+  ve user32.dll stack-string immediateleri — hepsi mevcut (ofs 4155-4532).
+- bilinen-yeni: /tmp/tdi host testi exit-segv (cp144 quirk ailesi) — ayrı iş.
+- SONRAKİ ENDPOINT: (1) minidn_fat Method2 element-type fix'i (sentetik
+  üretici + yürüyücü hizalama), (2) RunPEForm call/newobj/ldfld nesne-ops
+  paketi (UO .NET paritesinin ana kalanı), (3) script.cc (Lua) portu,
+  (4) gerçek-Windows kullanıcı kabul testi (konsol-kopyala ile log beklenir).
