@@ -853,7 +853,7 @@ static bool dotnet_funcs_for(const std::wstring& target, std::vector<PeFunc>* ou
         PeFunc nf;
         nf.rva = m.rva;
         nf.size = m.body_len;
-        nf.name = s2w(m.type_name.empty() ? m.name : (m.type_name + "::" + m.name));
+        nf.name = s2w_narrow(m.type_name.empty() ? m.name : (m.type_name + "::" + m.name));
         nf.is_export = false;
         nf.source = 7;   // src_name: "DOTNET"
         out->push_back(nf);

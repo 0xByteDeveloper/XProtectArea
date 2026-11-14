@@ -1,0 +1,45 @@
+== [0/2] LZMA C nesneleri ==
+== [1/2] XProtectUI.exe (x64) ==
+engine_main.cpp:912:37: warning: format specifies type 'unsigned int' but the argument has type 'unsigned long long' [-Wformat]
+  910 |                                     "| k=%016llX k1=%016llX n=%u | P-ilk: %02X %02X %02X %02X | esz=%u",
+      |                                                               ~~
+      |                                                               %llu
+  911 |                                     (unsigned long long)xvf_k0(cfg_rva), (unsigned long long)xvf_k1(cfg_rva),
+  912 |                                     xvf_nonce(data_offs[fi]),
+      |                                     ^~~~~~~~~~~~~~~~~~~~~~~~
+engine_main.cpp:1112:43: warning: data argument not used by format string [-Wformat-extra-args]
+ 1111 |             snprintf(b, sizeof b, "[SDK-API] %zu isaret / %u API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)",
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1112 |                      apis.size(), n_apis, lsd_rva, xrt_sdk_rva);
+      |                                           ^
+2 warnings generated.
+engine_lift.cpp:407:81: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  407 |                 snprintf(buf, sizeof buf, "jmp disari -> jmpext 0x%x (kuyruk)", I.target); break;
+      |                                                                   ~~            ^~~~~~~~
+      |                                                                   %llx
+engine_lift.cpp:411:51: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  411 |             snprintf(buf, sizeof buf, "jmp 0x%x", I.target); break;
+      |                                              ~~   ^~~~~~~~
+      |                                              %llx
+engine_lift.cpp:421:80: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  421 |                 snprintf(buf, sizeof buf, "jcc%d disari -> jccext 0x%x", I.cc, I.target); break;
+      |                                                                     ~~         ^~~~~~~~
+      |                                                                     %llx
+engine_lift.cpp:425:59: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  425 |             snprintf(buf, sizeof buf, "jcc%d 0x%x", I.cc, I.target); break;
+      |                                                ~~         ^~~~~~~~
+      |                                                %llx
+engine_lift.cpp:430:60: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  430 |             snprintf(buf, sizeof buf, "call 0x%x (ncall)", I.target); break;
+      |                                               ~~           ^~~~~~~~
+      |                                               %llx
+engine_lift.cpp:555:60: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  555 |             snprintf(buf, sizeof buf, "loop%d 0x%x", I.cc, I.target); break;
+      |                                                 ~~         ^~~~~~~~
+      |                                                 %llx
+engine_lift.cpp:561:53: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  561 |             snprintf(buf, sizeof buf, "jecxz 0x%x", I.target); break;
+      |                                                ~~   ^~~~~~~~
+      |                                                %llx
+7 warnings generated.
+== [2/2] XProtectUI32.exe (x86) ==
