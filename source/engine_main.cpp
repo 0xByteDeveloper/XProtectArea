@@ -2338,7 +2338,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         L(b);
         L(std::string("[XRT] xrt_entry=0x") + hex32(xrt_entry_rva) + " cfg=0x" + hex32(cfg_rva) +
           " | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: " +
-          (opt.rt_msg ? "MessageBoxA + " : "") + (opt.rt_exit ? "ExitProcess" : "ud2 zehir"));
+          (opt.rt_msg ? "MessageBoxA + " : "") + (opt.rt_exit ? "ExitProcess" : "ud2 zehir") +
+          (opt.rt_msgtext.empty() ? std::string("") :
+           (std::string(" | mesaj=\"") + opt.rt_msgtext + "\" (A13/x7)")));
     } else if (opt.iat_prot) {
         L("[XRT] yalniz IAT korumasi: xrt_resolve gecikmeli cozumleyici yerlesti (cfg kullanilmaz)");
     }

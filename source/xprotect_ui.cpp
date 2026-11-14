@@ -153,7 +153,7 @@ enum {
     IDM_TPL_BASE = 0x2100,
     IDC_MAIN_TOOLBAR = 101, IDC_MAIN_TREE, IDC_MAIN_FUNC, IDC_MAIN_PROP,
     IDC_MAIN_LOG, IDC_MAIN_STATUS, IDC_MAIN_TABSTRIP, IDC_MAIN_WELCOME,
-    IDC_MAIN_FILTER, IDC_SPLIT_V, IDC_MAIN_DIR,
+    IDC_MAIN_FILTER, IDC_SPLIT_V, IDC_MAIN_DIR, IDC_SPLIT_H,   // IDC_SPLIT_H: 1.2.5-A13 (x) log yükseklik ayiraci
     IDC_TBB_PROJECT = 300, IDC_TBB_FUNCS, IDC_TBB_DETAILS
 };
 
@@ -190,6 +190,8 @@ struct Project {
     std::vector<ProjWatermark> wms;
     std::vector<ProjLicense> lics;
     std::wstring exec_params;
+    std::wstring rt_msgtext;             // 1.2.5-A13 (x7): ozel tespit mesaji
+                                         // (bos = varsayilan "butunluk kontrol kod = #5")
     int find_func(const std::wstring& n) const {
         for (size_t i = 0; i < funcs.size(); i++) if (funcs[i].name == n) return (int)i;
         return -1;
@@ -583,7 +585,8 @@ static void make_imagelist(HDC dc) {
 
 static HWND g_main = NULL, g_toolbar = NULL, g_tree = NULL, g_func = NULL,
             g_prop = NULL, g_log = NULL, g_status = NULL, g_tabstrip = NULL,
-            g_welcome = NULL, g_filter = NULL, g_split = NULL, g_dir = NULL;
+            g_welcome = NULL, g_filter = NULL, g_split = NULL, g_dir = NULL,
+            g_split_h = NULL;   // 1.2.5-A13 (x): log pane yukseklik ayiraci
 static HIMAGELIST g_il2 = NULL;
 static HMENU g_menu = NULL;
 static HACCEL g_accel = NULL;
@@ -1189,6 +1192,12 @@ static void fill_prop() {
         prop_add_row(0, L(LS_PROTECTION), L"", 0);
         for (int i = 0; i < 21; i++)
             prop_add_row(1, opts[i].nm, (g_proj.options & opts[i].bit) ? L"Yes" : L"No", opts[i].bit);
+        // 1.2.5-A13 (x7): ozel tespit mesaji — UO/VMP "Messages" paritesi.
+        // Satira cift-tik/Enter: metni duzenle; bos = varsayilan "#5" metni.
+        prop_add_row(3, L"Detection Message",
+                     g_proj.rt_msgtext.empty() ? std::wstring(L"(varsayilan: butunluk kontrol kod = #5)")
+                                               : g_proj.rt_msgtext,
+                     900);
     } else if (g_prop_sel_kind == 2 && g_prop_sel_idx >= 0 && (size_t)g_prop_sel_idx < g_proj.funcs.size()) {
         const ProjFunc& f = g_proj.funcs[g_prop_sel_idx];
         prop_add_row(0, L(LS_FUNC_PROPS), L"", 0);
@@ -1848,6 +1857,8 @@ struct AFState {
 };
 static AFState* g_af = NULL;      // 0.4.1: yeniden boyutlandirma icin aktif durum
 static HWND g_af_dlg = NULL;
+static void af_fill_list(AFState* st);   // ileri bildirim (af_dlg_proc kullanir)
+static void af_start_scan(void);         // 1.2.5-A13 (x5 FIX): wndproc seviyesi
 // 0.4.1 (x3): pencereyi yeniden konumlandir — WM_SIZE'dan cagrilir
 static void af_layout(HWND d) {
     if (!g_af || g_af_dlg != d) return;
@@ -1931,6 +1942,15 @@ static LRESULT CALLBACK af_dlg_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
         mm->ptMinTrackSize.x = 640; mm->ptMinTrackSize.y = 500;
         return 0;
     }
+    // 1.2.5-A13 (x5 FIX): arama/Tara artik WNDPROC seviyesinde — EN_CHANGE
+    // ve BN_CLICKED SendMessage ile GELIR (mesaj kuyruguna girmez); eski
+    // pump-seviyesi isleyici HIC CALISMADI (kullanici cp165 raporu: "yaz ->
+    // Tara -> eslesmeyenler hala listede").Wndproc her bildirimi alir.
+    if (msg == WM_COMMAND && g_af && g_af_dlg == h) {
+        UINT id = LOWORD(wp), code = HIWORD(wp);
+        if (id == 0x503 && code == EN_CHANGE) { af_fill_list(g_af); return 0; }
+        if (id == 0x508 && code == BN_CLICKED) { af_start_scan(); return 0; }
+    }
     return dlg_proc(h, msg, wp, lp);
 }
 static void af_fill_list(AFState* st) {
@@ -1989,6 +2009,19 @@ static void af_fill_list(AFState* st) {
     // 0.4.3: gorunen listede wine yeniden boyamiyor — boya zorla (bu oturumun
     // wine yeniden uretiminde bos-liste goruntusunun kok nedeni)
     InvalidateRect(st->list, NULL, TRUE);
+}
+// 1.2.5-A13 (x5 FIX): Tara mantigi pump'tan buraya tasindi — BN_CLICKED
+// wndproc'tan cagrilir (SendMessage dogrudan geliri; kuyruga girmiyor).
+static void af_start_scan(void) {
+    AFState* st = g_af;
+    if (!st || st->job) return;
+    st->job = new ScanJob();
+    st->job->target = g_proj.target;
+    HANDLE th = CreateThread(NULL, 0, scan_thread, st->job, 0, NULL);
+    if (th) CloseHandle(th);
+    if (!th) { delete st->job; st->job = NULL; return; }
+    EnableWindow(st->scan, FALSE);
+    set_txt(st->status, L"Taranıyor...");
 }
 static bool addr_in_exec(unsigned long long a) {
     for (auto& s : g_pe.secs)
@@ -2075,19 +2108,11 @@ static void dlg_addfunction(bool goto_mode, unsigned long long def_addr) {
     while (GetMessageW(&m, NULL, 0, 0)) {
         if (m.message == WM_APP_MODAL_OK && (m.hwnd == d || IsChild(d, m.hwnd))) { okout = true; break; }
         if (m.message == WM_APP_MODAL_CANCEL && (m.hwnd == d || IsChild(d, m.hwnd))) break;
-        // 0.4.1 (x5): Tara — IS PARCACIGIYLA (arayuz donmez); ilerleme
-        // WM_TIMER'da guncellenir; bitince liste tazelenir
+        // 1.2.5-A13 (x5 FIX): pump'taki eski isleyici artik yalniz POSTED
+        // WM_COMMAND icin yedek — gercek bildirimler wndproc'a gelir
+        // (af_dlg_proc: EN_CHANGE/BN_CLICKED), mantik tek yerde:
         if (m.message == WM_COMMAND && m.hwnd == d && LOWORD(m.wParam) == 0x508) {
-            if (st.job) continue;
-            st.job = new ScanJob();
-            st.job->target = g_proj.target;
-            HANDLE th = CreateThread(NULL, 0, scan_thread, st.job, 0, NULL);
-            if (th) CloseHandle(th);
-            if (!th) { delete st.job; st.job = NULL; }
-            if (st.job) {
-                EnableWindow(st.scan, FALSE);
-                set_txt(st.status, L"Taranıyor...");
-            }
+            af_start_scan();
             continue;
         }
         // 0.4.1 (x5): filtre — EN_CHANGE artik dogru sekilde yakalanir
@@ -2845,6 +2870,8 @@ static void start_compile() {
     // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
     if (g_proj.options & cpIncludeWatermark)
         for (auto& w : g_proj.wms) if (!w.value.empty()) opt.wm_values.push_back(w2s(w.value));
+    // 1.2.5-A13 (x7): ozel tespit mesaji (Properties -> Detection Message)
+    opt.rt_msgtext = w2s(g_proj.rt_msgtext);
     opt.sdk_scan   = true;   // SDK isaretleri otomatik (VMProtect davranisi)
     // 0.3.0: level artik ftypes oncelikli; "tumunu derle" yolu 0.2.0 uyumu
     // icin level=2 birakilir (ftypes bosken VM junk aktif)
@@ -2945,6 +2972,7 @@ static bool save_project_to(const std::wstring& path) {
     ln("target=" + w2s(g_proj.target));
     { wchar_t b[32]; _snwprintf(b, 32, L"%016llX", g_proj.options); ln("options=" + w2s(b)); }
     ln("execparams=" + w2s(esc_t(g_proj.exec_params)));
+    ln("rtmsg=" + w2s(esc_t(g_proj.rt_msgtext)));   // 1.2.5-A13 (x7)
     for (auto& fn : g_proj.funcs) {
         std::wstring line = L"func\t" + esc_t(fn.name) + L"\t" + numdec(fn.rva) + L"\t" +
             numdec(fn.size) + L"\t" + (fn.is_export ? L"1" : L"0") + L"\t" +
@@ -3008,6 +3036,8 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             g_proj.options = wcstoull(s2w(line.substr(8)).c_str(), NULL, 16);
         } else if (line.rfind("execparams=", 0) == 0) {
             g_proj.exec_params = unesc_t(s2w(line.substr(11)));
+        } else if (line.rfind("rtmsg=", 0) == 0) {              // 1.2.5-A13 (x7)
+            g_proj.rt_msgtext = unesc_t(s2w(line.substr(6)));
         } else if (line.rfind("func\t", 0) == 0) {
             std::wstring body = line.size() > 5 ? s2w(line.substr(5)) : L"";
             auto p = split_t(body);
@@ -3489,6 +3519,8 @@ static void layout() {
     MoveWindow(g_prop, 34 + g_split_x, top, W - 34 - g_split_x, body_h, TRUE);
     MoveWindow(g_dir, 34 + g_split_x, top, W - 34 - g_split_x, body_h, TRUE);
     MoveWindow(g_log, 0, H - st_h - g_log_h, W, g_log_h, TRUE);
+    // 1.2.5-A13 (x): yatay ayiraci — log'un 4px ustunde
+    MoveWindow(g_split_h, 0, H - st_h - g_log_h - 4, W, 4, TRUE);
     MoveWindow(g_welcome, 0, top, W, body_h + g_log_h, TRUE);
     // 0.4.0: boot sayfasi yerlesimi (VMP boot_frame: sol Recent, sag Quick Start)
     int ww = W > 820 ? W : 820;
@@ -3515,6 +3547,7 @@ static void layout() {
     ShowWindow(g_dir,   (!boot && g_rightmode == 1) ? SW_SHOW : SW_HIDE);
     ShowWindow(g_log,   !boot ? SW_SHOW : SW_HIDE);
     ShowWindow(g_split, !boot ? SW_SHOW : SW_HIDE);
+    ShowWindow(g_split_h, !boot ? SW_SHOW : SW_HIDE);   // 1.2.5-A13 (x)
     if (g_filter) ShowWindow(g_filter, (!boot && g_tab == 1) ? SW_SHOW : SW_HIDE);
     depth--;   // 0.4.0: giris-koruma sayacini geri ver
 }
@@ -3730,6 +3763,12 @@ static void prop_row_edit(int row) {
             g_proj.modified = true;
         }
         fill_prop(); tree_fill(); build_menu();
+        // 1.2.5-A13 (x6 FIX): fill_prop ListView_DeleteAllItems + yeniden
+        // doldurma yapiyor — secim sifirlaniyor/focus ilk satira kayiyor
+        // (kullanici cp165: "deger degisince index 0'a kayiyor, tekrar
+        // asagi iniyorum"). Ayni satiri geri sec + odakla.
+        ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
+                              LVIS_FOCUSED | LVIS_SELECTED);
         return;
     }
     if (r.kind == 2) {
@@ -3754,7 +3793,20 @@ static void prop_row_edit(int row) {
         return;
     }
     if (r.kind == 3) {
-        if (g_prop_sel_kind == 2) {
+        if (g_prop_sel_kind == 0) {
+            // 1.2.5-A13 (x7): Detection Message duzenleme (proje-duzeyi)
+            if (r.id == 900) {
+                std::wstring v;
+                if (dlg_input_text(r.name, L"Mesaj metni (bos = varsayilan)", g_proj.rt_msgtext, &v)) {
+                    push_undo();
+                    g_proj.rt_msgtext = v;
+                    g_proj.modified = true; update_all();
+                }
+            }
+            // 1.2.5-A13 (x6): duzenleme sonrasi secim ayni satirda kalsin
+            ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
+                                  LVIS_FOCUSED | LVIS_SELECTED);
+        } else if (g_prop_sel_kind == 2) {
             int idx = (int)r.id;
             std::wstring v;
             std::wstring cur = r.value == L"(auto)" ? L"" : r.value;
@@ -3788,6 +3840,7 @@ static void prop_row_edit(int row) {
 // ============================================================
 
 static bool g_drag = false;
+static bool g_drag_h = false;   // 1.2.5-A13 (x): log ayiraci surukleme durumu
 static std::wstring g_cmd_open;
 
 // 0.4.0: dil degisince boot sayfasi etiketleri tazelenir
@@ -4363,6 +4416,9 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     else if (!wcscmp(argv[j], L"--filecrc")) opt.rt_filecrc = true;
                     else if (!wcscmp(argv[j], L"--rt-nomsg")) opt.rt_msg = false;
                     else if (!wcscmp(argv[j], L"--rt-noexit")) opt.rt_exit = false;
+                    else if (!wcscmp(argv[j], L"--rt-msg") && j + 1 < argc) {   // 1.2.5-A13 (x7)
+                        opt.rt_msgtext = w2s(argv[++j]);   // ozel tespit mesaji
+                    }
                     else if (!wcscmp(argv[j], L"--import") || !wcscmp(argv[j], L"--iat")) opt.iat_prot = true;
                     else if (!wcscmp(argv[j], L"--nosdk")) opt.sdk_scan = false;
                     else if (!wcscmp(argv[j], L"--sdkonly")) opt.sdk_only = true;
@@ -4490,6 +4546,10 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
         0, 0, 0, 0, g_main, (HMENU)IDC_MAIN_LOG, hI, NULL);
     g_split = CreateWindowExW(0, L"STATIC", NULL, WS_CHILD | WS_VISIBLE | SS_NOTIFY,
         0, 0, 0, 0, g_main, (HMENU)IDC_SPLIT_V, hI, NULL);
+    // 1.2.5-A13 (x): log pane yukseklik ayiraci — fare ile log alani
+    // buyutulup kucultulebilir (kullanici cp165 istegi)
+    g_split_h = CreateWindowExW(0, L"STATIC", NULL, WS_CHILD | WS_VISIBLE | SS_NOTIFY,
+        0, 0, 0, 0, g_main, (HMENU)IDC_SPLIT_H, hI, NULL);
     g_welcome = CreateWindowExW(0, L"XPROTECT_WELCOME", NULL, WS_CHILD | WS_CLIPSIBLINGS,
         0, 0, 0, 0, g_main, (HMENU)IDC_MAIN_WELCOME, hI, NULL);
     // ---- 0.4.0: boot sayfasi — VMP boot_frame birebir yapi ----
