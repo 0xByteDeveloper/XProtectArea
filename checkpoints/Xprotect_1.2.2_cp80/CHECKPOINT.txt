@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp80  (2026-11-13, UTC+8)
+================================================================
+Odak: UO saha matrisi 23/24 tamam (kalan TUMU)
+Zipler: checkpoints/Xprotect_1.2.2_cp80/Xprotect_1.2.2_cp80.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

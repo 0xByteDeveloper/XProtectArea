@@ -11,3 +11,13 @@ Watermark                  FAIL 0
 Watermark                  FAIL 0
    LOG: info Failed to get logical processor information, status 0xc0000002. | 00b0:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c00000e5 | 003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to sta
 Watermark                  OK 6144000
+ResourceProtection         OK 6144000
+FileCRC                    OK 6144000
+LoaderCRC                  OK 6144000
+ImportProtection           OK 6144000
+MemoryProtection           OK 6144000
+InternalMemoryProtection   OK 6144000
+VirtualFiles               OK 6144000
+EncryptStrings             OK 6144000
+Pack                       OK 6144000
+Loader                     OK 6144000
