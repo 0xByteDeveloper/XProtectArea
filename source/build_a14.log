@@ -1,14 +1,5 @@
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
-engine_main.cpp:576:29: error: no member named 'XPinvFn' in namespace 'xpdotnet'
-  576 |     std::map<u32, xpdotnet::XPinvFn> dn_pinv;
-      |                             ^~~~~~~
-engine_main.cpp:577:15: error: no type named 'XPEnv' in namespace 'xpdotnet'
-  577 |     xpdotnet::XPEnv dn_env;
-      |     ~~~~~~~~~~^
-engine_main.cpp:583:23: error: no type named 'XPinvFn' in namespace 'xpdotnet'
-  583 |             xpdotnet::XPinvFn pf;
-      |             ~~~~~~~~~~^
 engine_main.cpp:958:37: warning: format specifies type 'unsigned int' but the argument has type 'unsigned long long' [-Wformat]
   956 |                                     "| k=%016llX k1=%016llX n=%u | P-ilk: %02X %02X %02X %02X | esz=%u",
       |                                                               ~~
@@ -21,4 +12,47 @@ engine_main.cpp:1158:43: warning: data argument not used by format string [-Wfor
       |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  1158 |                      apis.size(), n_apis, lsd_rva, xrt_sdk_rva);
       |                                           ^
-2 warnings and 3 errors generated.
+2 warnings generated.
+engine_lift.cpp:407:81: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  407 |                 snprintf(buf, sizeof buf, "jmp disari -> jmpext 0x%x (kuyruk)", I.target); break;
+      |                                                                   ~~            ^~~~~~~~
+      |                                                                   %llx
+engine_lift.cpp:411:51: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  411 |             snprintf(buf, sizeof buf, "jmp 0x%x", I.target); break;
+      |                                              ~~   ^~~~~~~~
+      |                                              %llx
+engine_lift.cpp:421:80: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  421 |                 snprintf(buf, sizeof buf, "jcc%d disari -> jccext 0x%x", I.cc, I.target); break;
+      |                                                                     ~~         ^~~~~~~~
+      |                                                                     %llx
+engine_lift.cpp:425:59: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  425 |             snprintf(buf, sizeof buf, "jcc%d 0x%x", I.cc, I.target); break;
+      |                                                ~~         ^~~~~~~~
+      |                                                %llx
+engine_lift.cpp:430:60: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  430 |             snprintf(buf, sizeof buf, "call 0x%x (ncall)", I.target); break;
+      |                                               ~~           ^~~~~~~~
+      |                                               %llx
+engine_lift.cpp:555:60: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  555 |             snprintf(buf, sizeof buf, "loop%d 0x%x", I.cc, I.target); break;
+      |                                                 ~~         ^~~~~~~~
+      |                                                 %llx
+engine_lift.cpp:561:53: warning: format specifies type 'unsigned int' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+  561 |             snprintf(buf, sizeof buf, "jecxz 0x%x", I.target); break;
+      |                                                ~~   ^~~~~~~~
+      |                                                %llx
+7 warnings generated.
+In file included from xprotect_dotnet.cpp:27:
+./xprotect_dotnet.h:89:19: error: use of undeclared identifier 'i32'
+   89 |     std::map<u32, i32> field_off;   // Field token -> explicit-layout offset
+      |                   ^~~
+xprotect_dotnet.cpp:486:27: error: use of undeclared identifier 'i32'
+  486 |             std::map<u32, i32> layout;
+      |                           ^~~
+xprotect_dotnet.cpp:492:48: error: use of undeclared identifier 'i32'
+  492 |                     if (fi >= 1) layout[fi] = (i32)off;
+      |                                                ^~~
+xprotect_dotnet.cpp:499:35: error: use of undeclared identifier 'i32'
+  499 |                     std::map<u32, i32>::const_iterator it = layout.find(fi);
+      |                                   ^~~
+4 errors generated.
