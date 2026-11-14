@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
                     0x58,                     // IL_04 add
                     0x0A,                     // IL_05 stloc.0
                     0x06,                     // IL_06 ldloc.0
-                    0x1D,                     // IL_07 ldc.i4.3
+                    0x19,                     // IL_07 ldc.i4.3
                     0x32, 0xF8,               // IL_08 blt.s IL_02 (rel = 2 - 10 = -8 = 0xF8)
                     0x06,                     // IL_0A ldloc.0
                     0x2A};                    // IL_0B ret

@@ -404,11 +404,11 @@ static void x_push_eax(std::vector<u8>* c) { e8(c, 0x50); }
 static void x_push_edx(std::vector<u8>* c) { e8(c, 0x52); }
 // mov eax,[esp]
 static void x_dup(std::vector<u8>* c) { e8(c, 0x8B); e8(c, 0x04); e8(c, 0x24); x_push_eax(c); }
-// iki-yığınlı ALU: pop ecx (b), pop eax (a), op eax,ecx, push
-// modrm C8 = mod11 reg=ecx(001) rm=eax(000) -> op eax,ecx (a-b dogru yonde)
+// iki-yığınlı ALU: pop ecx (b), pop eax (a), op, push
+// 03/2B/0B/33 = op r32,r/m32 -> modrm C1: reg=eax(dest), rm=ecx(src) = op eax,ecx (a-b dogru)
 static void x_alu(std::vector<u8>* c, u8 op58 /* 0x03 add,0x2B sub,0x0B or,0x33 xor,0x21 and */) {
     x_pop_ecx(c); x_pop_eax(c);
-    e8(c, op58); e8(c, 0xC8);
+    e8(c, op58); e8(c, 0xC1);
     x_push_eax(c);
 }
 struct Fix { u32 at; u32 il_target; u8 jcc; };   // at: rel32 alanının kod-ofseti
@@ -575,7 +575,7 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             RED("ldind/stind (v1)"); break;
         case 0x58: x_alu(&c, 0x03); break;   // add
         case 0x59: x_alu(&c, 0x2B); break;   // sub
-        case 0x5A: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x0F); e8(&c, 0xAF); e8(&c, 0xC8); x_push_eax(&c); } break;  // mul (imul eax,ecx)
+        case 0x5A: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x0F); e8(&c, 0xAF); e8(&c, 0xC1); x_push_eax(&c); } break;  // mul (imul eax,ecx; 0F AF=r32,r/m32 -> C1 reg=eax)
         case 0x5B: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x99); e8(&c, 0xF7); e8(&c, 0xF9); x_push_eax(&c); } break;  // div (cdq; idiv ecx)
         case 0x5C: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x31); e8(&c, 0xD2); e8(&c, 0xF7); e8(&c, 0xF1); x_push_eax(&c); } break;  // div.un
         case 0x5D: { x_pop_ecx(&c); x_pop_eax(&c); e8(&c, 0x99); e8(&c, 0xF7); e8(&c, 0xF9); x_push_edx(&c); } break;  // rem

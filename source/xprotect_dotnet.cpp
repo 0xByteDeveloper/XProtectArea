@@ -337,7 +337,12 @@ bool parse(const u8* d, size_t n, Image* out) {
         }
     }
 #ifdef XPDN_DEBUG
-    fprintf(stderr, "[XPDN] typedefs=%zu methods=%zu\n", out->typedefs.size(), out->methods.size());
+    fprintf(stderr, "[XPDN] td_base=%u md_base=%u rows[0]=%u rows[2]=%u rows[6]=%u\n",
+            td_base, md_base, sc.rows[0], sc.rows[2], sc.rows[6]);
+    for (size_t _i = 0; _i < out->methods.size(); _i++)
+        fprintf(stderr, "[XPDN] m[%zu] name='%s' rva=0x%X impl=0x%X flags=0x%X nameidx@off=\n",
+                _i, out->methods[_i].name.c_str(), out->methods[_i].rva,
+                out->methods[_i].impl_flags, out->methods[_i].flags);
 #endif
     out->ok = true;
     out->err.clear();
