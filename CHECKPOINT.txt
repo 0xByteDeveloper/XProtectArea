@@ -1,6 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp84  (2026-11-13, UTC+8)
+XProtect 1.2.2 — CHECKPOINT cp85  (2026-11-13, UTC+8)
 ================================================================
-Odak: A17.2 vreg kanit ailesi + A20-TAM EP kapisı + NSIP kaldirma + scylla guve
-Zipler: checkpoints/Xprotect_1.2.2_cp84/Xprotect_1.2.2_cp84.zip (tam kaynak + ikililer)
+Odak: A20-TAM gate + bss-span fix yeşil; vreg IAT-hook zinciri bisect notlari
+Zipler: checkpoints/Xprotect_1.2.2_cp85/Xprotect_1.2.2_cp85.zip (tam kaynak + ikililer)
 Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

@@ -1,0 +1,23 @@
+== A17.2/A20-TAM DEVAM (2026-11-14, cp85) ==
+YEŞILLER:
+ K-YESIL-1) A20-TAM EP kapisı + --sdkonly --antidebug (global-only):
+   va_only2 -> app tam akis (openA st=2 baseline + NEGATIF) — EP'de
+   xrt kapisı calisiyor, ortam temiz (gate RVA dogru: newva_guess).
+ K-YESIL-2) bss-span FIX: blob bss kuyrugu (be=36912 > bin=35013) artik
+   secimg'de rezerve (span=max(bin,aligned(be))) — xvr_* staticleri
+   section icinde; antidebug yolu green (bu fix olmadan NULL-exec).
+ K-YESIL-3) A21-uzanti NSIP kaldirildi (wine stack-overflow kaniti);
+   scylla unhook'una E9/FF25 hook-desen guvesi (wine builtin-ntdll).
+ACIK (SONRAKI OTURUM BISECT):
+ K-ACIK-1) --vreg (yalniz veya antidebug ile) EP-gate yolunda ntdll
+   read-fault 0x4002A000 @0x6FFFFF4417A8 (vreg_prot7/vr_only).
+   Store XVF-act=4 yolu: xvr_load/scratch/IAT-hook zinciri. Kanitlar:
+   - store "gomuldu: 2 kayit" (engine), state byte cfg+8=0 dogru,
+     gate bytes + call hedefi 0x4B3A0 DOGRULANDI (python PE analizi)
+   - XRT_PROBE bisect: probebuild2 kurulu; ANCAK probe blob'u EP-
+     zamanli cokuyor (E1 marker yazilmiyor; stub-gate SDK yolunda da
+     marker yok — probe blob'unda ek bir sorun; production blob saglikli)
+   - soru: vr_RegOpenKeyExA -> xvr_orig cagri zincirinde 0x4002A000 okuma
+     (wine'da scratch/orig adres uyumsuzlugu?) — siradaki adim: xvr_load
+     sonrasi orig kayit denetimi + ic-inceleme (0x4002A000 kaynagi).
+ K-ACIK-2) wm_sdk64 + --strenc rc=3 (pre-existing, eski motor da ayni).

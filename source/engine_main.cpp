@@ -675,7 +675,16 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u32 need = ((be + 16 + 15) & ~15u) + XRT_BSS_PAD;
             if (need > xrt_code_off) xrt_code_off = need;
         }
-        cfg_off      = (xrt_code_off + xrt_len + 15) & ~15u;
+        /* 1.2.2-A17.2-FIX (kanit: vreg_prot6 write-fault @blob+0x9010):
+           bss extent (be) BIN UZUNLUGUNDAN BUYUK olabiliyor (xvr_* staticleri
+           ld flat-binary'nin SONUNDA ama bin yalniz .text'i tasiyor) — cfg
+           blokunu bss kuyrugunun USTUNE koymak = statik yazilari section
+           sonrasina tasiyor. cfg ofseti artık span = max(bin, aligned(be))
+           uzerinden: [bin_sonu, cfg) araligi secimg'de SIFIR kalir = bss
+           depolama (vmp0 RWX, runtime yazmaya acik). */
+        u32 bespan = ((pe.is64 ? (u32)XRT_BLOB64_BSS_END : (u32)XRT_BLOBX86_BSS_END) + 15) & ~15u;
+        u32 span = (xrt_len > bespan) ? xrt_len : bespan;
+        cfg_off      = (xrt_code_off + span + 15) & ~15u;
         u32 xrt_rva  = newva_guess + xrt_code_off;
         xrt_entry_rva   = xrt_rva + (pe.is64 ? XRT_BLOB64_ENTRY_OFF : XRT_BLOBX86_ENTRY_OFF);
         xrt_resolve_rva = xrt_rva + (pe.is64 ? XRT_BLOB64_RESOLVE_OFF : XRT_BLOBX86_RESOLVE_OFF);
@@ -1725,7 +1734,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
        (kanit: vreg_prot3 st=2 negatif — anahtar sunulmadi). */
     if (comps.empty() && !opt.pack && (rt_any || vf_area || strenc_want)) {
         while (secimg.size() & 15u) secimg.push_back(0xCC);
-        u32 gate_rva = vmp_rva + (u32)secimg.size();
+        /* DERS (va_probe kaniti): vmp_rva burada HENUZ 0 (add_section
+           sonra deger dondurur) — gate_rva newva_guess (planlama RVA'si,
+           tum alanlarin kullandigi) ile hesaplanmali. Eski hali E9/E8
+           rel32 hedeflerini bozuyor -> NULL-exec. */
+        u32 gate_rva = newva_guess + (u32)secimg.size();
         std::vector<u8> g = pe.is64
             ? build_mgate_x64(gate_rva, xrt_entry_rva, cfg_rva, 0)
             : build_mgate_x86(gate_rva, xrt_entry_rva, cfg_rva, 0);

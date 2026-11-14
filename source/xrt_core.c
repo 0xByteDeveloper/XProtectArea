@@ -1866,10 +1866,16 @@ static void xrt_vfiles(u8* cfg, u64 k32) {
             if (va_free) api1(va_free, buf);                   /* ham tamponu bırak */
         }
     }
+#ifdef XRT_PROBE
+    xvf_dbg(k32, 'S', 'T', '.');   /* strenc bitti */
+#endif
     /* 1.2.2-A17: Virtual Registry IAT kesmesi — store kurulduysa BIR KEZ */
     if (ld32(cfg + XCFG_OFF_FLAGS) & XFLAG_VREG)
         xrt_vreg_install((const u8*)(unsigned long)((u64)(unsigned long)cfg -
                          (u64)ld32(cfg + XCFG_OFF_CFGRVA)), k32);
+#ifdef XRT_PROBE
+    xvf_dbg(k32, 'V', 'R', '.');   /* vreg kuruldu */
+#endif
 }
 
 /* ============================================================
@@ -2131,6 +2137,9 @@ u32 xrt_entry(void* cfgp) {
     const u8* base;
     u64 k32;
     u32 err = 0;
+#ifdef XRT_PROBE
+    { u64 kk = peb_module(XH_KERNEL32); xvf_dbg(kk, 'E', '1', '.'); }
+#endif
 
 #if defined(XVF_TRACE)
     {   /* DEBUG-PROBE-ENTRY (A16): xrt_entry cagrildi mi? stack-string PIC;
@@ -2341,6 +2350,9 @@ u32 xrt_entry(void* cfgp) {
         return err;
     }
 
+#ifdef XRT_PROBE
+    xvf_dbg(k32, 'A', 'D', '.');   /* antidebug/scylla geri döndü */
+#endif
     /* 1.2.2-A18: STRING ENCRYPTION — CRC'ler disk-gorseli uzerinden
        dogrulandi (sifreli); SIMDI yerinde coz (tum kullanici kodundan once) */
     if (flags & XFLAG_STRENC) xrt_strenc(cfg, k32, base);
