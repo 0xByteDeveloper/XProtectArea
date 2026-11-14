@@ -1419,27 +1419,277 @@ typedef u32 vru;        /* x86: win32 stack-arg 4B — u64 param YANLIS okur */
 #define VR_STDCALL
 typedef u64 vru;
 #define VRPTR(v) ((unsigned long)(unsigned long long)(v))
+
+/* ============================================================
+   1.2.3-KOK-FIX: Win64->SysV ABI SHIM'LER (x64)
+   ============================================================
+   KOK-NEDEN (wine-kanit): xrt blob'u HOST gcc ile SysV AMD64
+   (RDI,RSI,RDX,RCX,R8,R9) uretir; Windows IAT hook'u ise Win64
+   (RCX,RDX,R8,R9,[rsp+0x28..]) ile cagirir. Direkt baglanti
+   argumanlari KAYIYORDU: hook'un 2. parametresi SysV RSI okuyor
+   (Win64 arg2 = RDX) ve EDX 32-bit saklaninca pointer truncate
+   (0x140009002 -> 0x40009002) -> kernelbase RegOpenKeyExA+0x30
+   cmpb (%rdx) page-fault. Kanit: wine rip=RegOpenKeyExA+0x30,
+   name=*** invalid 0x40009002, access=0xff2b72a4.
+   COZUM: her hook icin register-reshuffle shim'i (tail-jmp;
+   stack arg 7..9 shadow-space'e kopyalanir — shadow callee'ye
+   aciktir). xrt_entry'nin PIC kapisiyla ayni mantik, simdi
+   vr_* hook'larina da uygulanir. */
+__asm__(
+".text\n"
+/* 1-arg: Close(h) */
+"vr_shim_1:\n"
+"  mov %rcx,%rdi\n"
+"  jmp vr_h_Close\n"
+);
+__asm__(
+".text\n"
+"vr_shim_5a:\n"   /* OpenA/OpenW(h,s,o,m,p) */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  jmp vr_h_OpenA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_5b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  jmp vr_h_OpenW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_6a:\n"   /* QueryA(h,n,r,t,d,c) */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  jmp vr_h_QueryA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_6b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  jmp vr_h_QueryW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_9a:\n"   /* CreateA: 9 arg — 7..9 stack arg'lar shadow'a kopyalanir */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov 0x48(%rsp),%rax\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  mov %rax,0x18(%rsp)\n"
+"  jmp vr_h_CreateA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_9b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov 0x48(%rsp),%rax\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  mov %rax,0x18(%rsp)\n"
+"  jmp vr_h_CreateW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_6c:\n"   /* SetA/SetW(h,n,r,t,d,c) */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  jmp vr_h_SetA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_6d:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  jmp vr_h_SetW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_8a:\n"   /* EnumKeyA/W(h,idx,name,nmsz,class,clsz,res,acc?) — 8 arg */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  jmp vr_h_EnumKeyA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_8b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  jmp vr_h_EnumKeyW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_9c:\n"   /* EnumValA/W(h,idx,name,nmsz,res,typ,data,cb) — 8 arg */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  jmp vr_h_EnumValA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_9d:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%r10\n"
+"  mov 0x40(%rsp),%r11\n"
+"  mov %r10,0x8(%rsp)\n"
+"  mov %r11,0x10(%rsp)\n"
+"  jmp vr_h_EnumValW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_2a:\n"   /* DelA/DelW(h,sub) */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  jmp vr_h_DelA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_2b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  jmp vr_h_DelW\n"
+);
+__asm__(
+".text\n"
+"vr_shim_12a:\n"  /* QueryInfoA/W(h,class,classsz,res,subkeys,maxsub,maxcls,vals,maxval,maxdata,sd) — 11 arg */
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%rax\n"
+"  mov 0x40(%rsp),%r10\n"
+"  mov 0x48(%rsp),%r11\n"
+"  mov 0x50(%rsp),%rcx\n"
+"  mov 0x58(%rsp),%rdx\n"
+"  mov 0x60(%rsp),%rsi\n"
+"  mov 0x68(%rsp),%rdi\n"
+"  mov %rax,0x8(%rsp)\n"
+"  mov %r10,0x10(%rsp)\n"
+"  mov %r11,0x18(%rsp)\n"
+"  mov %rcx,0x20(%rsp)\n"
+"  mov %rdx,0x28(%rsp)\n"
+"  mov %rsi,0x30(%rsp)\n"
+"  mov %rdi,0x38(%rsp)\n"
+"  jmp vr_h_InfoA\n"
+);
+__asm__(
+".text\n"
+"vr_shim_12b:\n"
+"  mov %rcx,%rdi\n"
+"  mov %rdx,%rsi\n"
+"  mov %r8,%rdx\n"
+"  mov %r9,%rcx\n"
+"  mov 0x28(%rsp),%r8\n"
+"  mov 0x30(%rsp),%r9\n"
+"  mov 0x38(%rsp),%rax\n"
+"  mov 0x40(%rsp),%r10\n"
+"  mov 0x48(%rsp),%r11\n"
+"  mov 0x50(%rsp),%rcx\n"
+"  mov 0x58(%rsp),%rdx\n"
+"  mov 0x60(%rsp),%rsi\n"
+"  mov 0x68(%rsp),%rdi\n"
+"  mov %rax,0x8(%rsp)\n"
+"  mov %r10,0x10(%rsp)\n"
+"  mov %r11,0x18(%rsp)\n"
+"  mov %rcx,0x20(%rsp)\n"
+"  mov %rdx,0x28(%rsp)\n"
+"  mov %rsi,0x30(%rsp)\n"
+"  mov %rdi,0x38(%rsp)\n"
+"  jmp vr_h_InfoW\n"
+);
+/* shim sembolleri C'den gorunur olmali (vr_hook_addr) */
+extern u64 vr_shim_1, vr_shim_5a, vr_shim_5b, vr_shim_6a, vr_shim_6b,
+           vr_shim_9a, vr_shim_9b, vr_shim_6c, vr_shim_6d,
+           vr_shim_8a, vr_shim_8b, vr_shim_9c, vr_shim_9d,
+           vr_shim_2a, vr_shim_2b, vr_shim_12a, vr_shim_12b;
 #endif
 /* wrapper'lar VRPTR(...) kullanir */
 
 /* app stdcall -> handler: yigin-duzeni mimariye gore (vru) */
-static u32 VR_STDCALL vr_h_OpenA(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
-static u32 VR_STDCALL vr_h_OpenW(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
-static u32 VR_STDCALL vr_h_QueryA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
-static u32 VR_STDCALL vr_h_QueryW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
-static u32 VR_STDCALL vr_h_Close(vru h) { return vr_RegCloseKey((u64)h); }
-static u32 VR_STDCALL vr_h_CreateA(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)r, (char*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
-static u32 VR_STDCALL vr_h_CreateW(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)r, (u16*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
-static u32 VR_STDCALL vr_h_SetA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
-static u32 VR_STDCALL vr_h_SetW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
-static u32 VR_STDCALL vr_h_EnumKeyA(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (char*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
-static u32 VR_STDCALL vr_h_EnumKeyW(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u16*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
-static u32 VR_STDCALL vr_h_EnumValA(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
-static u32 VR_STDCALL vr_h_EnumValW(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
-static u32 VR_STDCALL vr_h_DelA(vru h, vru s) { return vr_RegDeleteKeyA((u64)h, (const char*)(unsigned long)(unsigned long long)(s)); }
-static u32 VR_STDCALL vr_h_DelW(vru h, vru s) { return vr_RegDeleteKeyW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s)); }
-static u32 VR_STDCALL vr_h_InfoA(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyA((u64)h, (char*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
-static u32 VR_STDCALL vr_h_InfoW(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyW((u64)h, (u16*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_OpenA(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_OpenW(vru h, vru s, vru o, vru m, vru p) { return vr_RegOpenKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)o, (u32)m, (u64)p); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_QueryA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_QueryW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegQueryValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u64)r, (u64)t, (u64)d, (u64)c); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_Close(vru h) { return vr_RegCloseKey((u64)h); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_CreateA(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExA((u64)h, (const char*)(unsigned long)(unsigned long long)(s), (u32)r, (char*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_CreateW(vru h, vru s, vru r, vru c, vru o, vru m, vru sa, vru p, vru d) { return vr_RegCreateKeyExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s), (u32)r, (u16*)(unsigned long)(unsigned long long)(c), (u32)o, (u32)m, (u64)sa, (u64)p, (u64)d); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_SetA(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExA((u64)h, (const char*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_SetW(vru h, vru n, vru r, vru t, vru d, vru c) { return vr_RegSetValueExW((u64)h, (const u16*)(unsigned long)(unsigned long long)(n), (u32)r, (u32)t, (u64)d, (u32)c); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_EnumKeyA(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (char*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_EnumKeyW(vru h, vru i, vru n, vru c, vru r, vru cl, vru cc, vru f) { return vr_RegEnumKeyExW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u16*)(unsigned long)(unsigned long long)(cl), (u64)cc, (u64)f); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_EnumValA(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueA((u64)h, (u32)i, (char*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_EnumValW(vru h, vru i, vru n, vru c, vru r, vru t, vru d, vru dc) { return vr_RegEnumValueW((u64)h, (u32)i, (u16*)(unsigned long)(unsigned long long)(n), (u64)c, (u64)r, (u64)t, (u64)d, (u64)dc); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_DelA(vru h, vru s) { return vr_RegDeleteKeyA((u64)h, (const char*)(unsigned long)(unsigned long long)(s)); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_DelW(vru h, vru s) { return vr_RegDeleteKeyW((u64)h, (const u16*)(unsigned long)(unsigned long long)(s)); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_InfoA(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyA((u64)h, (char*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
+static u32 __attribute__((used)) VR_STDCALL vr_h_InfoW(vru h, vru c, vru pc, vru r, vru pn, vru pm, vru mx, vru pv, vru px, vru pd, vru pf) { return vr_RegQueryInfoKeyW((u64)h, (u16*)(unsigned long)(unsigned long long)(c), (u64)pc, (u64)r, (u64)pn, (u64)pm, (u64)mx, (u64)pv, (u64)px, (u64)pd, (u64)pf); }
 
 /* ---------- store cozme (act=4 XVF girisi) ---------- */
 static void xvr_load(const u8* blob, u32 blen, u64 k32) {
@@ -1543,6 +1793,31 @@ static u32 vr_hook_hash(u32 k) {
 #define VRSYM(NM) __asm__ volatile ("lea %a1, %0" : "=r"(p) : "p"(&vr_h_##NM))
 static u64 vr_hook_addr(u32 k) {
     u64 p = 0;
+#if defined(XRT_IS_X64)
+    /* 1.2.3-KOK-FIX: IAT'a SHIM adresi yazilir (Win64->SysV kopru).
+       Govde (vr_h_*) dogrudan yazilirsa SysV/Win64 register eslemesi
+       kayiyor (0x40009002 fault kaniti). */
+    switch (k) {
+    case 0:  p = (u64)(unsigned long)&vr_shim_5a; break;   /* OpenA */
+    case 1:  p = (u64)(unsigned long)&vr_shim_5b; break;   /* OpenW */
+    case 2:  p = (u64)(unsigned long)&vr_shim_6a; break;   /* QueryA */
+    case 3:  p = (u64)(unsigned long)&vr_shim_6b; break;   /* QueryW */
+    case 4:  p = (u64)(unsigned long)&vr_shim_1;  break;   /* Close */
+    case 5:  p = (u64)(unsigned long)&vr_shim_9a; break;   /* CreateA */
+    case 6:  p = (u64)(unsigned long)&vr_shim_9b; break;   /* CreateW */
+    case 7:  p = (u64)(unsigned long)&vr_shim_6c; break;   /* SetA */
+    case 8:  p = (u64)(unsigned long)&vr_shim_6d; break;   /* SetW */
+    case 9:  p = (u64)(unsigned long)&vr_shim_8a; break;   /* EnumKeyA */
+    case 10: p = (u64)(unsigned long)&vr_shim_8b; break;   /* EnumKeyW */
+    case 11: p = (u64)(unsigned long)&vr_shim_9c; break;   /* EnumValA */
+    case 12: p = (u64)(unsigned long)&vr_shim_9d; break;   /* EnumValW */
+    case 13: p = (u64)(unsigned long)&vr_shim_2a; break;   /* DelA */
+    case 14: p = (u64)(unsigned long)&vr_shim_2b; break;   /* DelW */
+    case 15: p = (u64)(unsigned long)&vr_shim_12a; break;  /* InfoA */
+    case 16: p = (u64)(unsigned long)&vr_shim_12b; break;  /* InfoW */
+    }
+    return p;
+#else
     switch (k) {
     case 0:  VRSYM(OpenA);    break;
     case 1:  VRSYM(OpenW);    break;
@@ -1563,6 +1838,7 @@ static u64 vr_hook_addr(u32 k) {
     case 16: VRSYM(InfoW);    break;
     }
     return p;
+#endif
 }
 
 static u32 xvr_npatch = 0;
