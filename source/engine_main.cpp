@@ -632,7 +632,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     for (auto& f : fns) {
         if (man_rva.count(f.rva)) continue;   // manuel: kesin secili (asla ezilmez)
         if (opt.sdk_only) continue;           // 0.5.0: yalniz SDK/manual bolgeleri koru
-        if (opt.manual.empty() && (opt.all || opt.funcs.empty())) { f.selected = (f.size >= 24 && f.size <= 8192); continue; }
+        /* 1.2.4 (x2 fix): DOTNET yontemleri boyut filtresine GIRMEZ —
+           IL govderi 6-8 bayt olabilir (24-8192 filtresi native thunk
+           ayiklamak icindi; .NET metotlarini yiyip 0/0 secili uretiyordu). */
+        bool dn_fn = (f.note == "DOTNET" || f.note == "DOTNET-EH");
+        if (opt.manual.empty() && (opt.all || opt.funcs.empty())) {
+            f.selected = dn_fn ? true : (f.size >= 24 && f.size <= 8192);
+            continue;
+        }
         for (auto& want : opt.funcs) {
             if (want == f.name) { f.selected = true; break; }
             u32 rv = (u32)strtoul(want.c_str(), nullptr, 16);
@@ -1177,6 +1184,23 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             std::vector<xpil::Cmd> dcmds;
             std::string derr;
             if (!xpil::decode(dil.data(), dil.size(), &dcmds, &derr)) { f.note = "RED: IL decode: " + derr; continue; }
+            /* 1.2.4 (x2 fix): locals kullanim on-kontrolu — to_x86 locals
+               bilgisi olmadan dogru yigin-cercevesi uretemez; net mesaj
+               ("stloc.0 yerel yok (0)") yerine aciklama ver. StandAloneSig
+               tablosu (0x11) tam tablo-gezinmesi gerektirir (MemberRef/
+               CustomAttribute kodlu-indeks genislikleri) — sonraki tur. */
+            if (dm.local_sig) {
+                bool yerel = false;
+                for (auto& dc : dcmds) {
+                    u16 c = dc.code;
+                    if ((c >= 0x06 && c <= 0x0D) || c == 0x11 || c == 0x12 || c == 0x13 ||
+                        c == 0x100 + 0x0C || c == 0x100 + 0x0D || c == 0x100 + 0x0E) { yerel = true; break; }
+                }
+                if (yerel) {
+                    f.note = "RED: locals-imzali govde (ldloc/stloc; StandAloneSig v1 kapsam-disi)";
+                    continue;
+                }
+            }
             xpil::X86Fn dx;
             if (!xpil::to_x86(dcmds, 0, dm.has_ret, dm.is_static, dm.param_count, &dx, false /*x86-32 (metin2 hedefi)*/)) {
                 f.note = dx.why_red;

@@ -324,7 +324,11 @@ bool parse(const u8* d, size_t n, Image* out) {
                     m.local_sig = rd32(bh + 8);
                     m.body_off = bo + hs;
                     m.body_len = codesz;
-                    if ((bh[2] & 0x8) != 0) {               // EHTable
+                    /* 1.2.4 (x2 fix): MoreSects biti FLAGS kelimesinde
+                       (ECMA II.25.4.4: bit3 = 0x0008) — eski kod bh[2]'ye
+                       bakiyordu, o byte maxstack'in alcak byte'i (8) ve her
+                       fat govde EH saniliyordu (Method2 yanlis RED). */
+                    if ((rd16(bh) & 0x0008) != 0) {               // EHTable
                         // EH clause'ları 4-bayt hizalı; flags=0x40 -> FAT (24B) yoksa küçük (12B)
                         u64 ehp = (u64)m.body_off + codesz;
                         ehp = (ehp + 3) & ~(u64)3;
