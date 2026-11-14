@@ -256,12 +256,12 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
                                u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
-                               int regsenc = 0);   // 1.2.0-A9: Encrypt Registers
+                               int regsenc = 0, int rt_msg = 1, int rt_exit = 1);   // 1.2.0-A9 + 1.2.5 vm_poison bayraklari
 std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len, u32 retimm,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
                                u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
-                               int regsenc = 0);   // 1.2.0-A9: Encrypt Registers
+                               int regsenc = 0, int rt_msg = 1, int rt_exit = 1);   // 1.2.0-A9 + 1.2.5 vm_poison bayraklari
 // 0.5.0: M-govdesi onu runtime kapisI + gecikmeli import thunk'lari
 std::vector<u8> build_mgate_x86(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
 std::vector<u8> build_mgate_x64(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
