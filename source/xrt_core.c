@@ -1791,6 +1791,11 @@ static u32 vr_hook_hash(u32 k) {
     return h;
 }
 #define VRSYM(NM) __asm__ volatile ("lea %a1, %0" : "=r"(p) : "p"(&vr_h_##NM))
+/* 1.2.3: shim adresi RIP-gorevi lea ile — -fno-pie'da &sym mutlak-imm
+   uretebilir (0x100008 execute-fault kaniti); "p"-constraint lea
+   calisma-zamani dogru adresi verir (VRSYM ayni ders). */
+#define VRSHIM(NM) ({ u64 q_; __asm__ volatile ("lea %a1, %0" : "=r"(q_) : "p"(&vr_shim_##NM)); q_; })
+
 static u64 vr_hook_addr(u32 k) {
     u64 p = 0;
 #if defined(XRT_IS_X64)
@@ -1798,23 +1803,23 @@ static u64 vr_hook_addr(u32 k) {
        Govde (vr_h_*) dogrudan yazilirsa SysV/Win64 register eslemesi
        kayiyor (0x40009002 fault kaniti). */
     switch (k) {
-    case 0:  p = (u64)(unsigned long)&vr_shim_5a; break;   /* OpenA */
-    case 1:  p = (u64)(unsigned long)&vr_shim_5b; break;   /* OpenW */
-    case 2:  p = (u64)(unsigned long)&vr_shim_6a; break;   /* QueryA */
-    case 3:  p = (u64)(unsigned long)&vr_shim_6b; break;   /* QueryW */
-    case 4:  p = (u64)(unsigned long)&vr_shim_1;  break;   /* Close */
-    case 5:  p = (u64)(unsigned long)&vr_shim_9a; break;   /* CreateA */
-    case 6:  p = (u64)(unsigned long)&vr_shim_9b; break;   /* CreateW */
-    case 7:  p = (u64)(unsigned long)&vr_shim_6c; break;   /* SetA */
-    case 8:  p = (u64)(unsigned long)&vr_shim_6d; break;   /* SetW */
-    case 9:  p = (u64)(unsigned long)&vr_shim_8a; break;   /* EnumKeyA */
-    case 10: p = (u64)(unsigned long)&vr_shim_8b; break;   /* EnumKeyW */
-    case 11: p = (u64)(unsigned long)&vr_shim_9c; break;   /* EnumValA */
-    case 12: p = (u64)(unsigned long)&vr_shim_9d; break;   /* EnumValW */
-    case 13: p = (u64)(unsigned long)&vr_shim_2a; break;   /* DelA */
-    case 14: p = (u64)(unsigned long)&vr_shim_2b; break;   /* DelW */
-    case 15: p = (u64)(unsigned long)&vr_shim_12a; break;  /* InfoA */
-    case 16: p = (u64)(unsigned long)&vr_shim_12b; break;  /* InfoW */
+    case 0:  p = VRSHIM(5a); break;   /* OpenA */
+    case 1:  p = VRSHIM(5b); break;   /* OpenW */
+    case 2:  p = VRSHIM(6a); break;   /* QueryA */
+    case 3:  p = VRSHIM(6b); break;   /* QueryW */
+    case 4:  p = VRSHIM(1);  break;   /* Close */
+    case 5:  p = VRSHIM(9a); break;   /* CreateA */
+    case 6:  p = VRSHIM(9b); break;   /* CreateW */
+    case 7:  p = VRSHIM(6c); break;   /* SetA */
+    case 8:  p = VRSHIM(6d); break;   /* SetW */
+    case 9:  p = VRSHIM(8a); break;   /* EnumKeyA */
+    case 10: p = VRSHIM(8b); break;   /* EnumKeyW */
+    case 11: p = VRSHIM(9c); break;   /* EnumValA */
+    case 12: p = VRSHIM(9d); break;   /* EnumValW */
+    case 13: p = VRSHIM(2a); break;   /* DelA */
+    case 14: p = VRSHIM(2b); break;   /* DelW */
+    case 15: p = VRSHIM(12a); break;  /* InfoA */
+    case 16: p = VRSHIM(12b); break;  /* InfoW */
     }
     return p;
 #else
