@@ -647,3 +647,41 @@ x5: Property list: LVS_EX_FULLROWSELECT (value hucre secili gorunur) +
 x3 (dwarf portu BASLADI): xprotect_dwarf.h/.cpp — .debug_info/.debug_abbrev/
   .debug_str → DW_TAG_subprogram low_pc/high_pc/name (v2..v4 CU; v1 kapsam:
   v5/ranges/DWARF64 sonraki tur). Wire + test sonraki tur.
+
+## 2026-11-14 — KULLANICI cp165 TEST TURU (x, x1-x8, XGOD) — cp166+
+
+PLAN (once yaz, sonra is):
+  x  : UI konsol/log ciktisi KOPYALANAMIOR + pencere fare ile boyutlandirilamiyor
+       -> Log alanini secilebilir-edit'e cevir (Ctrl+C / Kopyala dugmesi), ana
+       pencere WS_THICKFRAME + WM_SIZE layout (min size WM_GETMINMAXINFO).
+  x1 : metin2 (C++) test: "#5" mesaji HIC gelmiyor; cpSilentExit true/false
+       farketmeksizin direk silent exit. vm_poison flag zinciri bisect:
+       stub arg gecisi (rt_msg bit2) / cfg kopyalama / MessageBoxA importu.
+       HEDEF: cpSilentExit=false -> mesaj+kapanma (UO parite); true -> sessiz.
+  x2 : .NET + pdb: liste guzel ama DERLEME rc3; konsol kopyalanamadigi icin
+       log yollayamadi -> KENDI repro: RunPEForm.exe (gercek csc) + minidn
+       wine E2E; rc3=fonksiyon-yok -> secim filtresi .NET'i yiyor olabilir;
+       STANDALONESIG/LOCALS portu (ldloc/stloc) bu turun ana motor isi.
+  x3 : EKSİK 15 durumu raporu: dwarf BASLADI (v1 parser yazili, wire+test bu
+       tur); elffile/macfile/objc = PE-hedef N/A (gerekce yazilacak);
+       objects.cc/script.cc(Lua API) degerlendirme + ne portlanabiliyorsa.
+  x4 : faydali EKSIK dosya portu devam (x3 ile ayni is paketi).
+  x5 : Fonksiyon-Ekle ARAMA hala filtrelemiyor (yaz -> Tara -> eslesmeyenler
+       hala listede). cp144 fix'in UI'da gercekten baglanmadigi yer bulunacak
+       (EN_CHANGE/Scan handler -> list rebuild filtreli; bos = tumu).
+  x6 : Property: SPACE toggle calisiyor ama deger degisince secim index 0'a
+       kayiyor; secim ayni satirda kalmali (re-populate yerine item-update).
+  x7 : (a) StandAloneSig/locals -> x2 ile; (b) gercek-Windows kabul testi:
+       kullanici logu beklenecek (konsol-kopyala bu tura girdi); (c) VMP
+       Messages paritesi: tespit mesaji duzenlenebilir (Core Properties'e
+       "Detection Message" text kutusu -> stub'a string gecisi); (d) Import
+       tam loader-IAT + VR dword/W deep-bisect (sonraki motor paketi);
+       (e) temiz test paketi: checkpoints/TEMIZ_TEST_PAKETI/ (her ornek
+       ozgun-adla, korunmus ciktilardan ayri).
+  x8 : oneriler chat raporunda (her madde somut is adiyla).
+  XGOD: tam port yuruerse: bu turun sonunda motor-parite tablosu guncel,
+       EKSIK 15'ten is-yararli olanlar kapanmaya calisilir; kalanlar net
+       gerekceyle "N/A (Windows-PE hedef)" ya da "yol haritasi" olarak
+       raporlanir. DURUST LİMİT: "%100" sozu ancak kanitli kalemlerde.
+
+SONUC: (is bitince yazilacak)
