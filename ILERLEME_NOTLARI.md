@@ -472,3 +472,30 @@ KANIT (wine, vreg_k2.exe — uretim blob):
 - Q-izi artik tam pointer (0x1_40009002 — truncate GIDDI)
 KALAN: dword/W/enum yollarinda kesin-arguman bozulmasi (A81/B80 izi —
 ptype=0x8D); guve ile cökme engelli; kök-neden derin bisect (sonraki tur).
+
+## 2026-11-14 — EncryptByteCode OP-ZINCIRI (UO cc* ailesi) CANLI + REGRESYON YESIL
+
+- VM_KS makrosu -> VM_MIX: her 8-bayt blok icin (key, pos>>3)'ten secilen
+  4 karisim ailesi (ccXor-ccMul / ccAdd-ccXor / ccRol-ccMul / ccNot-ccMul).
+  UO'nun per-opcode rastgele op-zinciri (ccAdd/ccSub/ccXor/ccRol/ccNot...)
+  kavram-paritesi; encoder (engine_main) + decoder (vm_core) AYNI makroyu
+  paylastigindan tek kaynakta degisti — bayt-bayt uyum korundu.
+- KANIT (uretim blob, wine):
+  R1 ULTIMATE sdk_b1 (antidebug+strenc+memprot+loadercrc+filecrc+stripfix+
+  debugmode): 3/3 lift, "B1 OK hepsi (jmpext=3622 jccext=134)" rc=0
+  TLS+PACK: "TLS OK: callback EP'den once calisti" rc=0 (LZMA %40.4)
+  MULT-VM(4)+vmadv: "B1 OK hepsi" rc=0
+- EncryptByteCode paritesi: %90 -> %95 (kalan: UO'nun 100-op'a kadar
+  zincir uzunlugu + handler-basi rastgeleleseme derinligi)
+
+## 2026-11-14 — DOTNET MOTOR YOLU UCTAN-UCA KANITI
+
+- minidn.exe (el-yapimi .NET PE, Class1::Method1 = 21+21):
+  "[DOTNET] Class1::Method1 IL=0x6B -> x86=0x16B (tip=U)" -> lifter ->
+  "[DOTNET] Class1::Method1: MethodDef RVA -> 0x019F10 + miNative" ->
+  cikti dogrulandi: MethodRVA=0x19F10, impl=0x1 (miNative) — CLR
+  native-callable yamasi cikti PE'de TASINIR.
+- Kucuk-not: --funcs isim eslesmesi 'Class1::Method1' icin v1'de hex-RVA
+  (2118) ile secilir; UI secim yolu ayni kural.
+- Icerik-parite notu: IL->x86 tamsayi alt-kumesi (58 op); nesne/GC yollari
+  duru-RED (durrett mesaji); x64 IL derleyici v2.
