@@ -573,14 +573,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     std::map<u32, xpdotnet::Method> dn_meta;   // rva -> method
     xpdotnet::Image dn_img;                    // A13/x7a: sas_blob (StandAloneSig)
     // A14 (x2 devam): P/Invoke haritasi — ImplMap'ten dll/isim hash'leri
-    std::map<u32, xpdotnet::XPinvFn> dn_pinv;
-    xpdotnet::XPEnv dn_env;
+    std::map<u32, xpil::XPinvFn> dn_pinv;
+    xpil::XPEnv dn_env;
     bool dn_pinv_want = false;
     if (opt.dotnet && dn_img.is_dotnet) {
         for (size_t qi = 0; qi < dn_img.methods.size(); qi++) {
             const xpdotnet::Method& qm = dn_img.methods[qi];
             if (qm.pinv_name.empty() || qm.pinv_dll.empty()) continue;
-            xpdotnet::XPinvFn pf;
+            xpil::XPinvFn pf;
             pf.dll_hash = xfnv_al(qm.pinv_dll.c_str());
             pf.name_hash = xfnv_a(qm.pinv_name.c_str());
             pf.args_bytes = qm.param_count * 4u;

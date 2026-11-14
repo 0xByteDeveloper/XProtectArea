@@ -1,2 +1,24 @@
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
+engine_main.cpp:576:29: error: no member named 'XPinvFn' in namespace 'xpdotnet'
+  576 |     std::map<u32, xpdotnet::XPinvFn> dn_pinv;
+      |                             ^~~~~~~
+engine_main.cpp:577:15: error: no type named 'XPEnv' in namespace 'xpdotnet'
+  577 |     xpdotnet::XPEnv dn_env;
+      |     ~~~~~~~~~~^
+engine_main.cpp:583:23: error: no type named 'XPinvFn' in namespace 'xpdotnet'
+  583 |             xpdotnet::XPinvFn pf;
+      |             ~~~~~~~~~~^
+engine_main.cpp:958:37: warning: format specifies type 'unsigned int' but the argument has type 'unsigned long long' [-Wformat]
+  956 |                                     "| k=%016llX k1=%016llX n=%u | P-ilk: %02X %02X %02X %02X | esz=%u",
+      |                                                               ~~
+      |                                                               %llu
+  957 |                                     (unsigned long long)xvf_k0(cfg_rva), (unsigned long long)xvf_k1(cfg_rva),
+  958 |                                     xvf_nonce(data_offs[fi]),
+      |                                     ^~~~~~~~~~~~~~~~~~~~~~~~
+engine_main.cpp:1158:43: warning: data argument not used by format string [-Wformat-extra-args]
+ 1157 |             snprintf(b, sizeof b, "[SDK-API] %zu isaret / %u API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)",
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1158 |                      apis.size(), n_apis, lsd_rva, xrt_sdk_rva);
+      |                                           ^
+2 warnings and 3 errors generated.
