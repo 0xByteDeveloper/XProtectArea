@@ -44,7 +44,7 @@ static bool pe_sections(const u8* d, size_t n, std::vector<Sec>* out, u32* data_
     u32 e_lfanew = rd32(d + 0x3C);
     if (e_lfanew + 0x18 > n || memcmp(d + e_lfanew, "PE\0\0", 4) != 0) return false;
     u16 nsec = rd16(d + e_lfanew + 6);
-    u16 opt_h = rd16(d + e_lfanew + 20);
+    u16 opt_h = rd16(d + e_lfanew + 24);   // OptionalHeader.Magic (COFF 20 bayt)
     if (opt_h != 0x10B && opt_h != 0x20B) return false;
     *is64 = (opt_h == 0x20B);
     const u8* oh = d + e_lfanew + 24;
@@ -194,12 +194,12 @@ bool parse(const u8* d, size_t n, Image* out) {
     u32 td_base = (u32)row_base(2);
     u32 md_base = (u32)row_base(6);
     u32 td_w = wTypeDef, md_w = wMethodDef;
-    std::string str_at = [&](u32 idx) -> std::string {
+    auto str_at = [&](u32 idx) -> std::string {
         if (!s4) idx &= 0xFFFF;
         if (idx >= str_sz || str_off + idx >= n) return "";
-        u64 s = str_off + idx;
+        u64 sp = str_off + idx;
         std::string r;
-        while (s < n && d[s] && s - str_off < str_sz) r += (char)d[s++];
+        while (sp < n && d[sp] && sp - str_off < str_sz) r += (char)d[sp++];
         return r;
     };
     for (u32 r = 0; r < sc.rows[2]; r++) {
