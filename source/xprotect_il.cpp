@@ -558,13 +558,16 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             e8(&c, 0x5A);                                 // pop edx (donus adresi)
             e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 12);       // add esp,12
             e8(&c, 0x85); e8(&c, 0xC0);                   // test eax,eax
-            e8(&c, 0x75); e8(&c, 0x02);                   // jne +2
-            e8(&c, 0xCC);                                 // int3 (cozulemedi — duru)
+            e8(&c, 0x74); e8(&c, 0x03);                   // jz +3 (int3'e)
             e8(&c, 0x52);                                 // push edx (ret adresi geri)
             e8(&c, 0xFF); e8(&c, 0xE0);                   // jmp eax (stdcall: arglari callee temizler)
-            if (pf->is_cdecl && pf->args_bytes) {
-                e8(&c, 0x83); e8(&c, 0xC4);               // add esp, imm8
-                e8(&c, (u8)pf->args_bytes);
+            e8(&c, 0xCC);                                 // .fail: int3 (cozulemedi — duru)
+            if (pf->is_cdecl && pf->args_bytes) {         // API dondükten sonra (cdecl: cagiran temizler)
+                if (pf->args_bytes <= 127) {
+                    e8(&c, 0x83); e8(&c, 0xC4); e8(&c, (u8)pf->args_bytes);
+                } else {
+                    e8(&c, 0x81); e8(&c, 0xC4); e32(&c, pf->args_bytes);
+                }
             }
             if (pf->has_ret) e8(&c, 0x50);                // push eax (IL yiginina)
             break;

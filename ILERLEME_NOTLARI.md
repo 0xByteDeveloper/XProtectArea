@@ -748,3 +748,31 @@ SONUC: (is bitince yazilacak)
   üretici + yürüyücü hizalama), (2) RunPEForm call/newobj/ldfld nesne-ops
   paketi (UO .NET paritesinin ana kalanı), (3) script.cc (Lua) portu,
   (4) gerçek-Windows kullanıcı kabul testi (konsol-kopyala ile log beklenir).
+
+## 2026-11-14 15:00 — cp189 TURU: pdbscope REGRESYON + .NET P/Invoke paketi (A14)
+
+- pdbscope KOK-NEDEN (kullanici: "yeni surumde bozdun"): PAKETTEKI pdbscope.exe
+  x64 REBUILD (3.18MB, e0f9dd35) — kullanicinin calistirdigi x86 (2.22MB,
+  cfebc28c) DEGIL. SWAP: kullanici binary'si TUM konumlara (pdbscope.exe,
+  PDBScope/, PDBScope/bin/win32/) koyuldu; x64 yedegi
+  PDBScope/pdbscope_x64_BACKUP.exe olarak duruyor (wine-test rig).
+- A14 (x2 devam) .NET NESNE-OPS PAKETI kod-duzeyi TAMAM:
+  * xprotect_dotnet: tablo gezinmesi 0x1D'ye genisletildi (Event/Property/
+    MethodSemantics/MethodImpl/ModuleRef/TypeSpec/ImplMap/FieldRVA);
+    ImplMap -> Method.pinv_dll/pinv_name/pinv_cdecl; FieldRVA ->
+    Image.field_rva; FieldLayout+ExplicitLayout TypeDef -> Image.field_off;
+    TypeDef.flags/field_first/field_last.
+  * xprotect_il: XPEnv/XPinvFn + to_x86(env): call/callvirt P/Invoke uretimi
+    (IL args yiginda -> push dll/name hash + fallback0 -> call xrt_resolve
+    rel32 (rx_fix, motor fn_rva ile patch) -> pop edx/add esp,12/test eax/
+    jz int3/push edx/jmp eax; cdecl: add esp,args (imm8/imm32); has_ret:
+    push eax). ldfld/stfld (ExplicitLayout offset; auto-layout = duru RED
+    "offset CLR'ye ait"); ldsfld/ldsflda/stsfld (FieldRVA mutlak VA; ASLR'li
+    imza = duru RED).
+  * engine_main: dn_pinv/dn_env kurulumu + xfnv_a/xfnv_al (xrt_core birebir)
+    + rt_blob'a dn_pinv_want (P/Invoke xrt ister) + resolve_rva dongu basi
+    atama + rx_fix patch'i.
+  * DERS (canli-review yakaladi): jcc hedefi yanlisti (jne+2 push edx'i
+    atliyordu -> stack bozuk) — jz+3 int3'e duzeltildi.
+- SIRADA: build (zig x64+x86) → RunPEForm E2E (P/Invoke'lu metotlar) →
+  metin2 regres → minidn_fat Method2 element-type bakisi.
