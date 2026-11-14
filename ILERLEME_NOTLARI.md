@@ -593,3 +593,57 @@ tiny / fat+locals / fat+EH):
 KALAN (.NET sonraki tur): StandAloneSig tablosu (0x11) tam tablo-gezinmesi
 (MemberRef/CustomAttribute kodlu-indeks genislik modeli) -> ldloc/stloc
 destegi; GC/nesne op-yollari; ImplMap adlari; x64 IL derleyici.
+
+## 2026-11-14 — KULLANICI cp142 TEST RAPORU TURU (x, x1-x6) — cp144+
+
+x(.NET "hala ayni, 2 fonksiyon, hatali size, hic derlemiyo") KOK-NEDENLERI
+(RunPEForm.exe = GERCEK csc ciktisi uzerinde bulundu; sentezleyicilerimiz
+ayni yanlislari yaptigi icin minidn testleri bunlari yakalayamamisti):
+  1. PE32 DataDirectory YANLIS OFFSET: xprotect_dotnet pe_sections()
+     NumberOfRvaAndSizes'i 0x48'den okuyordu (PE32'de bu SizeOfStackReserve!)
+     ve DD'yi 0x4C'den — spec: NRAS=0x5C, DD=0x60 (PE64: 0x6C/0x70).
+     Sonuc: GERCEK .NET dosyalarinda CLR dizini hic bulunamiyor.
+  2. metadata root: Flags(2) alani hic okunmiyordu (ECMA II.24.2.2: version
+     sonrasi Flags(2) + Streams(2)) — stream-header'lar 2 kayiyordu.
+  3. #~ satir-sayilari: yalniz desteklenen ilk 8 tablo okunuyordu; satir-
+     verisi TUM valid-tablolarinin (RunPEForm'da 23) sayilarindan SONRA
+     baslar — popcount(valid) ile hesaplandi; desteklenen tablonun sayisi
+     maskedeki rank'i (count_of) ile okunuyor.
+  4. Module satir genisligi ureticiye gore 4/6/8/10 degisiyor (RunPEForm'da
+     10!) — TD1(flags=0,<Module>)+MD1-3 desen dogrulamali KALIBRASYON.
+  5. EH bolumu hizalamasi uretici quirk'i: RunPEForm'da kod-sonu+4'te
+     (hizali degil) — adayli sane-dsz aramasi (small: dsz=4+12n,
+     fat: 0x4x,dsz=4+24n) + sinir-kontrolu; tutmazsa EH-BELIRSIZ
+     (0xFFFFFFFF) -> duru-RED "EH tablosu okunamadi" (yanlis-kod YOK).
+  SONUC (host probe): RunPEForm = 15 typedef / 74 metod, gercek adlar:
+  RunPEForm.PayloadLoader::LoadFromVBFile (rva 0x2050, 37B),
+  RunPEForm.RunPE::InjectCode (rva 0x2264, 625B, eh=2) ...
+  minidn + minidn_fat (yeniden SPEC-dogru uretildi) = TUM TESTLER PASSED.
+  Sentetik ureticiler (test_dotnet_gen.py, test_dotnet_gen_fat.py) spec-
+  dogru PE32 header'a alindi; .venv kayiplarina karsi scripts'e kopyali.
+
+x1 (VEH debugger'da mesaj yok, fonksiyon durbek) KOK-NEDEN + FIX:
+  VM tespit yollari (OP_ANTIDBG bataryasi, OP_CHKRET int3/ud2 donus-adresi,
+  K7 hipervizor...) eskiyalarda yalniz c->done=2 (sessiz zehir) yapiyordu.
+  YENI: vm_poison() (vm_core.c) — cfg bayraklarina uyar: scratch[5] bit2=
+  rt_msg (MessageBoxA "Xprotect: butunluk kontrol kod = #5"), bit3=rt_exit
+  (ExitProcess 0x75). 26 tespit sitesi vm_poison()'a baglandi. Bayraklar
+  stub'dan yazilir (build_stub_x64/x86 +6 arg). PIC-safe (volatile u32
+  paketleri; string literal YASAK). UO paritesi: history.htm:492.
+
+x2: Core Properties'e "Silent Exit (mesaj kutusu yok)" kutusu (cpSilentExit
+  0x00000010): true = sessiz kapanis (adamaya zaman/bilgi kazandirma), false
+  = UO davranisi (mesaj+kapanma). CLI: --rt-nomsg zaten vardi.
+
+x4-1: pdbscope CSV kind filtresi — DATA/LABEL/INLINE satirlari listeden
+  dusuruldu (degisken/RTTI secilip hata alinmasin).
+x4-2: Fonksiyon-Ekle arama kutusu: isim alt-dizisi (buyuk-kucuk duyarsiz)
+  + HEX ADRES ("d7610"/"0xd7610"/"sub_D7610" → tam RVA; aralik eslesmesi
+  [rva, rva+size)) — bos kutu = tumu. (Tara dugmesi = pdbscope taramasi
+  zaten calisiyor; karisiklik notu loga yazildi.)
+x5: Property list: LVS_EX_FULLROWSELECT (value hucre secili gorunur) +
+  SPACE/RETURN = secili satiri degistir.
+
+x3 (dwarf portu BASLADI): xprotect_dwarf.h/.cpp — .debug_info/.debug_abbrev/
+  .debug_str → DW_TAG_subprogram low_pc/high_pc/name (v2..v4 CU; v1 kapsam:
+  v5/ranges/DWARF64 sonraki tur). Wire + test sonraki tur.

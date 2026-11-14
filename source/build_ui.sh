@@ -10,6 +10,8 @@
 set -e
 cd "$(dirname "$0")"
 ZIG="python3 -m ziglang"
+# 1.2.5: venv python'da ziglang modulu olmayabilir — dogrudan ikili varsa onu kullan
+[ -x /tmp/my-project/scripts/site_pkgs/ziglang/zig ] && ZIG=/tmp/my-project/scripts/site_pkgs/ziglang/zig
 SRCS="xprotect_ui.cpp engine_main.cpp engine_pe.cpp engine_disasm.cpp engine_mut.cpp \
     engine_lift.cpp engine_stub.cpp engine_util.cpp engine_sym.cpp vm_blob.cpp xrt_blob.cpp \
     engine_pack.cpp xprotect_dotnet.cpp xprotect_il.cpp"
