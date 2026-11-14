@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp87  (2026-11-13, UTC+8)
+================================================================
+Odak: oturum kapanis: saha matrisi %100 + 6 fix + HTML v2 + parite %86
+Zipler: checkpoints/Xprotect_1.2.2_cp87/Xprotect_1.2.2_cp87.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

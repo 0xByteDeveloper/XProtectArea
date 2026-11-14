@@ -2,177 +2,189 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>XProtect — UniversalObfuscator (VMProtect 3.5.1) Port Durumu</title>
+<title>XProtect 1.2.2 — UniversalObfuscator (VMProtect 3.5.1) Port Durumu v2</title>
 <style>
   body { background:#0d1117; color:#c9d1d9; font-family:'Segoe UI',system-ui,sans-serif; margin:0; padding:24px; }
-  .wrap { max-width:980px; margin:0 auto; }
-  h1 { color:#58a6ff; font-size:26px; margin:0 0 4px; }
-  .sub { color:#8b949e; margin-bottom:20px; font-size:14px; }
+  .wrap { max-width:1020px; margin:0 auto; }
+  h1 { color:#58a6ff; font-size:25px; margin:0 0 4px; }
+  h2 { color:#58a6ff; font-size:18px; border-bottom:1px solid #30363d; padding-bottom:6px; margin-top:34px; }
+  .sub { color:#8b949e; margin-bottom:20px; font-size:13px; }
   .summary { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:24px; }
-  .card { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px 18px; flex:1; min-width:200px; }
-  .card .big { font-size:30px; font-weight:700; color:#3fb950; }
-  .card .lbl { color:#8b949e; font-size:12px; text-transform:uppercase; letter-spacing:1px; }
+  .card { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px 18px; flex:1; min-width:190px; }
+  .card .big { font-size:28px; font-weight:700; color:#3fb950; }
+  .card .lbl { color:#8b949e; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
   .feat { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px 18px; margin-bottom:12px; }
-  .feat h3 { margin:0 0 6px; font-size:16px; color:#e6edf3; }
+  .feat h3 { margin:0 0 6px; font-size:15px; color:#e6edf3; }
   .feat h3 .pct { float:right; font-weight:700; }
   .bar { background:#21262d; border-radius:6px; height:12px; overflow:hidden; margin:8px 0; }
   .fill { height:100%; border-radius:6px; }
   .g100 { background:linear-gradient(90deg,#238636,#3fb950); }
   .g90  { background:linear-gradient(90deg,#1f6feb,#58a6ff); }
-  .g75  { background:linear-gradient(90deg,#9e6a03,#d29922); }
-  .desc { color:#8b949e; font-size:13px; line-height:1.5; }
+  .g80  { background:linear-gradient(90deg,#9e6a03,#d29922); }
+  .g70  { background:linear-gradient(90deg,#8b4a03,#c2740a); }
+  .desc { color:#8b949e; font-size:13px; line-height:1.55; }
   .kanit { color:#56d364; font-size:12px; margin-top:6px; font-family:Consolas,monospace; }
   .gap { color:#d29922; font-size:12px; margin-top:4px; }
-  h2 { color:#58a6ff; font-size:18px; border-bottom:1px solid #30363d; padding-bottom:6px; }
   .legend { font-size:12px; color:#8b949e; margin:14px 0 20px; }
   code { background:#21262d; padding:1px 5px; border-radius:4px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  td,th { border:1px solid #30363d; padding:6px 10px; text-align:left; }
+  th { background:#161b22; color:#58a6ff; }
+  .qa { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px 18px; margin-bottom:12px; }
+  .qa b { color:#58a6ff; }
 </style>
 </head>
 <body>
 <div class="wrap">
-<h1>XProtect 1.2.2 — UniversalObfuscator (VMProtect 3.5.1) Port Durumu</h1>
-<div class="sub">1:1 C++ + Win32 port • cp48 (2026-11-13) • github.com/0xByteDeveloper/XProtectArea</div>
-
-<div class="summary">
-  <div class="card"><div class="big">%94</div><div class="lbl">Genel UO Parite</div></div>
-  <div class="card"><div class="big">17</div><div class="lbl">Özellik (tam/kanitli)</div></div>
-  <div class="card"><div class="big">7</div><div class="lbl">Bu oturumda tamamlanan</div></div>
-  <div class="card"><div class="big">cp44→cp48</div><div class="lbl">Checkpoint aralığı</div></div>
+<h1>XProtect 1.2.2 — UniversalObfuscator (VMProtect 3.5.1) Port Durumu v2</h1>
+<div class="sub">1:1 C++ + kütüksüz Win32 port • 2026-11-14 • cp86 • github.com/0xByteDeveloper/XProtectArea • kaynak: universalObfusPublicSrc (VMProtect 3.5.1 tabanlı, ±%10 fark) → özgün XProtect motoru</div>
+<div class="summary"><div class="card"><div class="big">%86</div><div class="lbl">Genel UO Parite (bugün +%1)</div></div><div class="card"><div class="big">47</div><div class="lbl">Saha çıktısı (24 UO + 23 XP)</div></div><div class="card"><div class="big">6</div><div class="lbl">Bu oturumda kök-neden fixi</div></div><div class="card"><div class="big">cp78→86</div><div class="lbl">Checkpoint aralığı</div></div></div><div class="legend">Renkler: <b style="color:#3fb950">yeşil</b> = %95+ (UO parite + kanıt) • <b style="color:#58a6ff">mavi</b> = %85-94 • <b style="color:#d29922">sarı</b> = %65-84 • turuncu = geliştirme alanı. Her kartta: ne işe yarar / saha kanıtı / kalan eksik.</div><h2>Çekirdek Koruma</h2>
+<div class="feat"><h3>Virtualization <span class="pct" style="color:#3fb950">%95</span></h3>
+<div class="bar"><div class="fill g100" style="width:95%"></div></div>
+<div class="desc">Seçilen fonksiyonlar (0xD7610 gibi base/end adresiyle) x86/x64 lifter ile VM bytecode'a derlenir; .vmp0 bölümündeki gömülü yorumlayıcı çalıştırır. Orijinal kod .text'ten kaldırılır, stub ile kapiye bağlanır.</div>
+<div class="kanit">✓ metin2client D7610+E96D0 ULTRA rc=0 (kullanıcı-CP40) • saha: metin2_xp_Virtualization.exe 5.27MB OK • vf_p78 r=130</div>
+<div class="gap">Kalan: ISA dışı op'lar (tam-tarama CRT-lift reddi); bölge-içi jcc mutasyon fixup (fonksiyon-kipi etkilenmez)</div>
 </div>
-
-<h2>Çekirdek Koruma Motoru</h2>
-
-<div class="feat"><h3>Virtualization <span class="pct" style="color:#3fb950">%100</span></h3>
+<div class="feat"><h3>Mutation <span class="pct" style="color:#d29922">%80</span></h3>
+<div class="bar"><div class="fill g80" style="width:80%"></div></div>
+<div class="desc">Seçili fonksiyonlar native kalır ama gövde mutasyon tablolarıyla yeniden yazılır: junk bloklar, ALU ikamesi (lea/xor→sub, push+ret), kapılar, blok kırma. UO'nun 60 şablon ailesine karşı XProtect perm-tablosu ailesi.</div>
+<div class="kanit">✓ saha: metin2_xp_Mutation.exe 5.27MB OK • 92B→207B gövde kanıtı (cp46)</div>
+<div class="gap">Kalan: şablon çeşitliliği artışı (UO şablon sayısı), bölge-U jcc fixup</div>
+</div>
+<div class="feat"><h3>Ultra (M+V) <span class="pct" style="color:#3fb950">%100</span></h3>
 <div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">x86/x64 lifter → VM bytecode, IAT-E8 ön-yazma, çoklu-fonksiyon, ULTRA düşüşü, VM junk, chkret. UO lifter paritesi.</div>
-<div class="kanit">✓ metin2 D7610+E96D0 ULTRA 2/2 rc=0 (cp40→cp46 her checkpoint) • vf_p78 vf_main r=130</div></div>
-
-<div class="feat"><h3>Mutation <span class="pct" style="color:#58a6ff">%95</span></h3>
-<div class="bar"><div class="fill g90" style="width:95%"></div></div>
-<div class="desc">Mutation motoru (perm-tabloları, junk, alu-karıştırma). Bölge-modu U mutasyonu A20'de saf-V'ye düşürüldü (bölge-içi jcc fixup kısıtı belgeli).</div>
-<div class="gap">Kalan: bölge-içi jcc mutasyon fixup desteği (fonksiyon-kipi etkilenmez)</div></div>
-
-<div class="feat"><h3>Ultra (M+V) <span class="pct" style="color:#58a6ff">%95</span></h3>
-<div class="bar"><div class="fill g90" style="width:95%"></div></div>
-<div class="desc">Mutasyon ön-geçidi + VM. U-mutdus güvenli düşüş. Bölge-U = saf V (A20 karar).</div>
-<div class="kanit">✓ m2_cp46 2/2 (V=1 U=1)</div>
-<div class="gap">Kalan: bölge-U tam mutasyon</div></div>
-
-<h2>Anti-Debug / Anti-VM Ailesi</h2>
-
-<div class="feat"><h3>Check Debugger <span class="pct" style="color:#3fb950">%95</span></h3>
-<div class="bar"><div class="fill g100" style="width:95%"></div></div>
-<div class="desc">K1-K4 (PEB/NtGlobalFlag/CheckRemoteDebuggerPresent/IsDebuggerPresent), K8-K9, chkret dönüş-adresi int3, UO oto-kuralı.</div>
-<div class="kanit">✓ KD1-KD5 kanit ailesi (cp43)</div>
-<div class="gap">Kalan: ScyllaHide-seviyesi hook-seti (listeli, A21)</div></div>
-
-<div class="feat"><h3>Check Kernel Debugger <span class="pct" style="color:#3fb950">%100</span></h3>
+<div class="desc">Önce Mutation ön-geçidi sonra Virtualization: bytecode, mutasyonlu gövdenin kaldırmasıdır (2.8x büyüme kanıtı). Kullanıcı CP40'ta metin2client üzerinde doğruladı.</div>
+<div class="kanit">✓ kullanıcı: 'D7610+E96D0 ULTRA çalışıyor' • saha: metin2_xp_Ultra.exe + UO Ultra çıktısı karşılaştırma</div>
+</div>
+<div class="feat"><h3>Encrypt ByteCode <span class="pct" style="color:#58a6ff">%85</span></h3>
+<div class="bar"><div class="fill g90" style="width:85%"></div></div>
+<div class="desc">SANALLAŞTIRILAN fonksiyonların VM bytecode'u şifrelenir (tüm proje değil, stack izi değil!). Konum-bazlı keystream (VM_KS/VM_KSC) + derleme-başına rastgele VM anahtarı; stub'daki mov eax,imm çiftleri anahtar lo/hi taşır. Çalışma-anında VM, bytecode'u ilk erişimde çözer. UO'daki karşılığı: derlenen fonksiyonların .vmp bölümündeki bytecode'unun section-cryptor ile şifrelenmesi.</div>
+<div class="kanit">✓ vmenc=ACIK her korumalı çıktıda • bc=193B/540B V/U karşılaştırma (0.4.3 kanıtı x1)</div>
+<div class="gap">Kalan: UO tarzı çok-zincirli section-cryptor rolling-key katmanı (tek katman var, zincir +1) → %90+ hedef</div>
+</div>
+<div class="feat"><h3>Encrypt Registers <span class="pct" style="color:#3fb950">%100</span></h3>
 <div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">A15: K5 (SystemKernelDebuggerInformation) + K6 (SoftICE/sürücü taraması) ayrı gate — UO oto-kural 1:1.</div>
-<div class="kanit">✓ KD1-KD5 (cp43) — kullanıcı senaryosu korundu</div></div>
-
-<div class="feat"><h3>Check VM <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="desc">VM yorumlayıcısının KAYIT DURUMU (regs[]: RAX,RBX,RCX,RDX,RSI,RDI,RBP,RSP,R8-R15 + RFLAGS) bellekte ŞİFRELİ tutulur; her opcode erişiminde çözülür, yazımda tekrar şifrelenir. 'Encrypt Registers' bir fonksiyon/exe şifrelemesi DEĞİLDİR — VM'in kendi bağlam kayıtlarıdır; ebp/rbp-ecx/rcx-al/ax-xmm0 ayrımı da buradan: GP set + flags şifreli, XMM sanallaştırılmaz (A4-FPU x87 gerçek birimde). UO'da bu bayrak ÖLÜdür (hiçbir kod okumaz) — XProtect gerçeğe çevirdi ve UO'YU AŞAR.</div>
+<div class="kanit">✓ vmregs=ACIK her çıktıda • sdk_v=5142/rc=42 vmregs+vmenc ile • a9 JMPEXT×vmregs çakışma fix'i</div>
+<div class="gap">Kalan: — (UO aşım alanı)</div>
+</div>
+<h2>Anti-Debug</h2>
+<div class="feat"><h3>Check Debugger <span class="pct" style="color:#58a6ff">%92</span></h3>
+<div class="bar"><div class="fill g90" style="width:92%"></div></div>
+<div class="desc">GLOBAL yükleyici-seviyesi batarya (fonksiyon sanallaştırması olmadan da çalışır): K1 PEB.BeingDebugged+NtGlobalFlag, K3 GetThreadContext DR, K8 ProcessDebugPort(7)/DebugObjectHandle(30), K9 CloseHandle(0xDEADC0DE), A21 ProcessInstrumentationCallback güveni. A21 SCYLLAHIDE-SEVİYESİ: ntdll diskten okunur (PEB FullDllName), manuel-map (DllMain'siz), NQIP/NQSI/NSIP ilk 32 baytı in-memory kopyaya geri yazılır (unhook — yalnız E9/FF25 gerçek hook deseninde), K8 kontrolü TEMİZ kopya üzerinden yapılır.</div>
+<div class="kanit">✓ a21_kanit.txt: k1=42 k2=42 k3=42 (scylla aktif, temiz rc) • KD4/eski-motor kontrol: davranış değişikliği yok</div>
+<div class="gap">Kalan: Hell's Gate doğrudan-syscall okuma; VEH-kill gerçek-Windows testi (wine'da doğrulanamaz)</div>
+</div>
+<div class="feat"><h3>Check Kernel Debugger <span class="pct" style="color:#58a6ff">%90</span></h3>
 <div class="bar"><div class="fill g90" style="width:90%"></div></div>
-<div class="desc">K7 CPUID hipervizor biti + K7b CPUID zamanlama (min-of-8 kalibrasyon) + vmn çoklu-VM + vtAdvanced.</div>
-<div class="kanit">✓ KD4: KVM'de GERÇEK tespit (rc=1 doğru-pozitif)</div>
-<div class="gap">Kalan: VBOX/KVM vendor dizeleri, art hipervizor heuristikleri</div></div>
-
-<h2>Şifreleme Ailesi</h2>
-
-<div class="feat"><h3>Encrypt ByteCode <span class="pct" style="color:#3fb950">%95</span></h3>
-<div class="bar"><div class="fill g100" style="width:95%"></div></div>
-<div class="desc"><b>Semantik (UO intel.cc 9569/28601'den doğrulandı):</b> yalnız SANALLAŞTIRILAN fonksiyonların VM p-code'u şifrelenir — tüm .exe değil, stack-akışı değil. UO: section-cryptor + crypt_registr (fetch-decrypt); XProtect: fonksiyon-başı anahtar (bc=…B key=0x…) — ±%10 içinde birebir.</div>
-<div class="kanit">✓ her [YAMA] satırı bc+key kanıtı • vmenc=ACIK varsayılan</div>
-<div class="gap">Kalan: UO tarzı section-cryptor zinciri (rolling-key)</div></div>
-
-<div class="feat"><h3>Encrypt Registers <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="desc">AYRI gate (1.2.2-A15): K5 SystemKernelDebuggerInformation(0x23) + K6 SoftICE/siwvid/ntice/iceext/syser sürücü taraması (NtQuerySystemInformation 0x0B modül listesi). UO kuralı: Check Debugger açıkken otomatik dahil (bit2=antidebug||kerneldbg).</div>
+<div class="kanit">✓ a15_kanit.txt: KD2 --kerneldbg tek=42, KD3 oto-dahil=42</div>
+<div class="gap">Kalan: gerçek-Windows kernel-debug senaryosu testi</div>
+</div>
+<div class="feat"><h3>Check Virtual Machine <span class="pct" style="color:#58a6ff">%90</span></h3>
 <div class="bar"><div class="fill g90" style="width:90%"></div></div>
-<div class="desc"><b>Semantik (UO cpEncryptRegs):</b> VM'nin SANAL register dosyası (emüle edilen registerlar) bellekte şifreli — native ebp/ecx/xmm0 DEĞİL (onlar gerçek yürütmenin registerları; sanal makinenin kendi register seti şifrelenir).</div>
-<div class="kanit">✓ vmregs=ACIK (1.2.0-A9) • tüm VM kanitları şifreli-dosya ile</div>
-<div class="gap">Kalan: register-dosyası anahtar rotasyonu (UO per-access)</div></div>
-
-<div class="feat"><h3>Encrypt Strings (cpCryptValues) <span class="pct" style="color:#3fb950">%100</span></h3>
-<div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">A18: korunan koddan referansı TAMAMEN VM'de olan .rdata stringleri DISKTE CFB-şifreli; runtime ilk kapıda VirtualProtect+yerinde çözüm; VM-STRDEC çift katman; SDK DecryptStringA/W argümanları zorla-şifreli; reloc-kesişme güvenlik filtresi (motor+runtime).</div>
-<div class="kanit">✓ vfstr_p9: plaintext YOK + hash=1916133317 GREEN • sdk_p8: DECRYPT-OK diskte YOK</div>
-<div class="gap">A18.2 (notlu): UTF-16/wide string taraması</div></div>
-
-<h2>Sanallaştırma Ailesi</h2>
-
-<div class="feat"><h3>Virtual Files <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="desc">K7 CPUID hipervizor biti (leaf1 ECX.31) + K7c hypervisor leaf 0x40000000 vendor dizeleri (KVMKVMKVM/Microsoft Hv/VBoxVBoxVBox/prl hyperv/XenVMMXenVMM/VMwareVMware) + K7b rdtsc-zamanlama (8 örneğin EN KÜÇÜĞÜ, eşik 10000 — yanlış-pozitif korumalı).</div>
+<div class="kanit">✓ a15 KD4: sandbox KVM'de GERÇEK tespit rc=1 • K7b: yerel 2590<10000 (yanlış-pozitif yok)</div>
+<div class="gap">Kalan: DMI/registry SanalBox kalan imzaları, CPUID interception testi</div>
+</div>
+<h2>Runtime</h2>
+<div class="feat"><h3>Memory Protection <span class="pct" style="color:#d29922">%80</span></h3>
+<div class="bar"><div class="fill g80" style="width:80%"></div></div>
+<div class="desc">.text EXECUTE_READ (karakteristikler) + .vmp0 loader-seviyesi EXECUTE_READ (0x60000020, A11 kanıtlı tasarım) + cfg state penceresi + VEH yazma-güvesi altyapısı (--mpveh) + tamper yanıtı ExitProcess(0x75).</div>
+<div class="kanit">✓ sdk_v=5142 loader-RX kanıtı • mp_veh bisect v1-v5 logları</div>
+<div class="gap">Kalan: VEH-kill gerçek-Windows kanıtı (wine patolojik); NtProtect hook-reddi UO paritesi</div>
+</div>
+<div class="feat"><h3>Import Protection <span class="pct" style="color:#d29922">%75</span></h3>
+<div class="bar"><div class="fill g80" style="width:75%"></div></div>
+<div class="desc">IAT çağrı noktaları FF15→E8 thunk'a çevrilir (derleme ÖNCESİ — API çağıran fonksiyonlar da sanallaştırılabilir), gecikmeli çözümleme xrt_resolve (hash + .vmp0 cache + orijinal-IAT geriüşü), A19: disk-IAT değerleri silinir + BoundImport/IAT data-dizileri temizlenir (loader INT'ten yeniden doldurur).</div>
+<div class="kanit">✓ iat_kanit.c + thunktest.py (sahte PEB + gerçek wine kernel32) • saha: metin2_xp_ImportProtection.exe OK</div>
+<div class="gap">Kalan: packed-mod import dizini gizleme (UO çıktılarında imp=0 — saha analizi bulgusu) → %95 hedef</div>
+</div>
+<div class="feat"><h3>Resource Protection <span class="pct" style="color:#d29922">%70</span></h3>
+<div class="bar"><div class="fill g80" style="width:70%"></div></div>
+<div class="desc">Kaynak bölümü şifreleme (1.2.0-B3 pack akışı); ikon/manifest istisnaları korunur.</div>
+<div class="kanit">✓ saha: metin2_xp_ResourceProtection.exe OK</div>
+<div class="gap">Kalan: UO istisna listesi 1:1 (ikon/manifest/version) + runtime çözüm kanıt ailesi</div>
+</div>
+<div class="feat"><h3>Packing (LZMA) <span class="pct" style="color:#58a6ff">%90</span></h3>
 <div class="bar"><div class="fill g90" style="width:90%"></div></div>
-<div class="desc">A16: faLoad (manuel PE map + import çözümü + DllMain), faInstall (temp+dll yükle), faRegister; CFB-şifreli XVF1 bloğu, UO WriteName rotl/xor isim şifresi 1:1; api-set scan-all import çözümü; LoadLibraryA son-çare.</div>
-<div class="kanit">✓ vf_p78: vfplug.dll bellekte yüklendi (vf_loaded=1) GREEN</div>
-<div class="gap">A17.1: faRegister DllRegisterServer tam bağlanma; x86 runtime derli-kanitsiz</div></div>
-
-<div class="feat"><h3>Virtual Registry <span class="pct" style="color:#d29922">%75</span></h3>
-<div class="bar"><div class="fill g75" style="width:75%"></div></div>
-<div class="desc">A17: UO ftRegistry/roRegistry 1:1 — 17 Reg* API IAT-hook'u (Open/Query/Close/Create/SetValue/EnumKey/EnumValue/Delete/QueryInfo A+W), sanal store (XVFR), case-insensitive PEB + find_export_any (api-ms ucrtbase), scratch-tablolar (memprot-uyumlu), LoadLibraryA son-çare.</div>
-<div class="kanit">✓ motor+hook kurulum GREEN (IT4, 4 patch)</div>
-<div class="gap">A17.2: wine ASLR rebase etkileşiminde tam runtime kanit — gerçek Windows testi bekleniyor (delta=0 yolu standart IAT-patch)</div></div>
-
-<h2>Yükleyici / Bütünlük Ailesi</h2>
-
-<div class="feat"><h3>Import Protection <span class="pct" style="color:#58a6ff">%95</span></h3>
-<div class="bar"><div class="fill g90" style="width:95%"></div></div>
-<div class="desc">0.5.0 thunk-E8 + xrt_resolve gecikmeli çözüm + A19: disk-IAT değerleri silinir (loader INT'ten yeniden doldurur), BoundImport+IAT data-dir temizliği; IAT = decoy (VMP aynen).</div>
-<div class="kanit">✓ iat_p2: 40 yuva silindi, tick=18408455 GREEN</div>
-<div class="gap">Kalan: packed-modda tüm import-dizini gizleme (VMP pack-bağlı)</div></div>
-
-<div class="feat"><h3>File CRC <span class="pct" style="color:#3fb950">%100</span></h3>
-<div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">Disk-görüntü CRC (.vmp0+cksum atlama), DLL senaryosu (PEB FullDllName), runtime katman entegre.</div>
-<div class="kanit">✓ cp34'ten beri GREEN; A19 zeros ile tutarlı</div></div>
-
-<div class="feat"><h3>Loader CRC (self + text) <span class="pct" style="color:#3fb950">%100</span></h3>
-<div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">self-CRC (vm blob + xrt) + text-CRC (sayfa sayfa, reloc-atlama) + state-kilidi tek-kurulum.</div>
-<div class="kanit">✓ 1.2.2 A11-v3 kanit zinciri</div></div>
-
-<div class="feat"><h3>PACK (LZMA) <span class="pct" style="color:#58a6ff">%95</span></h3>
-<div class="bar"><div class="fill g90" style="width:95%"></div></div>
-<div class="desc">LZMA SDK tek-iplik, EP stub açıcı, sectcrypt (CFB-64 akışlar), compaction. cp40: %32.3 sıkıştırma kanitlı.</div>
-<div class="kanit">✓ --pack [LIFT] 2/2 rc=0, 5.29MB→3.85MB (cp40)</div></div>
-
-<div class="feat"><h3>Internal Memory Protection <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="desc">Bölüm-bölüm LZMA sıkıştırma + unpack-stub EP yönlendirme + compaction. SAHA BULGUSU: metin2client'ta UO Pack boyut değiştirmedi (6144000=none; .text zaten yüksek-entropi 6.53), XProtect LZMA %27.8 küçülttü (3868672B) + EP→unpack stub 0x69A320.</div>
+<div class="kanit">✓ saha: metin2_xp_Pack.exe 3.87MB (-27.8%) vs UO Pack 6.14MB (no-op) • coklu_pack kanıtı S1/S3</div>
+<div class="gap">Kalan: UO LZMA kontrol-akışı detay eşleşmesi</div>
+</div>
+<div class="feat"><h3>String Encryption <span class="pct" style="color:#d29922">%70</span></h3>
+<div class="bar"><div class="fill g80" style="width:70%"></div></div>
+<div class="desc">.rdata'daki stringler (ASCII + UTF-16/WIDE — A18.2 ile UO kapsamı tam) bulunduğu yerden özel kopyaya taşınıp şifrelenir; STRDEC opcode ilk erişimde çözer (0.8.1 paylaşılan state); A18: tüm referansları VM'de olan orijinaller diskte CFB şifreli + XSTR tablosu runtime çözümü. A18.2-FIX: kopya sonrası ≥8 sıfır dolgu (len%8==0 terminatör-taşması kök-nedeni — wide_sum 1421→1420 kanıtlı düzeltme).</div>
+<div class="kanit">✓ a182_kanit.txt: wide_test L'XProtectWide2026' → [STRDEC] str=0x2A000 len=32 → wide_sum=1420 byte-exact</div>
+<div class="gap">Kalan: wm_sdk64 whole-module rc=3 (pre-existing bisect) → %85 hedef</div>
+</div>
+<div class="feat"><h3>Loader CRC <span class="pct" style="color:#58a6ff">%90</span></h3>
 <div class="bar"><div class="fill g90" style="width:90%"></div></div>
-<div class="desc">A11: .vmp0 loader-level EXECUTE_READ + cfg-page RW penceresi + mp_veh (x86/x64) yazma-guvesi + --mpveh gerçek-Windows gate.</div>
-<div class="kanit">✓ A11 W1-W3 kanitları</div></div>
-
-<div class="feat"><h3>Resource Protection <span class="pct" style="color:#d29922">%80</span></h3>
-<div class="bar"><div class="fill g75" style="width:80%"></div></div>
-<div class="desc">rsrcprot: kaynak-bölümü koruma (SDK kaynak API yönlendirmesi fnid 16-27 ile birlikte).</div>
-<div class="gap">Kalan: rsrc şifreleme + runtime-servis tam kanit ailesi</div></div>
-
-<h2>Su Altı / Lisans Ailesi</h2>
-
+<div class="desc">Koruma-motoru (VM+xrt) kod bütünlüğü: self-CRC + text-CRC (sayfa-sayfa, .reloc yamalı baytlar atlanır — ASLR uyumlu). Değişiklikte ExitProcess(0x70+1/2).</div>
+<div class="kanit">✓ selfcrc=42/textcrc=42 (0.5.0 kanıtları) • saha: metin2_xp_LoaderCRC.exe OK</div>
+<div class="gap">Kalan: gerçek-Windows tamper senaryo testi</div>
+</div>
+<div class="feat"><h3>File CRC <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="bar"><div class="fill g90" style="width:90%"></div></div>
+<div class="desc">Diskteki dosyanın CRC'si (Peb FullDllName ile korunan modülün KENDİ yolu; DLL senaryosu dahil), .vmp0 alanı atlanır (cksum+208). 1 bayt değişiklik → duru-ret.</div>
+<div class="kanit">✓ R2 kanıtı: 1-bayt patch → rc=117 DURU-RET • saha: metin2_xp_FileCRC.exe OK</div>
+</div>
 <div class="feat"><h3>Watermark <span class="pct" style="color:#3fb950">%100</span></h3>
 <div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">A13/A14: UO InternalFile::WriteName rotl/xor 1:1 gomme (8 kopya sürüm-imzası + kullanıcı watermark'ları), wildcard değerler, UI Tara diyaloğu (Bulundu sütunu).</div>
-<div class="kanit">✓ W1-W4 kanitları + VLM görsel UI kaniti (cp41/42)</div></div>
-
-<div class="feat"><h3>SDK <span class="pct" style="color:#58a6ff">%95</span></h3>
-<div class="bar"><div class="fill g90" style="width:95%"></div></div>
-<div class="desc">A20: VMP SDK 21 exportunun 19'u birebir (Begin×3+LockByKey×2, End, Serial×5, HWID, IsProtected/Debugger/CRC/VM, DecryptStringA/W+Free, resource×12). DecryptString = zorla-şifreleme + return-arg stub.</div>
-<div class="kanit">✓ sdk_p8: LOCK/DECRYPT stringleri diskte yok GREEN</div>
-<div class="gap">Kalan: ActivateLicense/Offline* tam lisans-motor bağlantısı (MVP passthrough, belgeli)</div></div>
-
-<div class="feat"><h3>Licensing (LSD) <span class="pct" style="color:#58a6ff">%85</span></h3>
-<div class="bar"><div class="fill g90" style="width:85%"></div></div>
-<div class="desc">Serial RSA-65537 doğrulama, HWID, expiry/maxbuild/blacklist bayrakları, LSD bloğu + cache, LockByKey bölge etiketi.</div>
-<div class="gap">Kalan: bölgelere ayrık lock-gate'leri (proje-seviyesi serial gate aktif)</div></div>
-
-<div class="feat"><h3>Diğer (DebugMode, StripFixups, StripDebugInfo, Multi-VM, VM_ADV, ResProt UI) <span class="pct" style="color:#3fb950">%100</span></h3>
+<div class="desc">UO core.cc Watermark::Compile 1:1: hex değer + joker ('AA??CC' → joker bayt kopya-başına rastgele); her derlemeye İÇ sürüm imzası ('XProtect1.2.2') 10/8 kopya; UI Watermarks diyalogu Name|Value|Found + Tara (UO SearchByte durum makinesi). SAHA BULGUSU: UO watermark listesi GLOBAL VMProtect.dat ister (ProgramData) — proje-dosyası değil; XP kendi gömmesini bağımsız yapar.</div>
+<div class="kanit">✓ a13/a14 kanıtları W1-W4 (metin2 10+10 kopya) • saha: UO Watermark OK 6144000 (seed sonrası)</div>
+</div>
+<div class="feat"><h3>Virtual Files <span class="pct" style="color:#d29922">%60</span></h3>
+<div class="bar"><div class="fill g70" style="width:60%"></div></div>
+<div class="desc">DLL/dosyalar korumalı exe içine şifreli gömülür (faLoad=disk-siz yüklenen modül, faRegister=DllRegisterServer çağrısı, faInstall=temp kopya) — bugün reg: önek parse FIX'i ile derleme tarafı %100 doğrulandı (gomme faRegister OK). ÇALIŞMA-ANINDA xvf_map_pe (manuel PE map: reloc+import+DllMain) → DllMain → DllRegisterServer zinciri iki host'ta da çalışmıyor — bugün kesin teşhis (cp44'ten beri kanitsızdı).</div>
+<div class="kanit">✓ a171_kanit.txt: gomme faRegister OK • iz dosyaları boş (runtime atladı/çöktü) • cp44'ten beri kanitsız</div>
+<div class="gap">Kalan: store-zinciri bisect: XVF1 anahtar türetimi + xvf_map_pe import/DllMain → %95 hedef</div>
+</div>
+<div class="feat"><h3>Virtual Registry <span class="pct" style="color:#d29922">%65</span></h3>
+<div class="bar"><div class="fill g70" style="width:65%"></div></div>
+<div class="desc">RegOpenKeyExA/W, RegQueryValueExA/W, RegCloseKey, RegEnum*, RegCreate*, RegSet*, RegDelete*, RegQueryInfo* IAT kesmesi; sanal store (XVFR: yol:type:ad=değer dword/sz/bin) sahte HKEY aralığıyla; gerçek anahtara fallback. BUGÜN: A20-TAM EP kapısı (global-only derlemede runtime hiç çalışmıyordu — düzeltildi, antidebug yolu yeşil) + bss-span FIX (xvr_* statikleri section-dışı yazıyordu). Runtime IAT-hook zinciri wine'da read-fault (0x4002A000) — bisect devam.</div>
+<div class="kanit">✓ a172_kanit2.txt: va_only2 GREEN (gate+xrt+scylla EP'de) • vreg_prot7/vr_only fault (belgelendi)</div>
+<div class="gap">Kalan: IAT-hook zincir bisect → %95 hedef</div>
+</div>
+<div class="feat"><h3>Debug Mode <span class="pct" style="color:#3fb950">%100</span></h3>
 <div class="bar"><div class="fill g100" style="width:100%"></div></div>
-<div class="desc">cpDebugMode (INT3 dolgu), strip-fixups/debug-info, vmn 1-8 çoklu-VM instance, vtAdvanced (VM_KSA), CLI+GUI tam kablaj.</div>
-<div class="kanit">✓ cp8-cp43 kanit zincirleri</div></div>
-
-<h2>Yüzde Özeti</h2>
-<div class="legend">
-Ağırlıklı UO paritesi: <b style="color:#3fb950">%94</b> (çekirdek=%100, şifreleme=%95-100, sanallaştırma=%75-90, SDK=%95).<br>
-UO kaynak = VMProtect 3.5.1 ±%10 (kullanıcı tanımı) → XProtect ≈ <b>VMP 3.5.1 gücünün %85-90'ı</b> bağımsız ölçümle, <b>%94</b> UO-parite ölçümüyle.<br>
-Bu oturum (cp44→cp48): Virtual Files %10→%90, Virtual Registry %10→%75, String Encryption %60→%100, Import Protection %60→%95, Watermark %50→%100 (cp41/42), Check Kernel Debugger→%100 (cp43), SDK %85→%95.
+<div class="desc">cpDebugMode (UO 1:1): koruma açık ama geliştirici-dostu (VB-kipi): hata mesajları/akış korunur — test derlemeleri için.</div>
+<div class="kanit">✓ saha: metin2_xp_DebugMode.exe OK (UO karşılığıyla aynı kapsamda)</div>
 </div>
+<h2>Ekstra</h2>
+<div class="feat"><h3>Licensing (RSA/SHA1+HWID) <span class="pct" style="color:#d29922">%75</span></h3>
+<div class="bar"><div class="fill g80" style="width:75%"></div></div>
+<div class="desc">xrt_license.c: RSA-256 seri doğrulama, SHA1 imza, HWID (makine-parmak izi), lisans söketi (LSD) + önbellek, keygen altyapısı; tam-anahtar testi (test_lic_full).</div>
+<div class="kanit">✓ test_liz kanıtları (0.9.x)</div>
+<div class="gap">Kalan: UO WLM format detayları + build-date bağlama</div>
 </div>
+<div class="feat"><h3>SDK (Begin/End ailesi) <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="bar"><div class="fill g90" style="width:90%"></div></div>
+<div class="desc">XProtectBeginVirtualization/Mutation/Ultra/LockByKey + End + DecryptStringA/W + IsProtected + Random + Box/Unbox — B8 imza ailesi (GCC/MSVC/XPROTECT_NO_SDK).</div>
+<div class="kanit">✓ sdk_kanit.c rc=42 • sdk_v/sdk_m/sdk_u testleri</div>
+</div>
+<div class="feat"><h3>MAP/PDB sembol seçimi <span class="pct" style="color:#58a6ff">%85</span></h3>
+<div class="bar"><div class="fill g90" style="width:85%"></div></div>
+<div class="desc">Fonksiyon isimleri: export + COFF + PDB/MAP/RVA (PDBScope entegre) — RED satırlarında isimli fonksiyonlar görünür.</div>
+<div class="kanit">✓ [RED] __tmainCRTStartup @0x14B0 ... (isimli tarama logları)</div>
+<div class="gap">Kalan: DWARF (UO linux-yolu) — Windows hedefte gerekmez</div>
+</div>
+<div class="feat"><h3>Strip Fixups / Debug Info <span class="pct" style="color:#58a6ff">%90</span></h3>
+<div class="bar"><div class="fill g90" style="width:90%"></div></div>
+<div class="desc">reloc tablosu temizleme + debug dizileri temizleme. SAHA BULGUSU: UO StripFixups çıktısında reloc=1 KALDI, XProtect reloc=0 temizledi.</div>
+<div class="kanit">✓ saha: metin2_xp_StripFixups.exe reloc=0</div>
+</div>
+<h2>Arayüz</h2>
+<div class="feat"><h3>GUI (Win32) <span class="pct" style="color:#3fb950">%100</span></h3>
+<div class="bar"><div class="fill g100" style="width:100%"></div></div>
+<div class="desc">Kütüksüz Win32 (MFC/ATL yok): özellik ızgarası (UO core.h 1:1 satırlar), fonksiyon listesi, Watermarks diyalogu (Add/Delete/Scan + Found kolonu), VF/VR kutuları, x64+x86 ikili.</div>
+<div class="kanit">✓ wm4_*.png VLM doğrulaması • XProtectUI.exe 1.37MB / XProtectUI32.exe 1.42MB</div>
+</div>
+<div class="feat"><h3>CLI <span class="pct" style="color:#3fb950">%100</span></h3>
+<div class="bar"><div class="fill g100" style="width:100%"></div></div>
+<div class="desc">22+ özellik bayrağı (--add V/M/U, --antidebug, --kerneldbg, --checkvm, --strenc, --import, --memprot, --mpveh, --rsrcprot, --filecrc, --loadercrc, --pack, --stripfixups, --stripdebug, --debugmode, --watermark, --wmvalue, --vfile reg:/install:, --vreg, --sdkonly, --vmn, --vmadv, --pubkey/--prodcode) + TUMU kombinasyonu.</div>
+<div class="kanit">✓ saha matrisi: 23 XP çıktısı hepsi CLI ile üretildi</div>
+</div>
+<h2>Saha Analizi — metin2client.exe (kullanıcı talimatı: her özellik tek tek)</h2><div class="desc">UniversalObfuscatorCon64.exe (UO/VMProtectCon Ultimate derlemesi) ve XProtectUI.exe ile <b>24 UO çıktısı</b> (23 özellik + TUMU) ve <b>23 XProtect çıktısı</b> (22 özellik + TUMU) üretildi — hepsi <code>Compilation completed</code>/OK. Klasörler: <code>saha_matris/universalobfuscator/</code> ve <code>saha_matris/xprotect/</code> (repo saha_matris/).</div><table><tr><th>Özellik</th><th>UO çıktısı</th><th>XProtect çıktısı</th></tr><tr><td>Üretilen çıktı</td><td>metin2_vmp_none • Virtualization • Mutation ….exe × 24</td><td>metin2_xp_Virtualization • Mutation • Ultra ….exe × 23</td></tr><tr><td>Loader EP davranışı</td><td>global-özelliklerde EP→0x56E7D0 loader (+.vmp00)</td><td>EP korunur, stub/kapı bağlar (tasarım farkı — ikisi de geçerli)</td></tr><tr><td>Pack etkinliği (bu girdi)</td><td>6144000B = none (sıkışmadı; .text e=6.53)</td><td>3868672B = %27.8 küçülme + EP→unpack stub</td></tr><tr><td>TUMU bölüm-kriptoru</td><td>.mAu0 rastgele ad, .text e=0.0 (sıfırlı)</td><td>.text e=8.0 (LZMA), boyut 3.96MB</td></tr><tr><td>StripFixups</td><td>reloc=1 kaldı</td><td>reloc=0 temizlendi</td></tr><tr><td>Import dizini (fonksiyon-virt)</td><td>imp=0 (IAT gizli)</td><td>imp=19 (orijinal IAT + thunk-cache yolu)</td></tr></table><div class="kanit">→ FARK_ANALIZI.md + fark_tablosu.csv (boyut/bölüm/entropi/EP/reloc/imp tüm çıktılar) — saha_matris/ içinde.</div><h2>Bu Oturumda Kök-Nedenli Düzeltilenler (cp78→86)</h2><table><tr><th>#</th><th>Sorun</th><th>Kök neden</th><th>Fix + kanıt</th></tr><tr><td>1</td><td>Encrypt Registers kapsamı eksik (wide yoktu)</td><td>scan_strings yalnız ASCII tarıyordu (A18)</td><td>A18.2 UTF-16 tarayıcı + kopya-dolgu fix → wide_sum 1420 (byte-exact XOR doğrulandı)</td></tr><tr><td>2</td><td>Global-only derlemede runtime hiç çalışmıyordu</td><td>comps boşsa stub yok → xrt_entry çağrılmıyor (A20 taşıması)</td><td>A20-TAM EP kapısı (mgate + E9 orijinal-EP) → va_only2 GREEN</td></tr><tr><td>3</td><td>EP kapısı NULL-exec çöküyordu</td><td>gate_rva = vmp_rva (o noktada 0!) — planlama RVA newva_guess olmalı</td><td>va_probe PE analizi kanıtı → düzeltildi, kapı 0x4F4A0 doğru</td></tr><tr><td>4</td><td>vreg statikleri section-dışına yazıyordu</td><td>blob bss kuyruğu (36912B) > bin (35013B) — cfg bloğu bss üstüne biner</td><td>bss-span fix: cfg_off = max(bin, aligned(bss)) → antidebug yolu GREEN</td></tr><tr><td>5</td><td>Wine'da stack-overflow / ntdll bozulması</td><td>A21-uzanti NSIP çağrısı + koşulsuz unhook (wine builtin-ntdll diskten farklı)</td><td>NSIP kaldırıldı + unhook'a E9/FF25 hook-desen güvesi</td></tr><tr><td>6</td><td>faRegister (reg: yolu) derleme-bereriydi</td><td>"reg:" öneki 4 karakter — compare/substr 5 kullanılmış (off-by-one, hiç eşleşmedi)</td><td>rfind+substr(4) → "[VF] gömüldü faRegister" kanıtı</td></tr></table><h2>Açık Sorunlar (dürüst liste)</h2><table><tr><th>Sorun</th><th>Durum</th><th>Sonraki adım</th></tr><tr><td>Virtual Files çalışma-zinciri (xvf_map_pe→DllMain→DllRegisterServer)</td><td>Derleme %100, çalışma %0 — cp44'ten beri kanitsızdı, bugün kesin teşhis</td><td>store bisect: XVF1 anahtar + import çözümleme + DllMain çağrısı</td></tr><tr><td>Virtual Registry runtime IAT-hook zinciri</td><td>Store/gate/bss yeşil; ilk RegOpen çağrısında wine read-fault (0x4002A000)</td><td>xvr_orig kayıt denetimi + çağrı zinciri inceleme</td></tr><tr><td>wm_sdk64 + --strenc</td><td>rc=3 — ESKİ motorda da ayni (pre-existing)</td><td>per-string probe bisect</td></tr><tr><td>Tam-tarama kipi (sdkonly olmadan --antidebug/--checkvm)</td><td>CRT-lift sağlıksız (V=427, rc=3)</td><td>kullanıcı yolunda fonksiyon-seçimli kullanım; ISA genişletme uzun-vade</td></tr></table><h2>Sorularınızın Cevapları (chat için özet)</h2><div class="qa"><b>Encrypt ByteCode neyi şifreler?</b> UO/VMProtect anlambiliminde: <b>sanallaştırılan fonksiyonların VM bytecode'unu</b> — ne eklenen fonksiyonları, ne tüm projeyi, ne de stack'te geçen disassembly'yi. Fonksiyon derlenir (lifter) → bytecode .vmp bölümüne yazılır → bu baytlar şifrelenir; VM yorumlayıcısı ilk erişimde çözer. XProtect: konum-keystream + derleme-başına anahtar; UO'nun section-cryptor rolling-key zinciri +1 katman olarak hâlâ gündemde (%%85→%%90).</div><div class="qa"><b>Encrypt Registers neyi şifreler?</b> Thread'in stack izindeki disassembly'nin register'leri ya da tüm .exe değil — <b>VM yorumlayıcısının bağlam (context) kayıtlarını</b>. Sanallaştırılan kodun kayıtları VM'de regs[] dizisinde yaşar; bu dizi bellekte şifrelidir, her opcode erişiminde çözülür. ebp/rbp, ecx/rcx, al/ax dahil <b>tüm GP set + RFLAGS</b>; xmm0 sanallaştırılmaz (FPU x87 gerçek birimde — UO paritesi). UO'da bu bayrak ölüdür; XProtect gerçek uygulama ile UO'yu aşar.</div><div class="qa"><b>UniversalObfuscator'ı yüzde kaç portladık?</b> Özellik-paritesi ~<b>%%86</b> (yukarıdaki çubuklar). Kod-paritesi farklı bir ölçü: UO ~1M satır (VMProtect core + GUI + Qt) — XProtect çekirdek motor + GUI ~40k satır ÖZGÜN C++ (1:1 kopya değil, kavram-paritesi). Güç-ölçüsünde: Virtualization/Mutation/Ultra/Encrypt Registers/Watermark/Loader+File CRC/Pack/DebugMode/CLI/GUI ~parite; Encrypt ByteCode/Import/Resource/Licensing kısmi; VF/VR çalışma-zinciri açık. VMP 3.5.1 'gücü' hedefi: kullanıcı-yolu (fonksiyon-seçimli ULTRA + batarya) bugün VMP karşılığıyla aynı işi yapıyor; kalan boşluklar yukarıda sayılı.</div><div class="qa"><b>cp49 yarıda mı kaldı?</b> Hayır — cp49 = 1.2.0 hattının son kalp-atışı (içerik cp47-49 özdeş); sonrasında 1.2.2 hattı onun yerini aldı ve cp50→77 ile saha analizi + A10/A11/A13/A14/A15/A20/A21 devam etti. Bu oturum cp78→86 arası: saha matrisi %100 + 6 kök-neden fixi.</div><div class="sub" style="margin-top:30px">Üretici: ozellik_html_v2.py • kanıt dosyaları: kanit_122/ + kanit_saha/ + saha_matris/ • checkpointler: checkpoints/Xprotect_1.2.2_cp1..cp86</div></div>
 </body>
 </html>
