@@ -565,17 +565,24 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             for (auto& dm : dimg.methods) {
                 if (!dm.rva || !dm.body_len) continue;              // gövdesiz (abstract/pinvoke/için)
                 if (dm.is_native || dm.is_abstract || dm.is_pinvoke) continue;
-                if (dm.fat_header && dm.local_sig) continue;        // v1: locals-imzalı fat RED
+                /* 1.2.4 (x2 fix): fat+locals govdesi ARTIK keşfedilir —
+                   ldloc/ldarga indeks-temellidir, locals imzası IL decode
+                   için gerekmez. WinForms/WPF derlemelerinde tüm metotlar
+                   fat+locals olduğundan eski filtre "0 yontem adayi"
+                   üretiyor ve UI yalnızca pdbless sub_ çöpünü gösteriyordu.
+                   EH'li gövdeler keşifte DOTNET-EH işaretlenir; derleme
+                   aşamasında net RED verir (yanlış try/catch semantiği
+                   üretilmesin). */
                 bool dup = false;
                 for (auto& ff : fns) if (ff.rva == dm.rva) { dup = true; break; }
                 if (dup) continue;
                 FnInfo f; f.rva = dm.rva; f.size = dm.body_len;
                 f.name = dm.type_name.empty() ? dm.name : (dm.type_name + "::" + dm.name);
-                f.note = "DOTNET";
+                f.note = dm.eh_count ? "DOTNET-EH" : "DOTNET";
                 fns.push_back(f);
                 dn_meta[dm.rva] = dm;
             }
-            snprintf(b, sizeof b, "[DOTNET] %zu yontem adayi (metadata v%s, EP-token=0x%08X)",
+            snprintf(b, sizeof b, "[DOTNET] %zu yontem adayi (metadata v%s, EP-token=0x%08X, EH-red hariç)",
                      dn_meta.size(), dimg.ver_buf, dimg.entry_token);
             L(b);
         }
@@ -1159,6 +1166,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         bool is_dotnet = dn_meta.count(f.rva) != 0;
         if (is_dotnet) {
             const xpdotnet::Method& dm = dn_meta[f.rva];
+            if (dm.eh_count) {
+                /* 1.2.4 (x2 fix): EH'li gövde — try/catch/finally semantiği
+                   olmadan üretilen x86 yanlış olur; net mesajla RED. */
+                f.note = "RED: EH tablosu (try/catch) desteklenmiyor";
+                continue;
+            }
             std::vector<u8> dil;
             if (!xpdotnet::read_body(pe.buf.data(), pe.buf.size(), dm, &dil)) { f.note = "RED: IL govde yok"; continue; }
             std::vector<xpil::Cmd> dcmds;

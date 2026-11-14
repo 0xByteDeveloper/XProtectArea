@@ -16,6 +16,7 @@
 #include <windowsx.h>
 #include "engine.hpp"
 #include "engine_sym.hpp"
+#include "xprotect_dotnet.h"   // 1.2.4: CLR MethodDef keşfi (x2 fix)
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
@@ -634,6 +635,7 @@ static const wchar_t* src_name(int source) {
     case SYM_STUB: return L"Stub";
     case 5: return L"PDBScope";
     case 6: return L"VMP project";
+    case 7: return L"DOTNET";
     }
     return L"-";
 }
@@ -829,6 +831,35 @@ struct ScanJob {
     volatile LONG found = 0;
     bool ok = false;
 };
+// 1.2.4 (x2 fix): hedef CLR derlemesi ise MethodDef tablosundan gercek
+// yontem listesi (Namespace.Class::Method, rva=MethodRVA, size=IL govde
+// boyutu). source=7 -> "DOTNET" kolonu. EH'li govder keşfedilir ama
+// derlemede RED eder (engine_main ayri guard).
+static bool dotnet_funcs_for(const std::wstring& target, std::vector<PeFunc>* out) {
+    FILE* f = _wfopen(target.c_str(), L"rb");
+    if (!f) return false;
+    fseek(f, 0, SEEK_END);
+    long fsz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (fsz <= 0) { fclose(f); return false; }
+    std::vector<unsigned char> d((size_t)fsz);
+    if (fread(&d[0], 1, (size_t)fsz, f) != (size_t)fsz) { fclose(f); return false; }
+    fclose(f);
+    xpdotnet::Image img;
+    if (!xpdotnet::parse(&d[0], d.size(), &img) || !img.is_dotnet) return false;
+    for (auto& m : img.methods) {
+        if (!m.rva || !m.body_len) continue;
+        if (m.is_native || m.is_abstract || m.is_pinvoke) continue;
+        PeFunc nf;
+        nf.rva = m.rva;
+        nf.size = m.body_len;
+        nf.name = s2w(m.type_name.empty() ? m.name : (m.type_name + "::" + m.name));
+        nf.is_export = false;
+        nf.source = 7;   // src_name: "DOTNET"
+        out->push_back(nf);
+    }
+    return out->size() > 0;
+}
 static DWORD WINAPI scan_thread(LPVOID p) {
     ScanJob* j = (ScanJob*)p;
     // ayni klasorde <hedef>.pdb var mi?
@@ -840,6 +871,32 @@ static DWORD WINAPI scan_thread(LPVOID p) {
     j->mode = j->use_pdb ? L"PDB" : L"pdbless";
     j->ok = pdbscope_scan_ex(j->target, j->out, &j->note, j->use_pdb, &j->percent, &j->found);
     if (!j->ok && j->note.empty()) j->note = L"pdbscope sonuc vermedi (arac yok?)";
+    /* 1.2.4 (x2 fix): CLR (IL-only) derlemesi — pdbscope IL baytlarini x86
+       gibi okuyup binlerce anlamsiz sub_ uretiyordu (kullanicinin C# Form
+       exe raporu: "entrypoint ve sub_ binlerce size"). MethodDef
+       keşfiyle gerçek adlar (Namespace.Class::Method) listelenir ve
+       yontem araliklarina dusen pdbless sub_ adaylari temizlenir. */
+    {
+        std::vector<PeFunc> dn;
+        if (dotnet_funcs_for(j->target, &dn)) {
+            std::vector<PeFunc> temiz;
+            temiz.reserve(j->out.size());
+            for (auto& f : j->out) {
+                bool icinde = false;
+                if (f.name.rfind(L"sub_", 0) == 0 || f.name.rfind(L"entrypoint", 0) == 0) {
+                    for (auto& m : dn) {
+                        if (f.rva >= m.rva && f.rva < m.rva + m.size) { icinde = true; break; }
+                    }
+                }
+                if (!icinde) temiz.push_back(f);
+            }
+            j->out.swap(temiz);
+            for (auto& f : dn) j->out.push_back(f);
+            j->mode += L"+DOTNET";
+            if (!j->note.empty()) j->note += L" | CLR: " + numdec((long long)dn.size()) + L" yontem";
+            else j->note = L"CLR: " + numdec((long long)dn.size()) + L" yontem";
+        }
+    }
     InterlockedExchange(&j->done, 1);
     return 0;
 }
@@ -879,9 +936,29 @@ static void merge_funcs(PeInfo& pi, const std::vector<PeFunc>& pf, std::wstring*
         *note_out = L"   [+" + numdec(added) + L" new, " + numdec(enriched) + L" enriched]";
 }
 static void merge_pdbscope(PeInfo& pi, const std::wstring& path, std::wstring* note_out) {
+    /* 1.2.4 (x2 fix): CLR keşfi pdbscope'tan BAGIMSIZ — proje yükleme
+       yolunda da gerçek MethodDef adları listeye girer. */
+    std::vector<PeFunc> dn;
+    bool clr = dotnet_funcs_for(path, &dn);
     std::vector<PeFunc> pf;
     std::wstring note;
-    if (!pdbscope_scan(path, pf, &note)) {
+    bool scok = pdbscope_scan(path, pf, &note);
+    if (clr) {
+        std::vector<PeFunc> temiz;
+        temiz.reserve(pf.size());
+        for (auto& f : pf) {
+            bool icinde = false;
+            if (f.name.rfind(L"sub_", 0) == 0 || f.name.rfind(L"entrypoint", 0) == 0) {
+                for (auto& m : dn)
+                    if (f.rva >= m.rva && f.rva < m.rva + m.size) { icinde = true; break; }
+            }
+            if (!icinde) temiz.push_back(f);
+        }
+        pf.swap(temiz);
+        for (auto& f : dn) pf.push_back(f);
+        note = L"CLR: " + numdec((long long)dn.size()) + L" yontem";
+    }
+    if (!scok && pf.empty()) {
         if (note_out) *note_out = L"pdbscope: no result (tool not found or no functions)";
         return;
     }
@@ -4010,7 +4087,22 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     case WM_APP_DONE: {
         g_compiling = false;
-        wchar_t b[32]; _snwprintf(b, 32, L"rc=%d", (int)wp);
+        /* 1.2.4 (x2 fix): rc kodlari artik aciklamali — kullanici "rc4 rc3
+           gibi garip hatalar" yerine kodun anlamini gorur. */
+        wchar_t b[160];
+        {
+            const wchar_t* mn;
+            switch ((int)wp) {
+            case 0: mn = L"basarili"; break;
+            case 1: mn = L"PE yukleme/kaydetme hatasi (cikti YAZILMADI)"; break;
+            case 2: mn = L"lisans anahtari format hatasi (cikti YAZILMADI)"; break;
+            case 3: mn = L"hicbir fonksiyon uygulanamadi (cikti YAZILMADI)"; break;
+            case 4: mn = L"PACK/LZMA paketleme hatasi (cikti YAZILMADI)"; break;
+            case 5: mn = L"XRT cfg yazim tasmasi (cikti YAZILMADI)"; break;
+            default: mn = L"bilinmeyen kod"; break;
+            }
+            _snwprintf(b, 160, L"rc=%d (%s)", (int)wp, mn);
+        }
         add_log(std::wstring(L(LS_DONE)) + L"  " + b);
         /* 0.5.1: sessiz basarisizlik YOK - motor hicbir fonksiyon
         uygulayamadiysa rc=3 doner ve CIKTI YAZILMAZ; kismi redde
@@ -4018,7 +4110,14 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
         if ((int)wp == 3) {
             MessageBoxW(h, L"Hicbir fonksiyon uygulanamadi!\nCikti dosyasi yazilmadi.\n\n"
                            L"Nedenler icin log penceresindeki [RED] satirlarina bakin.\n"
-                           L"(Orn. x86 hedefte cagri iceren fonksiyonlar V/U red edilmis olabilir.)",
+                           L"(Orn. x86 hedefte cagri iceren fonksiyonlar V/U red edilmis olabilir.\n"
+                           L" CLR derlemesinde yalnizca DOTNET kaynakli metotlar korunabilir\n"
+                           L" — sub_/entrypoint adaylari IL gorunumudur, secilmemelidir.)",
+                         L(LS_ERROR), MB_OK | MB_ICONERROR);
+        } else if ((int)wp == 4) {
+            MessageBoxW(h, L"PACK (LZMA paketleme) basarisiz!\nCikti dosyasi yazilmadi.\n\n"
+                           L"Log penceresindeki [HATA] PACK satirlarina bakin\n"
+                           L"(bolum cakismasi / yerlesim yetersizligi olabilir).",
                          L(LS_ERROR), MB_OK | MB_ICONERROR);
         } else if ((int)wp == 0 && g_last_reds > 0) {
             wchar_t wb[160]; _snwprintf(wb, 160,
@@ -4247,8 +4346,21 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     printf("%s\n", l.c_str());
                     if (lf) { fputs(l.c_str(), lf); fputc('\n', lf); }
                 }
-                printf("rc=%d\n", rc);
-                if (lf) { fprintf(lf, "rc=%d\n", rc); fclose(lf); }
+                /* 1.2.4 (x2 fix): CLI rc kodlari da aciklamali */
+                {
+                    const char* mn;
+                    switch (rc) {
+                    case 0: mn = "basarili"; break;
+                    case 1: mn = "PE yukleme/kaydetme hatasi"; break;
+                    case 2: mn = "lisans anahtari format hatasi"; break;
+                    case 3: mn = "hicbir fonksiyon uygulanamadi (cikti YAZILMADI)"; break;
+                    case 4: mn = "PACK/LZMA paketleme hatasi (cikti YAZILMADI)"; break;
+                    case 5: mn = "XRT cfg yazim tasmasi (cikti YAZILMADI)"; break;
+                    default: mn = "bilinmeyen kod"; break;
+                    }
+                    printf("rc=%d (%s)\n", rc, mn);
+                    if (lf) { fprintf(lf, "rc=%d (%s)\n", rc, mn); fclose(lf); }
+                }
                 fflush(stdout);
                 LocalFree(argv);
                 return rc;
