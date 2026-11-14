@@ -1,37 +1,6 @@
 ================================================================
-XProtect 1.2.2 — CHECKPOINT cp74 (2026-11-13, oturum devami)
+XProtect 1.2.2 — CHECKPOINT cp78  (2026-11-13, UTC+8)
 ================================================================
-DEVAM NOKTASI: cp50 plani uygulaniyordu; cp61-cp73 push'lari TOKEN
-REDACTION yuzunden basarisiz oldu (push_bekleyen.txt'te birikti).
-Bu oturumda token yeniden verildi -> backlog push + saha analizi devam.
-
-Kullanici sorusunun cevabi (cp49 yarida mi?):
-- cp49 = 1.2.0 hattinin son heartbeat'i (icerik cp47-49 ozdes) — yarida
-  birakilmis DEGIL; 1.2.0 hattinda ozellik icerigi tamamlanmisti, sonrasinda
-  1.2.2 hatti (cokme fixleri + A10/A11) onun yerini aldi. Son GERCEK icerik:
-  cp50 agaci (12:36) + A10/A11 motoru (00:55) + saha matrisi baslangici
-  (13:11: 2 UO ciktisi: none + Virtualization).
-
-SAHA ANALIZI DURUMU (kullanici talimati: her ozellik tek tek metin2client):
-- UniversalObfuscatorCon64.exe DERLENDI (13:10, 13.7MB, zig-clang x64,
-  VMProtectCon Ultimate birebir; 7 uyum yamasi; libffi 3.4.4).
-- matris_uo.py yazildi: 22 ozellik x metin2client.exe -> pf/*.vmp proje
-  dosyalari + universalobfuscator/ ciktilari (0xD7610 fonksiyonu).
-- Tamamlanan: metin2_vmp_none.exe, metin2_vmp_Virtualization.exe.
-- KALAN: 20 UO ozelligi + TUMU kombinasyonu + XProtect karsilik matrisi
-  (metin2_xp_*.exe) + fark tablosu (boyut/section/entropi/IAT/reloc).
-
-A21+ MOTOR ISLERI (cp50 "Kalan" listesi — bu oturumda yapilacak):
- 1. A21 ScyllaHide-seviyesi hook seti (temiz-ntdll map + direct syscall)
- 2. A17.1 faRegister DllRegisterServer tam baglanma (VF %90->100)
- 3. A18.2 UTF-16/wide string taramasi (Encrypt Strings)
- 4. A17.2 Virtual Registry wine-kanit ailesi (%75->100)
- 5. Bolge-U jcc mutasyon fixup (Mutation/Ultra %95->100)
- 6. VBOX/KVM vendor dizeleri (Check VM %90->100)
- 7. UO tarzi section-cryptor rolling-key (Encrypt ByteCode %95->100)
- 8. Register-dosyasi anahtar rotasyonu (Encrypt Registers %90->100)
- 9. Packed-mod import-dizini gizleme (Import %95->100)
-10. rsrc sifreleme kanit ailesi (Resource %80->100)
-
-SONRAKI ENDPOINT: saha matrisini bitir -> fark analizi -> A21+ motor isleri
--> OZELLIK_DURUM.html progressbar guncellemesi -> chat raporu (parite %).
+Odak: oturum-devam: cp77 sonrasi saha matrisi (XP %100 bitmis, UO 9/22) devralindi; token yenilendi; UO matrisi kalan 13 ozellik + TUMU kosuluyor
+Zipler: checkpoints/Xprotect_1.2.2_cp78/Xprotect_1.2.2_cp78.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.

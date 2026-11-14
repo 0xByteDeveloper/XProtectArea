@@ -1,0 +1,6 @@
+================================================================
+XProtect 1.2.2 — CHECKPOINT cp78  (2026-11-13, UTC+8)
+================================================================
+Odak: oturum-devam: cp77 sonrasi saha matrisi (XP %100 bitmis, UO 9/22) devralindi; token yenilendi; UO matrisi kalan 13 ozellik + TUMU kosuluyor
+Zipler: checkpoints/Xprotect_1.2.2_cp78/Xprotect_1.2.2_cp78.zip (tam kaynak + ikililer)
+Son endpoint ve sonraki adim: ana repo CHECKPOINT.txt icinde.
