@@ -1107,8 +1107,10 @@ static u32 vr_RegOpenKeyExA(u64 hKey, const char* sub, u32 opt, u32 sam, u64 phk
     if (xvr_mem && sub) {
         u8 fp[XVR_MAXPATH];
         u32 fl = vr_join(hKey, sub, fp);
+        xvf_dbg(k32p, 'J', (char)('0' + (fl < 10 ? fl : 9)), 'S');
         if (fl) {
             u32 pi = vr_path_pid(fp, fl);
+            xvf_dbg(k32p, 'P', (pi == 0xFFFFFFFFu) ? 'F' : (char)('0' + (pi < 10 ? pi : 9)), 'S');
             if (pi == 0xFFFFFFFFu) {
                 /* alt anahtar tanimli mi? (path+\\ oneki) */
                 u32 i, sl = fl;
@@ -1117,14 +1119,21 @@ static u32 vr_RegOpenKeyExA(u64 hKey, const char* sub, u32 opt, u32 sam, u64 phk
                         !vr_nicmp(xvr_path[i].path, fp, sl) &&
                         xvr_path[i].path[sl] == '\\') { pi = vr_path_add(fp, fl); break; }
                 }
+                xvf_dbg(k32p, 'P', (pi == 0xFFFFFFFFu) ? 'F' : (char)('0' + (pi < 10 ? pi : 9)), '2');
             }
             if (pi != 0xFFFFFFFFu && phk) {
                 *(u32*)(unsigned long)phk = (u32)(XVR_HKEY_BASE + pi);
+                xvf_dbg(k32p, 'P', 'H', '.');                 /* fake-handle donusu */
                 return 0;                                     /* ERROR_SUCCESS */
             }
         }
     }
-    return (u32)VRCALL(0, hKey, (u64)(unsigned long)(void*)sub, (u64)opt, (u64)sam, phk);
+    xvf_dbg(k32p, 'O', (char)('0' + ((xvr_orig[0] >> 4) & 15)), (char)('0' + (xvr_orig[0] & 15)));
+    {
+        u32 r0 = (u32)VRCALL(0, hKey, (u64)(unsigned long)(void*)sub, (u64)opt, (u64)sam, phk);
+        xvf_dbg(k32p, 'O', 'R', (char)('0' + (r0 < 10 ? r0 : 9)));
+        return r0;
+    }
 }
 static u32 vr_RegOpenKeyExW(u64 hKey, const u16* sub, u32 opt, u32 sam, u64 phk) {
     (void)opt; (void)sam;
