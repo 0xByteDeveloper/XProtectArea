@@ -36,8 +36,12 @@ int main(int argc, char** argv) {
     bool ok = xpdotnet::parse(d, n, &img);
     if (!ok) { printf("FAIL: parse: %s\n", img.err.c_str()); return 1; }
     printf("PASS: is_dotnet=%d typedefs=%zu methods=%zu\n", img.is_dotnet, img.typedefs.size(), img.methods.size());
-    CHECK(img.methods.size() == 1, "1 MethodDef");
-    xpdotnet::Method& m = img.methods[0];
+    CHECK(img.methods.size() >= 1, ">=1 MethodDef (1.2.4: fat+locals/EH orneklerinde 3)");
+    // 1.2.4: cok-metotlu orneklerde Method1'i bul; tek-metotlu eski ornek ilk satir
+    size_t m_i = 0;
+    for (size_t i = 0; i < img.methods.size(); i++)
+        if (img.methods[i].name == "Method1") { m_i = i; break; }
+    xpdotnet::Method& m = img.methods[m_i];
     printf("  metot: %s::%s rva=0x%X token=0x%08X params=%u fat=%d body_len=%u\n",
            m.type_name.c_str(), m.name.c_str(), m.rva, m.token, m.param_count, m.fat_header, m.body_len);
     CHECK(m.name == "Method1", "metot adi Method1");

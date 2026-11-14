@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>XProtect 1.2.2 — Özellik Durumu (TAM KAPSAMLI PORT)</title>
+<title>XProtect 1.2.2 — Özellik Durumu v4 (TAM KAPSAMLI PORT)</title>
 <style>
 body { font-family: 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; margin:0; padding:24px; }
 h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
+h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
 .sub { color:#94a3b8; font-size:13px; margin-bottom:18px; }
 .top { background:#1e293b; border-radius:10px; padding:14px 18px; margin-bottom:18px; }
 .top .big { font-size:34px; font-weight:700; color:#4ade80; }
@@ -11,16 +12,19 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
 .name { font-weight:600; font-size:15px; margin-bottom:4px; }
 .bar { position:relative; height:18px; background:#334155; border-radius:9px; margin-bottom:6px; }
 .fill { height:18px; border-radius:9px; }
-.pct { position:absolute; left:8px; top:1px; font-size:12px; font-weight:700; color:#0f172a; mix-blend-mode:normal; }
+.pct { position:absolute; left:8px; top:1px; font-size:12px; font-weight:700; color:#0f172a; }
 .kanit { font-size:12px; color:#cbd5e1; }
 .kalan { font-size:12px; color:#fca5a5; margin-top:2px; }
-.kanit b { color:#38bdf8; }
+table { border-collapse:collapse; width:100%; font-size:12px; }
+td, th { border:1px solid #334155; padding:6px 8px; text-align:left; vertical-align:top; }
+th { background:#1e293b; color:#7dd3fc; }
+.note { background:#1e293b; border-left:4px solid #38bdf8; padding:10px 14px; border-radius:6px; font-size:13px; line-height:1.6; }
 .footer { color:#64748b; font-size:11px; margin-top:16px; }
 </style></head><body>
-<h1>XProtect 1.2.2 — Özellik Durumu <span style="font-size:14px;color:#64748b">(UniversalObfuscator / VMProtect 3.5.1 TAM KAPSAMLI PORT)</span></h1>
-<div class="sub">Üretim: 2026-11-14 06:06 • Checkpoint: cp130+ (github.com/0xByteDeveloper/XProtectArea) • Bu oturum: pdbscope geri-ship, .NET (il.cc/dotnetfile) portu, VF zinciri çalışma-kanıtı, VR ABI kök-neden fixi, EncryptByteCode op-zinciri</div>
-<div class="top">TOPLAM MOTOR-PARİTE: <span class="big">%82</span>
-<span style="color:#94a3b8;font-size:13px"> (24 özellik; UO'da olmayıp XProtect'te olanlar (Encrypt Registers gerçek-uygulama) %100 sayılır)</span></div>
+<h1>XProtect 1.2.2 — Özellik Durumu v4 <span style="font-size:14px;color:#64748b">(UniversalObfuscator / VMProtect 3.5.1 TAM KAPSAMLI PORT)</span></h1>
+<div class="sub">Üretim: 2026-11-14 09:48 • Checkpoint: cp137+ (github.com/0xByteDeveloper/XProtectArea) • Bu oturum: x1 mesaj-davranış doğrulaması, x2 .NET keşif/UI/seçim fixleri, x4 dosya denetimi (DOSYA_DENETIMI.md)</div>
+<div class="top">TOPLAM MOTOR-PARİTE: <span class="big">%83</span>
+<span style="color:#94a3b8;font-size:13px"> (24 özellik; UO'da ölü/olmayanlara XProtect gerçek-uygulaması %100 sayılır)</span></div>
 
 <div class="row">
   <div class="name">Virtualization (x86+x64)</div>
@@ -40,29 +44,29 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
   <div class="name">Ultra (M+V)</div>
   <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
     <span class="pct">100%</span></div>
-  <div class="kanit">mutasyon(lift(IL)) zinciri; R1 ULTIMATE kanıtı &#x27;OK hepsi&#x27;</div>
+  <div class="kanit">mutasyon(lift(IL)) zinciri; R1 ULTIMATE kanıtı &#x27;OK hepsi&#x27;; metin2 D7610 kanıt</div>
   <div class="kalan"><b>Kalan:</b> —</div>
 </div>
 <div class="row">
   <div class="name">Encrypt ByteCode</div>
   <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">VM_MIX OP-ZİNCİRİ (1.2.3): 4 karışim ailesi blok-başı seçim (UO cc* ailesi kavram-paritesi) + VM_KSC CFB + VM_KSCA advanced + fonksiyon-başına key; R1/TLS+PACK/MULT-VM kanıtları yeşil</div>
-  <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir uzunluğu + handler-bası rastgeleleşme derinliği</div>
+  <div class="kanit">VM_MIX OP-ZİNCİRİ: 4 karışim ailesi blok-başı seçim (UO cc* ailesi) + VM_KSC CFB + VM_KSCA + fonksiyon-başı key; R1/TLS+PACK/MULT-VM yeşil</div>
+  <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir uzunluğu + handler-bası rastgeleleşme</div>
 </div>
 <div class="row">
   <div class="name">Encrypt Registers</div>
   <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
     <span class="pct">100%</span></div>
-  <div class="kanit">VM register-dosyası bellekte şifreli (UO&#x27;da ÖLÜ bayrak — XProtect AŞAR); JMPEXT raw-RSP fix kanıtlı</div>
+  <div class="kanit">VM register-dosyası bellekte şifreli (UO&#x27;da ÖLÜ bayrak — XProtect AŞAR)</div>
   <div class="kalan"><b>Kalan:</b> —</div>
 </div>
 <div class="row">
   <div class="name">Check Debugger</div>
   <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
-  <div class="kanit">K1-K9 bataryası + OP_CHKRET (UO AddCheckBreakpointSection 1:1) + x86 clobber fix (Unicorn kanıtı)</div>
-  <div class="kalan"><b>Kalan:</b> temiz-ntdll map + doğrudan-syscall tabloları (ScyllaHide-direnci)</div>
+  <div class="kanit">K1-K9 bataryası + OP_CHKRET + x86 clobber fix. x1 DOĞRULANDI: &#x27;mesaj+kapanma&#x27; davranışı UO/VMP tasarımı — help/en/history.htm:492 &#x27;the app shows a corresponding message and closes&#x27;; bizim rt_fatal XFLAG_MSG+XFLAG_EXIT aynı semantik (kod5=antidebug/tamper)</div>
+  <div class="kalan"><b>Kalan:</b> UO expert-mod özel-mesaj ayarı (Messages) — UI seçeneği eklenecek</div>
 </div>
 <div class="row">
   <div class="name">Check Kernel Debugger</div>
@@ -82,8 +86,8 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
   <div class="name">Memory Protection</div>
   <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
     <span class="pct">80%</span></div>
-  <div class="kanit">.text header-RX + .vmp0 loader-RWX→RX + VEH tamper-kill altyapı</div>
-  <div class="kalan"><b>Kalan:</b> Internal-MP: mutable state ayrı RW section (plan hazır)</div>
+  <div class="kanit">.text header-RX + .vmp0 loader-RX + VEH tamper-kill altyapı (kod5)</div>
+  <div class="kalan"><b>Kalan:</b> Internal-MP: mutable state ayrı RW section</div>
 </div>
 <div class="row">
   <div class="name">Import Protection</div>
@@ -103,7 +107,7 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
   <div class="name">Packing (LZMA)</div>
   <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">TLS+PACK: .text %40.4 sıkıştırma + &#x27;TLS OK&#x27; kanıtı; EP→unpack stub</div>
+  <div class="kanit">TLS+PACK: .text %40.4 sıkıştırma + &#x27;TLS OK&#x27; kanıtı; rc=4 hatası artık açık-çıklamalı</div>
   <div class="kalan"><b>Kalan:</b> —</div>
 </div>
 <div class="row">
@@ -124,28 +128,28 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
   <div class="name">File CRC</div>
   <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">rt_filecrc: 1-bayt disk-tamper → duru-dönüş; x86 PEB yürüyüş fix kanıtlı</div>
+  <div class="kanit">rt_filecrc: 1-bayt disk-tamper → duru-dönüş; x86 PEB yürüyüş fix</div>
   <div class="kalan"><b>Kalan:</b> —</div>
 </div>
 <div class="row">
   <div class="name">Watermark</div>
   <div class="bar"><div class="fill" style="width:221px;background:#84cc16"></div>
     <span class="pct">85%</span></div>
-  <div class="kanit">cp41-42: SearchByte durum-makinesi + rastgele wildcard + UI Araçlar→Filigranlar→Tara + CLI --wmvalue</div>
+  <div class="kanit">SearchByte durum-makinesi + rastgele wildcard + UI Tara + CLI --wmvalue</div>
   <div class="kalan"><b>Kalan:</b> gerçek-Windows UI kabul testi</div>
 </div>
 <div class="row">
   <div class="name">Virtual Files</div>
   <div class="bar"><div class="fill" style="width:221px;background:#84cc16"></div>
     <span class="pct">85%</span></div>
-  <div class="kanit">1.2.3 ZİNCİR ÇALIŞIYOR (kanıt vfrt.txt): map→imports(2 desc)→DllMain→DllRegisterServer; vf_probe.txt = VFDM+VFDRS; faLoad/faRegister/faInstall</div>
+  <div class="kanit">ZİNCİR ÇALIŞIYOR: map→imports→DllMain→DllRegisterServer; vf_probe.txt = VFDM+VFDRS</div>
   <div class="kalan"><b>Kalan:</b> faInstall GetTempPath yolu + çok-DLL senaryoları</div>
 </div>
 <div class="row">
   <div class="name">Virtual Registry</div>
   <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
     <span class="pct">80%</span></div>
-  <div class="kanit">1.2.3 KÖK-NEDEN ÇÖZÜLDÜ: Win64→SysV ABI SHIM (17 hook) + ent.data ofset fix; wine kanıtı: openA st=0 hk=0x58F00100 + val=1.2.3-VRPROBE</div>
+  <div class="kanit">Win64→SysV ABI SHIM (17 hook) + ent.data fix; wine: openA st=0 hk=0x58F00100 + val=1.2.3-VRPROBE</div>
   <div class="kalan"><b>Kalan:</b> dword/W/enum yolundaki argüman bozulması (deep-bisect)</div>
 </div>
 <div class="row">
@@ -166,7 +170,7 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
   <div class="name">MAP/PDB fonksiyon-bulma (PDBScope)</div>
   <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">1.2.3: pdbscope.exe pakete GERİ KONDU (0.4.3 düzeni + PDBScope\ arama-yolu); wine kanıtı: metin2client 30.078 fonksiyon (CERTAIN 25.391)</div>
+  <div class="kanit">pdbscope.exe pakette; metin2client 30.078 fonksiyon (CERTAIN 25.391) wine kanıtı</div>
   <div class="kalan"><b>Kalan:</b> x86 pdbscope binary (bin/win32)</div>
 </div>
 <div class="row">
@@ -178,17 +182,39 @@ h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
 </div>
 <div class="row">
   <div class="name">.NET (il.cc + dotnetfile portu)</div>
-  <div class="bar"><div class="fill" style="width:182px;background:#eab308"></div>
-    <span class="pct">70%</span></div>
-  <div class="kanit">1.2.3 YENİ: CLR header+metadata+TypeDef/MethodDef keşfi; ECMA CIL tablosu (1-bayt+0xFE); IL→x86 derleyici; motor yolu uçtan-uca: MethodDef RVA→stub + miNative (kanıt: 0x19F10+0x1); 21+21=42 çalıştırma kanıtı</div>
-  <div class="kalan"><b>Kalan:</b> nesne/GC op-yolları (durdu-RED), ImplMap/P-Invoke çözümleme, x64 IL, locals-imzası</div>
+  <div class="bar"><div class="fill" style="width:213px;background:#84cc16"></div>
+    <span class="pct">82%</span></div>
+  <div class="kanit">x2 FİX TURU: fat+locals keşif filtresi KALDIRILDI (WinForms &#x27;0 aday&#x27; kök-nedeni) + EH&#x27;li govder keşifte işaretli + UI MethodDef gerçek-ad listesi (NS.Class::Method, DOTNET kolonu; pdbless sub_ çöpü temizleniyor) + 24-8192 seçim filtresi .NET&#x27;i yemiyor + rc kodları açık-çıklamalı (rc=3/rc=4 kutuları). Kanıt: minidn_fat &#x27;[DOTNET] 3 yontem adayi&#x27;</div>
+  <div class="kalan"><b>Kalan:</b> EH/try-catch semantiği (duru-RED), GC/nesne op-yolları, ImplMap/P-Invoke adları, x64 IL derleyici</div>
 </div>
 <div class="row">
-  <div class="name">Diğer UO core dosyaları (dwarf/objc/inifile/lang/processors/script/elffile/macfile)</div>
+  <div class="name">UO core ikincil okuyucuları (dwarf/objc/script/elffile/macfile/objects)</div>
   <div class="bar"><div class="fill" style="width:26px;background:#ef4444"></div>
     <span class="pct">10%</span></div>
-  <div class="kanit">envanter çıkarıldı (65k satır kavram listesi); öncelik planı not edildi</div>
-  <div class="kalan"><b>Kalan:</b> port sırası: dwarf → processors → inifile → lang → script yüzeyi → objc → elf/mac okuyucuları</div>
+  <div class="kanit">envanter çıkarıldı; x4 denetimde tek-tek listeli</div>
+  <div class="kalan"><b>Kalan:</b> port sırası: dwarf → script yüzeyi → objc → elf/mac okuyucuları</div>
 </div>
-<div class="footer">Kanıt dosyaları: source/kanit_122/ + source/vf_probe.txt (VFDM+VFDRS) + source/vfrt.txt izleri + test_dotnet_il (TÜM TESTLER PASSED) • Motor: 30.078 fonksiyon keşfi (pdbscope) • .NET: MethodDef RVA→stub + miNative (0x19F10/0x1) • cp78→130 arası her 4 dk checkpoint</div>
+<h2>x1 — Check Debugger "#5" mesajı: hata DEĞİL (UO davranışı doğrulandı)</h2>
+<div class="note">UO tabanı VMProtect 3.5.1 kaynak ağacı (md5 doğrulandı: tüm 'uosrc' kopyaları aynı core.cc).
+UO'nun RUNTIME KAYNAĞI ağaçta YOK — hazır win_runtime32.dll + .inc olarak dağıtılır ve kendi
+korumasıyla paketlenir (core/runtime.vmp). Yani debugger-tespit davranışının kaynağı VMProtect 3.5.1
+prebuilt runtime'dır; resmi yardım dosyası davranışı tanımlar:
+<b>help/en/history.htm:492</b> — "if a debugger is detected during the protected application
+execution, the app shows a corresponding message and closes" → mesaj kutusu + kapanma TASARIM GEREĞİ.
+Ayrıca :215 — varsayılan mesajlar expert-modda değiştirilebilir ("Debugger is detected",
+"File is corrupted"...). Runtime DLL IAT kanıtı: MessageBoxA + TerminateProcess + NtRaiseHardError.
+</div>
+<h2>x4 — UO vs XProtect dosya denetimi (birebir çekirdek)</h2>
+<div class="note">UO ağacı (vmpsrc/pub2, intel.cc dahil) = <b>1169 dosya</b>. Birebir çekirdek denetim:
+<b>PORTLU 54</b> (kavram/yapısal parite, kod özgün) • <b>KISMEN ~20</b> • <b>EKSIK 15</b> • N/A 96.
+Klasör-paritesi ~1000 dosya (Qt GUI 188, help 277, C# runtime 77...). Tam liste: <b>DOSYA_DENETIMI.md</b>.</div>
+<table><tr><th>EKSİK UO dosyası (15)</th><th>Neden / kapsam</th></tr><tr><td>core/dwarf.cc</td><td>DWARF sembol çözümleme (Linux/Mac hedefi)</td></tr><tr><td>core/elffile.cc</td><td>ELF (Linux) hedef desteği</td></tr><tr><td>core/macfile.cc</td><td>Mach-O (macOS) hedef desteği</td></tr><tr><td>core/objc.cc</td><td>Objective-C segment/selector analizi</td></tr><tr><td>core/objects.cc / objects.h</td><td>objects (CALPHA) desteği</td></tr><tr><td>core/script.cc</td><td>Lua script API&#x27;si (GUI script desteği)</td></tr><tr><td>core/dotnet20/40_runtime*.dll(.inc)</td><td>managed .NET runtime DLL enjeksiyonu — bizim yol: IL→native derleme (farklı mimari seçimi)</td></tr><tr><td>core/netcore/netstandard_runtime*.dll(.inc)</td><td>modern .NET managed runtime DLL&#x27;leri — yukarıdakiyle aynı kapsamda</td></tr></table>
+<h2>x3 — "UO dosyalarını direkt XProtect'e atsak mı?" — cevap özeti</h2>
+<div class="note">Birebir kopya ÇALIŞMAZ, seçici port doğru yol: (1) UO çekirdeği MSVC+Qt+C++Builder zincirine bağlı
+(intel.cc ~1.1MB, Qt 188 dosya) — XProtect Win32-zig zincirine bağlanamaz; (2) UO runtime KAYNAKSIZ (prebuilt
+DLL+INC) — kopyalasan bile derleyemezsin, kendisi VMProtected; (3) C# runtime klasörü ayrı .NET ekosistemi;
+(4) lisans/derleme biçimi UO'ya gömülü. XProtect'in kazandığı yerler zaten bu mimariyle geldi (Encrypt
+Registers gerçek uygulama, PIC-blob runtime, .NET IL→native). Hedef: kavram-paritesi %100, kod kopyası değil.</div>
+<div class="footer">Kanıtlar: source/kanit_122/ + DOSYA_DENETIMI.md + PORT_DURUMU.md • cp137+ her 4 dk checkpoint •
+".NET %82" gerekçesi: keşif+UI+seçim fixli; kalan EH/GC/ImplMap/x64-IL</div>
 </body></html>

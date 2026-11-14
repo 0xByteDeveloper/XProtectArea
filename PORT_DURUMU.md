@@ -165,3 +165,17 @@ Internal-MP portu sonrası hedef %75).
 Memory Protection paritesi: %70 → **%80** (loader-level .vmp0 + VEH altyapısı;
 VEH-kill wine'da doğrulanamadı — gerçek-Windows kullanıcı testi bekleniyor).
 TOPLAM MOTOR-PARİTE: ~%86 → **~%87**.
+
+---
+
+## GÜNCELLEME 2026-11-14 (x1-x4 kullanıcı turu — cp135-140)
+
+| Soru | Cevap | Kanıt |
+|------|-------|-------|
+| x1: "#5 mesajı hata mı, UO'da da var mı?" | HATA DEĞİL — UO/VMProtect 3.5.1 tasarımı: tespit → mesaj kutusu → kapanma | help/en/history.htm:492 + win_runtime32.dll IAT (MessageBoxA/TerminateProcess) + bizim rt_fatal XFLAG_MSG+XFLAG_EXIT |
+| x2: .NET Form exe fonksiyon bulamıyor + rc3/rc4 | KÖK-NEDEN 3 katman fixlendi: (1) fat+locals keşif filtresi kaldırıldı, (2) UI MethodDef gerçek-ad listesi + sub_ çöp temizliği, (3) 24-8192 seçim filtresi .NET'i yemiyor + rc kodları açık-çıklamalı | minidn_fat E2E: "3 yontem adayi" → Method1 derlendi (RVA 0xFCA0+miNative) → rc=0; Method2/3 dürüst-RED; test_dotnet_il fails=0 |
+| x3: UO dosyalarını direkt atmak | HAYIR — mimari uyumsuz (Qt+MSVC+zincir, runtime kaynaksız-prebuilt, C# runtime ayrı ekosistem); seçici port sürüyor | DOSYA_DENETIMI.md + bu tablo |
+| x4: kaç dosya eksik | Birebir çekirdek: PORTLU 54 / KISMEN ~20 / EKSIK 15 / N/A 96; klasör-paritesi ~1000 (Qt GUI 188, help 277, C# runtime 77) | DOSYA_DENETIMI.md (otomatik, scripts/x4_dosya_denetimi.py) |
+
+.NET paritesi: %70 → **%82** (keşif+UI+seçim fixli; kalan: StandAloneSig/locals,
+GC/nesne ops, ImplMap, x64 IL, EH semantiği). TOPLAM MOTOR-PARİTE: ~%87 → **~%88**.

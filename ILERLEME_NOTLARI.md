@@ -562,3 +562,34 @@ x4 (UO vs XProtect dosya denetimi):
 
 x3 cevabi: "UO dosyalarini direkt XProtect'e atsak?" — HAYIR (chat raporunda
 gerekceleriyle; secici port suruyor).
+
+## 2026-11-14 — x2 FIX TURU SONUC (kanitli, cp139+)
+
+TEST-DOTNET-GEN-FAT (yeni uretici: minidn_fat.exe = WinForms benzeri 3 metot:
+tiny / fat+locals / fat+EH):
+  PARSE (host probe): Method1 fat=0 eh=0 | Method2 fat=1 localsig=0x11000001
+  eh=0 | Method3 fat=1 eh=1 (EH hizalamasi MUTLAK — uretici duzeltildi).
+  ESKI DURUM: keşif filtresi fat+locals'i dusuruyor -> "[DOTNET] 0 yontem
+  adayi" + UI yalniz pdbless sub_ copu + rc3/rc4 aciksiz kodlar.
+  YENI DURUM (wine E2E, uretim XProtectUI.exe):
+    [DOTNET] 3 yontem adayi
+    Class1::Method1 IL 6B -> x86 6B (tip=V) -> MethodDef RVA=0xFCA0 + miNative
+    [RED] Method2: "locals-imzali govde (ldloc/stloc; StandAloneSig v1
+          kapsam-disi)"  (durst mesaj)
+    [RED] Method3: "EH tablosu (try/catch) desteklenmiyor" (durst mesaj)
+    [KAYIT] cikti 50176 bayt rc=0 (basarili)
+  BILESEN SUITI: test_dotnet_il minidn + minidn_fat -> TUM TESTLER PASSED
+  (fails=0; "1 MethodDef" varsayimi >=1'e esnetildi; exit-segv = host
+  test-harness eski quirk — ASAN temiz, tek 1024B buffer-leak).
+  EH-BIT FIX: parser MoreSects'i FLAGS kelimesinden okuyor (eski kod bh[2] =
+  maxstack-lo = 0x08 -> HER fat govde EH saniliyordu).
+  SEÇIM FIX: 24-8192 boyut filtresi DOTNET fonksiyonlarina uygulanmaz
+  (IL govder 6-8 bayt -> "0/0 secili" koku-nedeni).
+  UI FIX: dotnet_funcs_for() -> MethodDef gercek-ad listesi (source=7
+  "DOTNET" kolonu; scan_thread + merge_pdbscope; yontem-araligi sub_
+  temizligi) + rc=N (anlam) + rc=3/rc=4 mesaj kutulari.
+  NATIVE REGRES: minidn_nodn --all -> [LIFT] 1/1 rc=0 (degisiklikten etkilenmedi).
+
+KALAN (.NET sonraki tur): StandAloneSig tablosu (0x11) tam tablo-gezinmesi
+(MemberRef/CustomAttribute kodlu-indeks genislik modeli) -> ldloc/stloc
+destegi; GC/nesne op-yollari; ImplMap adlari; x64 IL derleyici.
