@@ -1,7 +1,7 @@
-CHECKPOINT Xprotect_1.2.2_cp237 (cp237)
+CHECKPOINT Xprotect_1.2.2_cp249 (cp249)
 ==================================================
-Tarih : 2026-11-15 06:48:27
-Zip   : XProtect_1.2.2_cp237.zip (39202294 bayt)
+Tarih : 2026-11-15 07:34:34
+Zip   : XProtect_1.2.2_cp249.zip (39203690 bayt)
 Agac  : /home/z/my-project/download/XProtect_1.2.2
 
 Bu dosya otomatik uretildi: plan-once log kurallarina gore
@@ -913,17 +913,19 @@ değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
 ### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
 (P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
 
-## 2026-11-15 06:47 — cp238: libstdc++6.dll KÖK-DÜZELT + x86 İLK DERLEME
-- Kullanıcı raporu: "XProtectUI.exe libstdc++6.dll bulamıyor". KÖK: mingw g++
-  link'i VARSAYILAN paylaşımlı libstdc++-6.dll + libgcc + libwinpthread-1.dll
-  seçiyordu (zig bunları STATİK gömüyordu — o yüzden eskiden yoktu).
-  DÜZELT: LDFLAGS="-static" (libstdc++/libgcc/winpthread tamamen gömülü;
-  import listesi yalnız KERNEL32/msvcrt/USER32/COMCTL32/COMDLG32/GDI32/SHELL32).
-- XProtectUI32.exe (x86) İLK KEZ mingw ile derlendi (i686 mingw debs:
-  binutils/i686-dev/gcc-posix/g++-posix; cc1plus dahil) — 2.0MB statik.
-- -mconsole: CLI stdout geri geldi (GUI-subsystem kaybı giderildi).
-- Araç zinciri: zig CRT kilitlenmesi (FUSE/CRT grind) → mingw-w64 g++
-  kalıcı çözüm (build_v3_mingw.sh, /tmp/mwroot kullanıcı-önekli toolchain).
+## 2026-11-15 07:30 — cp245+: E2E TAM PASS (P0..P4) — iki kök-düzelt daha
+- cp239 kök-zinciri (kullanıcı raporu "C# boş bile derlenmiyor" → KÖK):
+  env-setup bloğu parse'tan ÖNCE koşuyordu (dn_img.is_dotnet=false) →
+  fld_off/sfld_rva/pinv HİÇ bağlanmıyordu. Parse-sonrasına taşındı.
+- FF/6 (push [ebp+d]) + 8F/0 (pop [ebp+d]) lifter-disasm dışında kalmıştı
+  (V-lift "grp5 push/far" RED) → liftable register-aracılı formlar (cp239-e).
+- Yuva-doldurma MethodDef TOKEN→RVA çözümü + yerel-tarayıcı dup→DOTNET
+  dönüşümü + TLS-callback VA→RVA düzeltisi.
+- SONUÇ (a16 kanıt, wine): P0 RunPEForm 9/42 lift + rc=0 + çıkış (120KB);
+  P1 trt --iat STRİPLİ RUNTIME PASS ("OK hepsi dogru"); P2 fallback PASS;
+  P3 metin2 d7610 U PASS; P4 metin2 587-slot loader PASS.
+- Kalan 33 RED: 13 EH-çekirdek + 27 EH-cascade (EH-SEH v4 ile kapanır),
+  2 grp5 (residual), box/ldtoken (v4).
 
 
 === PORT_DURUMU.md (parite %'leri) ===
