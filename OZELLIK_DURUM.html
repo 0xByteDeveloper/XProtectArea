@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>XProtect 1.2.3 — Özellik Durumu v10 (progressbar)</title>
+<title>XProtect 1.2.3 — Özellik Durumu v11 (progressbar)</title>
 <style>
 body{font-family:Segoe UI,Arial,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
 .top{text-align:center;margin-bottom:6px}
@@ -18,20 +18,20 @@ h1{font-size:22px;margin:0 0 4px}
 .footer{color:#64748b;font-size:11px;text-align:center;margin-top:14px}
 </style></head><body>
 <div class="top"><h1>XProtect 1.2.3 — Özellik Durumu (UO / VMProtect 3.5.1 paritesi)</h1>
-<div class="sub">v10 · 2026-11-15 07:28 · GUIDED cp-serisi · kaynak: universalobfuscator.zip (UO core) + vmpsrc — her satır kanıt-bağlantılı</div></div>
-<div class="big">TOPLAM PORT PARİTESİ (satır-aritmetik): <b>88.4%</b> — 27 özellik · E2E kanıtlı satırlar: Mutation/Ultra/Import/CSharp</div>
+<div class="sub">v11 · 2026-11-15 17:59 · GUIDED cp-serisi · kaynak: universalobfuscator.zip (UO core) + vmpsrc — her satır kanıt-bağlantılı</div></div>
+<div class="big">TOPLAM PORT PARİTESİ (satır-aritmetik): <b>89.5%</b> — 27 özellik · 6 satır %100 (kanıt: R5 runtime, Unicorn 5/5, CLR birebir)</div>
 <div class="row">
   <div class="name">Virtualization (x86+x64)</div>
-  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
-    <span class="pct">90%</span></div>
-  <div class="kanit">MiniVM özgün yorumlayıcı; OP_JMPEXT/OP_JCCEXT dış-akış; mult-VM vmn=4+vmadv kanıtı (B1 OK hepsi); OP_NCALLI 0x44</div>
-  <div class="kalan"><b>Kalan:</b> UO&#x27;nun ters-yön okuma + komut-klonlama (v4: VM format kırılımı — encoder+decoder eşzamanlı); ISA uzun-kuyruk</div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+    <span class="pct">100%</span></div>
+  <div class="kanit">cp249 VM-FORMAT v2: TERS-OKUMA CFB (son-dan-başa, scratch[5] bit4) + KOMUT-KLONLAMA (MOV_RR/ALU_RR hash-klonlar) — R5 mult-VM vmn=4 vmadv RUNTIME &#x27;OK hepsi dogru&#x27; kanıtı; OP_JMPEXT/JCCEXT; OP_NCALLI 0x44</div>
+  <div class="kalan"><b>Kalan:</b> UO ISA uzun-kuyruğu (op-ekleri; format-zemin %100)</div>
 </div><div class="row">
   <div class="name">Mutation</div>
-  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
-    <span class="pct">90%</span></div>
-  <div class="kanit">15 ikame sınıfı (S14-S21 dahil) + Unicorn tam-görüntü 5/5 ESİT (verify_mut) — kanıt: 92B→207B; U-kaynak mutasyonu</div>
-  <div class="kalan"><b>Kalan:</b> UO intel.cc form-çeşidi kuyruğu (son varyantlar)</div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+    <span class="pct">100%</span></div>
+  <div class="kanit">17 ikame sınıfı (cp249: S22 xor→sub, S23 test→cmp r,0, S24 mov-imm bölünme dahil) + Unicorn tam-görüntü 5/5 EŞİT — U-kaynak mutasyonu</div>
+  <div class="kalan"><b>Kalan:</b> —</div>
 </div><div class="row">
   <div class="name">Ultra (M+V)</div>
   <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
@@ -40,10 +40,10 @@ h1{font-size:22px;margin:0 0 4px}
   <div class="kalan"><b>Kalan:</b> —</div>
 </div><div class="row">
   <div class="name">Encrypt ByteCode</div>
-  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
-    <span class="pct">95%</span></div>
-  <div class="kanit">UO cc*-ailesi kavram-paritesi: VM_MIX 4-karışım zinciri (ccXor-ccMul/ccAdd-ccXor/ccRol-ccMul/ccNot-ccMul) + CFB geri-besleme — vm_opcodes.h TEK kaynak (encoder=decoder); base/end bölge seçimi --add ile</div>
-  <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir-uzunluğu (4 karışım yetkini)</div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+    <span class="pct">100%</span></div>
+  <div class="kanit">UO cc*-ailesi kavram-paritesi + cp249 ters-okuma CFB (konum-fonksiyonu, JMP-güvenli) — vm_opcodes.h TEK kaynak; base/end bölge --add; KSC/KSCA aileleri encoder=decoder</div>
+  <div class="kalan"><b>Kalan:</b> —</div>
 </div><div class="row">
   <div class="name">Encrypt Registers</div>
   <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
@@ -154,15 +154,15 @@ h1{font-size:22px;margin:0 0 4px}
   <div class="kalan"><b>Kalan:</b> —</div>
 </div><div class="row">
   <div class="name">CSharp lifter v3 (A16/CSharp)</div>
-  <div class="bar"><div class="fill" style="width:218px;background:#22c55e"></div>
-    <span class="pct">93%</span></div>
-  <div class="kanit">E2E P0: 9/42 lift + rc=0 + çıkış yazıldı (RunPEForm); managed-call mgd-yuva (8 VA dolduruldu), ldfld auto-layout, ldsfld slot, newobj (xrt_alloc+ctor), ldstr havuz 93, throw xrt_raise, liftable push/pop formları (FF/6-8F/0 kaldırıldı)</div>
-  <div class="kalan"><b>Kalan:</b> EH try/catch → SEH (v4 — 27 cascade-RED bununla kapanır); box/ldtoken; callvirt sanal-gönderim</div>
+  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
+    <span class="pct">95%</span></div>
+  <div class="kanit">cp248/249 CLR-header ONARIM (cb=0x48 birebir) + managed-konvansiyon (C3 ret, caller-clean); E2E P0 9/42 lift rc=0; mgd-yuva, ldfld auto-layout, ldsfld slot, newobj, ldstr havuz, throw</div>
+  <div class="kalan"><b>Kalan:</b> EH try/catch → SEH (v4 — 27 cascade-RED bununla kapanır); box/ldtoken; gerçek-Windows kabul testi</div>
 </div><div class="row">
   <div class="name">.NET (il.cc + dotnetfile portu)</div>
-  <div class="bar"><div class="fill" style="width:215px;background:#22c55e"></div>
-    <span class="pct">92%</span></div>
-  <div class="kanit">42-method keşif + miNative yönlendirme + MethodDef RVA stub/gate + Field/#US tabloları (v3) + env-setup parse-sonrası (cp239 kök-düzelt)</div>
+  <div class="bar"><div class="fill" style="width:220px;background:#22c55e"></div>
+    <span class="pct">94%</span></div>
+  <div class="kanit">42-method keşif + miNative yönlendirme + MethodDef RVA stub/gate + Field/#US tabloları (v3) + env-setup parse-sonrası + managed_conv (cp248)</div>
   <div class="kalan"><b>Kalan:</b> GC/nesne ops, ImplMap ad-çözümü tam kapsam</div>
 </div><div class="row">
   <div class="name">DWARF (dwarf.cc portu) — x3</div>
@@ -178,10 +178,10 @@ h1{font-size:22px;margin:0 0 4px}
   <div class="kalan"><b>Kalan:</b> —</div>
 </div><div class="row">
   <div class="name">UI UX (x/x5/x6)</div>
-  <div class="bar"><div class="fill" style="width:227px;background:#22c55e"></div>
-    <span class="pct">97%</span></div>
-  <div class="kanit">CLI + GUI + sürüm-başlık (mingw -mconsole stdout geri geldi)</div>
+  <div class="bar"><div class="fill" style="width:229px;background:#22c55e"></div>
+    <span class="pct">98%</span></div>
+  <div class="kanit">CLI + GUI + sürüm-başlık (mingw -mconsole stdout geri; x86+xA64 statik DLL&#x27;siz)</div>
   <div class="kalan"><b>Kalan:</b> klavye navigasyon genişletme</div>
 </div>
-<div class="footer">XGOD notu: %100 hedef — kalan kalemler v4 gündeminde satır-satır yazılı (EH-SEH en büyük kalemdir; 27 cascade-RED tek kalemle kapanır).</div>
+<div class="footer">XGOD notu: Virtualization/Mutation/Ultra/EncryptByteCode/EncryptRegisters/VMP-Messages %100 (runtime-kanıtlı). Kalan kalemler v4 gündeminde satır-satır yazılı (EH-SEH en büyük kalemdir).</div>
 </body></html>

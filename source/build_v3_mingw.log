@@ -23,6 +23,6 @@ muttest rc=0
 	DLL Name: SHELL32.dll
 	DLL Name: USER32.dll
 == TAMAM ==
--rwxr-xr-x 1 z z 1982346 Nov 15 06:43 XProtectUI.exe
--rwxr-xr-x 1 z z 1998112 Nov 15 06:46 XProtectUI32.exe
--rwxr-xr-x 1 z z  751800 Nov 15 06:46 muttest3
+-rwxr-xr-x 1 z z 1990024 Nov 15 17:43 XProtectUI.exe
+-rwxr-xr-x 1 z z 2006754 Nov 15 17:46 XProtectUI32.exe
+-rwxr-xr-x 1 z z  760800 Nov 15 17:46 muttest3

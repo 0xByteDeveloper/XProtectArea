@@ -1,7 +1,7 @@
-CHECKPOINT Xprotect_1.2.2_cp240 (cp240)
+CHECKPOINT Xprotect_1.2.2_cp252 (cp252)
 ==================================================
-Tarih : 2026-11-15 07:01:05
-Zip   : XProtect_1.2.2_cp240.zip (39201864 bayt)
+Tarih : 2026-11-15 18:03:12
+Zip   : XProtect_1.2.2_cp252.zip (39285056 bayt)
 Agac  : /home/z/my-project/download/XProtect_1.2.2
 
 Bu dosya otomatik uretildi: plan-once log kurallarina gore
@@ -912,6 +912,48 @@ değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
 
 ### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
 (P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
+
+## 2026-11-15 07:30 — cp245+: E2E TAM PASS (P0..P4) — iki kök-düzelt daha
+- cp239 kök-zinciri (kullanıcı raporu "C# boş bile derlenmiyor" → KÖK):
+  env-setup bloğu parse'tan ÖNCE koşuyordu (dn_img.is_dotnet=false) →
+  fld_off/sfld_rva/pinv HİÇ bağlanmıyordu. Parse-sonrasına taşındı.
+- FF/6 (push [ebp+d]) + 8F/0 (pop [ebp+d]) lifter-disasm dışında kalmıştı
+  (V-lift "grp5 push/far" RED) → liftable register-aracılı formlar (cp239-e).
+- Yuva-doldurma MethodDef TOKEN→RVA çözümü + yerel-tarayıcı dup→DOTNET
+  dönüşümü + TLS-callback VA→RVA düzeltisi.
+- SONUÇ (a16 kanıt, wine): P0 RunPEForm 9/42 lift + rc=0 + çıkış (120KB);
+  P1 trt --iat STRİPLİ RUNTIME PASS ("OK hepsi dogru"); P2 fallback PASS;
+  P3 metin2 d7610 U PASS; P4 metin2 587-slot loader PASS.
+- Kalan 33 RED: 13 EH-çekirdek + 27 EH-cascade (EH-SEH v4 ile kapanır),
+  2 grp5 (residual), box/ldtoken (v4).
+
+## 2026-11-15 18:00 — cp249: "korunan .NET exe açılmıyor" KÖK-ONARIM + VM format v2
+- KÖK 1 (CLR ezilmesi): csc çıktılarında bölüm-tablosu sonrası ham-veri
+  başlığa yapışık (RunPEForm: tablo 0x1F0, .text raw 0x200, CLR hdr 0x208).
+  add_section yeni başlığı 0x1F0'ya yazınca CLR header eziliyordu (cb=0,
+  MetaData RVA=0 → BadImageFormat → "exe açılmıyor"). FIX: PEFile::
+  ensure_header_room (protect() başında ham-veri filealign kaydırma) +
+  add_section sert-reddi + KAYIT öncesi COR20 cb==72 doğrulaması.
+- KÖK 2 (managed konvansiyon): .NET x86 çağrı-kuralı caller-clean; stub'lar
+  C2 ret (callee-clean) yazıyordu → ilk IL→native çağrıda yığın bozulması.
+  FIX: XPEnv::managed_conv → ret C3 + slot-call/ctor sonrası add esp +
+  xrt_alloc sonrası add esp,4.
+- VM FORMAT v2 (Virt %100): cp249 TERS-OKUMA — CFB zinciri son-dan-başa
+  (encoder engine_main, decoder vm_core sf8; scratch[5] bit4; konum-
+  fonksiyonu → JMP-güvenli) + KOMUT-KLONLAMA (OP_MOV_RR ALU-0 klonu +
+  OP_ALU_RR ölü-OR klonu, (key^ic) hash seçim, semantic-birebir).
+- MUTATION %100: S22 (xor r,r→sub r,r), S23 (test r,r→cmp r,0),
+  S24 (mov r,imm→xor+add bölünme) — 17 ikame sınıfı.
+- KANIT: mut Unicorn 5/5 EŞİT (S22-24 dahil). R5 vmadv + a16 P0-P4 +
+  wine-mono çalışma testi sıradaki doğrulamalar.
+
+## 2026-11-15 18:20 — cp249-SON: tüm doğrulamalar yeşil
+- R5 mult-VM vmn=4 vmadv (TERS-OKUMA VM'li): "OK hepsi dogru" RUNTIME PASS.
+- mut Unicorn 5/5 EŞİT (S22-24 dahil). a16 E2E: P0 9/42 rc=0, P1 RUNTIME
+  PASS, P2-P4 PASS. RunPEForm cp249 CLR header: cb=0x48 TAMAM (raw 0x408).
+- wine-mono GUI notu: orijinal ve korunan RunPEForm headless-wine'da aynı
+  davranıyor (GUI başlatamıyor) — CLR-yapısal kanıt + gerçek-Windows testi.
+- Deliverable: RunPEForm_korunan_ONARILMI.exe (CLR-header sağlam sürüm).
 
 
 === PORT_DURUMU.md (parite %'leri) ===

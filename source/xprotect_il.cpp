@@ -389,13 +389,18 @@ static void x_push_i(std::vector<u8>* c, i32 v) {
     else { e8(c, 0x68); e32(c, (u32)v); }
 }
 // push [ebp+disp] / pop [ebp+disp]
+/* cp239-FIX(e): FF/6 (push [mem]) ve 8F/0 (pop [mem]) lifter-disasm'inin
+   disinda — V-lift bu formlarda "grp5 push/far" RED veriyordu. Register-
+   aracili esdeger formlar (EAC scratch — deger-yigini makinesi serbest). */
 static void x_push_ebp(std::vector<u8>* c, i32 disp) {
-    if (disp >= -128 && disp <= 127) { e8(c, 0xFF); e8(c, 0x75); e8(c, (u8)(i8)disp); }
-    else { e8(c, 0xFF); e8(c, 0xB5); e32(c, (u32)disp); }
+    if (disp >= -128 && disp <= 127) { e8(c, 0x8B); e8(c, 0x45); e8(c, (u8)(i8)disp); }
+    else { e8(c, 0x8B); e8(c, 0x85); e32(c, (u32)disp); }
+    e8(c, 0x50);                                       // push eax
 }
 static void x_pop_ebp(std::vector<u8>* c, i32 disp) {
-    if (disp >= -128 && disp <= 127) { e8(c, 0x8F); e8(c, 0x45); e8(c, (u8)(i8)disp); }
-    else { e8(c, 0x8F); e8(c, 0x85); e32(c, (u32)disp); }
+    e8(c, 0x58);                                       // pop eax
+    if (disp >= -128 && disp <= 127) { e8(c, 0x89); e8(c, 0x45); e8(c, (u8)(i8)disp); }
+    else { e8(c, 0x89); e8(c, 0x85); e32(c, (u32)disp); }
 }
 // pop eax / pop ecx
 static void x_pop_eax(std::vector<u8>* c) { e8(c, 0x58); }
@@ -651,10 +656,14 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             e8(&c, 0x68); e32(&c, sz);              // push size
             e8(&c, 0xE8); e32(&c, 0);               // call xrt_alloc — rel32 patch
             out->rx_fix.push_back(std::make_pair((u32)c.size() - 4, env->alloc_rva));
+            /* cp248: xrt_alloc cdecl — caller temizler (esp sapmasi yasak) */
+            e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 0x04);   // add esp,4
             e8(&c, 0x89); e8(&c, 0xC7);             // mov edi,eax — NESNE EDI'de (callee-saved)
             x_push_eax(&c);                         // push this
             u32 va = env->imagebase + slot_rva;
             e8(&c, 0xFF); e8(&c, 0x15); e32(&c, va);// call ctor [abs slot] (EAX bozulur)
+            /* cp248: managed konvansiyon — ctor arg'larini caller temizler */
+            if (mf->args_bytes) { e8(&c, 0x83); e8(&c, 0xC4); e8(&c, (u8)mf->args_bytes); }
             e8(&c, 0x57);                           // push edi — nesne (IL yiginina)
             break;
         }

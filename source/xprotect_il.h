@@ -116,6 +116,12 @@ struct XPEnv {
     const std::map<u32, u32>* type_sz = nullptr;       // TypeDef token -> instance byte
     u32 alloc_rva = 0;         // xrt_alloc RVA (rel32; rx_fix ile patch)
     u32 raise_rva = 0;         // xrt_raise RVA (rel32; throw)
+    /* cp248 (managed-konvansiyon): .NET x86 managed cagri konvansiyonunda
+       arg temizligi CAGIRANDADIR (cdecl-benzeri). Eski emit C2 ret imm
+       (callee-temizler) yaziyor → IL'den ilk stub cagrisinda yigin bozulur
+       ("exe acilmiyor"un ikinci koku). managed_conv=true: ret C3 + slot
+       call sonrasi caller esp temizligi. */
+    bool managed_conv = false;
 };
 
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,

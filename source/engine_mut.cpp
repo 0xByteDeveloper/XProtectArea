@@ -552,6 +552,9 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
         static const bool noS19 = getenv("CPL_NOS19") != nullptr; // lea r,[r+d] -> add r,d
         static const bool noS20 = getenv("CPL_NOS20") != nullptr; // mov r,0 -> xor r,r
         static const bool noS21 = getenv("CPL_NOS21") != nullptr; // shl r,1 <-> add r,r
+        static const bool noS22 = getenv("CPL_NOS22") != nullptr; // xor r,r -> sub r,r (cp249)
+        static const bool noS23 = getenv("CPL_NOS23") != nullptr; // test r,r -> cmp r,0 (cp249)
+        static const bool noS24 = getenv("CPL_NOS24") != nullptr; // mov r,imm -> xor+add bolunme (cp249)
         switch (I.op) {
         case XP_ALU: {
             if (I.mem.present) return false;
@@ -566,6 +569,14 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
             // v3-M S14: sub r,r -> xor r,r (bayraklar birebir esit)
             if (I.immsz == 0 && I.alu == ALU_SUB && I.r1 >= 0 && I.r1 == I.r2 && !noS14) {
                 E.alu_rr(ALU_XOR, I.r1, I.r2, I.sz); return true;
+            }
+            // cp249 S22: xor r,r -> sub r,r (ters yon; ZF=1 SF=0 CF=0 OF=0 PF=1 birebir)
+            if (I.immsz == 0 && I.alu == ALU_XOR && I.r1 >= 0 && I.r1 == I.r2 && !noS22) {
+                E.alu_rr(ALU_SUB, I.r1, I.r2, I.sz); return true;
+            }
+            // cp249 S23: test r,r -> cmp r,0 (SF/ZF/PF degerden, CF=0 OF=0 — birebir)
+            if (I.immsz == 0 && I.alu == ALU_TEST && I.r1 >= 0 && I.r1 == I.r2 && !noS23) {
+                E.alu_r_imm(ALU_CMP, I.r1, 0, I.sz); return true;
             }
             // v3-M S15: test r,r -> and r,r (r&r=r; deger+bayrak ayni)
             if (I.immsz == 0 && I.alu == ALU_TEST && I.r1 >= 0 && I.r1 == I.r2 && !noS15) {
@@ -616,6 +627,13 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
             // v3-M S20: mov r32,0 -> xor r,r (xor bayrak yazar -> fdead gerek)
             if (I.imm == 0 && I.sz == 4 && I.r1 >= 0 && I.r1 != 4 && fdead && !noS20) {
                 E.alu_rr(ALU_XOR, I.r1, I.r1, 4); return true;
+            }
+            // cp249 S24: mov r32,imm -> xor r,r + add r,imm (iki-adim bolunme;
+            // bayrak yazilir -> fdead; RSP haric)
+            if (I.sz == 4 && I.r1 >= 0 && I.r1 != 4 && fdead && I.imm != 0 && !noS24) {
+                E.alu_rr(ALU_XOR, I.r1, I.r1, 4);
+                E.alu_r_imm(ALU_ADD, I.r1, (i64)(long long)(int)(u32)I.imm, 4);
+                return true;
             }
             return false;
         }

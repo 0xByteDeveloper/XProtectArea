@@ -134,13 +134,23 @@ static void regs_rotate(VMContext* c) {
 static void* u2p(u64 v) { return (void*)(unsigned long)v; }
 
 // --- sifreli bayt akisi okuyucu ---
-typedef struct { u8* bc; u64 key; u64 ic; int adv; } STRM;
+typedef struct { u8* bc; u64 key; u64 ic; int adv; int rev; u64 len; } STRM;
 
 static u8 sf8(STRM* s) {
     /* 0.8.0 crypt_command: CFB geribesleme — akis bir onceki SIFRELI
        bayta bagli (saf (key, prev, pos) fonksiyonu; JMP guvenli).
        1.2.0-B1 vtAdvanced: VM_KSA ailesi (4-byte periyot) — kip STRM.adv
        (ctx scratch[5], stub yazar). Encoder ayni aileyi secer. */
+    if (s->rev) {
+        /* cp249 TERS-OKUMA: zincir bir SONRAKI sifreli bayttan (encoder
+           son-dan-basa urettirir; konum-fonksiyonu -> JMP guvenli) */
+        u8 pv = (s->ic + 1 < s->len) ? s->bc[s->ic + 1] : 0;
+        u8 w = s->adv
+            ? (u8)(s->bc[s->ic] ^ VM_KSCA(s->key, pv, s->ic))
+            : (u8)(s->bc[s->ic] ^ VM_KSC(s->key, pv, s->ic));
+        s->ic++;
+        return w;
+    }
     u8 v = s->adv
         ? (u8)(s->bc[s->ic] ^ VM_KSCA(s->key, s->ic ? s->bc[s->ic - 1] : 0, s->ic))
         : (u8)(s->bc[s->ic] ^ VM_KSC(s->key, s->ic ? s->bc[s->ic - 1] : 0, s->ic));
@@ -891,6 +901,8 @@ static void vm_run(VMContext* c) {
     s.key = c->key;
     s.ic  = 0;
     s.adv = (int)(c->scratch[5] & 1);   /* 1.2.0-B1: vtAdvanced komut-sifreleyici */
+    s.rev = (int)((c->scratch[5] >> 4) & 1);  /* cp249: ters-okuma CFB */
+    s.len = c->bc_len;
 
     VM_TRACE_CHECK();
     /* 0.8.0 polimorfik isleyiciler: fonksiyon-bazina opcode permütasyonu.
@@ -949,7 +961,16 @@ static void vm_run(VMContext* c) {
 
         } else if (op == OP_MOV_RR) {
             sz = sf8(&s); r1 = sf8(&s); r2 = sf8(&s);
-            rset(c, r1, sz, rget(c, r2, sz));
+            /* cp249 komut-klonlama: hash ile birebir-esdeger ikinci yol
+               (ALU-0 + flag-geri-yukleme; encoder'a dokunulmaz) */
+            if (((u8)((c->key ^ s.ic ^ (s.ic >> 9)) >> 17) & 1)) {
+                u64 fl0 = c->flags, flx;
+                u64 tv = do_alu_c(ALU_XOR, rget(c, r2, sz), 0, sz, 0, &flx);
+                c->flags = fl0;
+                rset(c, r1, sz, tv);
+            } else {
+                rset(c, r1, sz, rget(c, r2, sz));
+            }
 
         } else if (op == OP_MOV_RI) {
             sz = sf8(&s); r1 = sf8(&s); sext32(&sv, sf32(&s));
@@ -989,6 +1010,12 @@ static void vm_run(VMContext* c) {
         } else if (op == OP_ALU_RR) {
             alu = sf8(&s); sz = sf8(&s); r1 = sf8(&s); r2 = sf8(&s);
             int cin = (alu == ALU_ADC || alu == ALU_SBB) ? ((c->flags & FCF) ? 1 : 0) : 0;
+            /* cp249 komut-klonlama: olumlu-OR aldatma adimi (sonuc/flag
+               asagidaki gercek islemde yeniden kurulur — birebir esdeger) */
+            if (((u8)((c->key ^ (s.ic << 3) ^ (s.ic >> 13)) >> 23) & 1)) {
+                u64 flx;
+                (void)do_alu_c(ALU_OR, rget(c, r2, sz), 0, sz, 0, &flx);
+            }
             r = do_alu_c(alu, rget(c, r1, sz), rget(c, r2, sz), sz, cin, &fl);
             c->flags = fl;
             if (alu != ALU_CMP && alu != ALU_TEST) rset(c, r1, sz, r);

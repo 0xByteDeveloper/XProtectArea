@@ -41,6 +41,7 @@ struct PEFile {
     Section* secbyrva(u32 rva);
     Section* secbyname(const char* n);
     const Section* secbyname_c(const char* n) const;
+    bool ensure_header_room(u32 need);        // cp248: baslik-payi garanti (CLR ezilme fix)
     bool add_section(const char* name, const std::vector<u8>& data, u32 chars,
                      u32& out_rva);
     void fix_checksum();
@@ -257,13 +258,15 @@ std::vector<u8> build_stub_x64(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
                                u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
                                int regsenc = 0, int rt_msg = 1, int rt_exit = 1,
-                               const std::string& msgtext = std::string());  // +1.2.5-A13 x7 ozel mesaj
+                               int bc_rev = 1,
+                               const std::string& msgtext = std::string());  // +1.2.5-A13 x7 ozel mesaj; cp249 ters-okuma
 std::vector<u8> build_stub_x86(u32 stub_rva, u32 vm_entry_rva, u64 key,
                                u32 bc_rva, u32 bc_len, u32 retimm,
                                u32 xrt_entry_rva, u32 cfg_rva, u32 cont_rva,
                                u32 perm_seed = 0, u32 vm_id = 0, int ksadv = 0,
                                int regsenc = 0, int rt_msg = 1, int rt_exit = 1,
-                               const std::string& msgtext = std::string());  // +1.2.5-A13 x7 ozel mesaj
+                               int bc_rev = 1,
+                               const std::string& msgtext = std::string());  // +1.2.5-A13 x7 ozel mesaj; cp249 ters-okuma
 // 0.5.0: M-govdesi onu runtime kapisI + gecikmeli import thunk'lari
 std::vector<u8> build_mgate_x86(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
 std::vector<u8> build_mgate_x64(u32 gate_rva, u32 xrt_entry_rva, u32 cfg_rva, u32 body_rva);
@@ -338,6 +341,7 @@ struct ManFn {               // 0.4.1: MANUEL fonksiyon (UI Add Function Base/En
 };
 
 struct Options {
+    bool vm_rev = true;    // cp249: ters-okuma CFB (varsayilan ACIK)
     int  level = 1;            // LEGACY 0.2.0: 1=Virt 2=UltraVirt+VMjunk (ftypes yoksa U fallback)
     int  default_type = 0;     // 0.3.0: 0=Virtualization 1=Mutation 2=Ultra (ftypes disi varsayilan)
     std::map<std::string,int> ftypes;  // 0.3.0: fonksiyon -> tip (anahtar opt.funcs formatıyla aynı)

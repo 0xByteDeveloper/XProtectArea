@@ -434,6 +434,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
 
     PEFile pe; std::string err;
     if (!pe.load(in, err)) { L("[HATA] " + err); return 1; }
+    /* cp248 (KOK-fix): bolum-tablosu genislemesine baslik-payi garanti et —
+       RunPEForm tipi csc dosyalarinda yeni bolum basligi CLR header'ini
+       eziyordu (korunan exe acilmiyor). 3 bolum payi + ust-sinir. */
+    if (!pe.ensure_header_room(3u * 40u + 16u)) {
+        L("[UYARI] bolum-tablosu payi acilamadi — yeni bolum eklenemeyecek");
+    }
     snprintf(b, sizeof b, "[PE] %s | Machine=0x%04X | %s | ImageBase=0x%llX | GirisRVA=0x%X",
              in.c_str(), pe.machine, pe.is64 ? "PE32+(x64)" : "PE32(x86)",
              (unsigned long long)pe.ib64, pe.entry_rva);
@@ -577,28 +583,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     std::map<u32, xpil::XPinvFn> dn_pinv;
     xpil::XPEnv dn_env;
     bool dn_pinv_want = false;
-    if (opt.dotnet && dn_img.is_dotnet) {
-        for (size_t qi = 0; qi < dn_img.methods.size(); qi++) {
-            const xpdotnet::Method& qm = dn_img.methods[qi];
-            if (qm.pinv_name.empty() || qm.pinv_dll.empty()) continue;
-            xpil::XPinvFn pf;
-            pf.dll_hash = xfnv_al(qm.pinv_dll.c_str());
-            pf.name_hash = xfnv_a(qm.pinv_name.c_str());
-            pf.args_bytes = qm.param_count * 4u;
-            pf.has_ret = qm.has_ret;
-            pf.is_cdecl = qm.pinv_cdecl;
-            dn_pinv[qm.token] = pf;
-            dn_pinv_want = true;
-        }
-        dn_env.pinv = &dn_pinv;
-        dn_env.sfld_rva = &dn_img.field_rva;
-        dn_env.fld_off = &dn_img.field_off;
-        { u16 dc = 0; if (pe.e_lfanew + 24 + 70 + 2 <= pe.buf.size())
-            memcpy(&dc, &pe.buf[pe.e_lfanew + 24 + 70], 2);
-          dn_env.allow_abs = (dc & 0x40) == 0; }        // DYNAMICBASE yoksa mutlak VA serbest
-        dn_env.imagebase = pe.imagebase;
-        // resolve_rva XRT yerlesiminden sonra atanir (asagida)
-    }
+    /* cp239-FIX (KOK): env-setup parse'tan ONCE kosuyordu (dn_img.is_dotnet
+       o an false) -> fld_off/sfld_rva/pinv HIC baglanmiyordu -> ldfld/ldsfld/
+       P-Invoke tamamı RED ("boş C# bile derlenmiyor" kök zinciri). Blok
+       parse'tan SONRAYA tasindi (asagida, aday-kesif sonrasi). */
     if (opt.dotnet) {
         if (xpdotnet::parse(pe.buf.data(), pe.buf.size(), &dn_img) && dn_img.is_dotnet) {
             for (auto& dm : dn_img.methods) {
@@ -614,7 +602,17 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                    üretilmesin). */
                 bool dup = false;
                 for (auto& ff : fns) if (ff.rva == dm.rva) { dup = true; break; }
-                if (dup) continue;
+                /* cp239-FIX(b): yerel tarayicinin ayni-RVA adayi DOTNET'e donusur
+                   (IL baytlari x86 sanilip grp5-RED uretiliyordu) */
+                if (dup) {
+                    for (auto& ff : fns) if (ff.rva == dm.rva) {
+                        ff.note = dm.eh_count ? "DOTNET-EH" : "DOTNET";
+                        ff.size = dm.body_len;
+                        break;
+                    }
+                    dn_meta[dm.rva] = dm;
+                    continue;
+                }
                 FnInfo f; f.rva = dm.rva; f.size = dm.body_len;
                 f.name = dm.type_name.empty() ? dm.name : (dm.type_name + "::" + dm.name);
                 f.note = dm.eh_count ? "DOTNET-EH" : "DOTNET";
@@ -632,7 +630,29 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 const xpdotnet::TypeDef& td = dn_img.typedefs[ti];
                 for (u32 mi = td.method_first; mi >= 1 && mi < td.method_last && mi <= dn_img.methods.size(); mi++)
                     dn_ctor_owner[dn_img.methods[mi - 1].token] = 0x02000000u | (u32)(ti + 1);
+            }        }
+        /* cp239-FIX: env-setup ARTIK parse sonrasi (fld_off/sfld_rva/pin bağlanır) */
+        if (dn_img.is_dotnet) {
+            for (size_t qi = 0; qi < dn_img.methods.size(); qi++) {
+                const xpdotnet::Method& qm = dn_img.methods[qi];
+                if (qm.pinv_name.empty() || qm.pinv_dll.empty()) continue;
+                xpil::XPinvFn pf;
+                pf.dll_hash = xfnv_al(qm.pinv_dll.c_str());
+                pf.name_hash = xfnv_a(qm.pinv_name.c_str());
+                pf.args_bytes = qm.param_count * 4u;
+                pf.has_ret = qm.has_ret;
+                pf.is_cdecl = qm.pinv_cdecl;
+                dn_pinv[qm.token] = pf;
+                dn_pinv_want = true;
             }
+            dn_env.pinv = &dn_pinv;
+            dn_env.sfld_rva = &dn_img.field_rva;
+            dn_env.fld_off = &dn_img.field_off;
+            dn_env.managed_conv = true;   // cp248: managed konvansiyon (caller-clean)
+            { u16 dc = 0; if (pe.e_lfanew + 24 + 70 + 2 <= pe.buf.size())
+                memcpy(&dc, &pe.buf[pe.e_lfanew + 24 + 70], 2);
+              dn_env.allow_abs = (dc & 0x40) == 0; }      // DYNAMICBASE yoksa mutlak VA serbest
+            dn_env.imagebase = pe.imagebase;
         }
     }
 
@@ -1033,10 +1053,38 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
            okumalari ihtimali dusuk (varsayim: kullanici Windows'ta dogrular;
            calismazsa log'daki 'TLS' eski moda donus icin). pack/.NET kesin
            engel (EP catismasi / mscoree bootstrap). */
-        iat_loader = !opt.pack && !is_dot;
-        if (opt.iat_prot && tlsz)
-            L("[IAT-LOADER] uyari: TLS dizini var (" + std::to_string(tlsz) +
-              "B) — CRT callback'lerinin import kullanmadigi varsayildi (loader modu)");
+        /* cp239-FIX (P1 trt kaniti): TLS CALLBACK dizisi doluysa loader modu
+           YASAK — callback'ler EP'den ONCE calisir ve import kullanabilir
+           (trt.exe rc=3 kaniti). Callback VA dizisinin ilk girisi okunur;
+           doluysa eski thunk moduna dus (gardi geri geldi, ama ARTIK
+           callback-doluluguna bakar — bos TLS dizini loader modu kalir). */
+        bool tls_cb = false;
+        if (tlsz) {
+            u32 peoff9; memcpy(&peoff9, &pe.buf[0x3C], 4);
+            u32 dd9v = peoff9 + 24 + (pe.is64 ? 112u : 96u) + 9u * 8u;
+            u32 dd9rva = 0; if (dd9v + 8 <= pe.buf.size()) memcpy(&dd9rva, &pe.buf[dd9v], 4);
+            bool okr9 = false; u32 draw9 = dd9rva ? pe.rva2raw(dd9rva, &okr9) : 0;
+            if (okr9 && draw9) {
+                u32 cboff = pe.is64 ? 24u : 12u;   // AddressOfCallBacks alan ofseti
+                u64 cbarrva = 0;
+                if (pe.is64) { if ((u64)draw9 + cboff + 8 <= pe.buf.size()) memcpy(&cbarrva, &pe.buf[draw9 + cboff], 8); }
+                else { if ((u64)draw9 + cboff + 4 <= pe.buf.size()) { u32 v; memcpy(&v, &pe.buf[draw9 + cboff], 4); cbarrva = v; } }
+                bool okc = false; u32 craw = 0;
+                { u32 cbrva = (u32)((cbarrva >= (u64)pe.imagebase) ? (cbarrva - pe.imagebase) : cbarrva);
+                  craw = cbrva ? pe.rva2raw(cbrva, &okc) : 0; }   // cp239-FIX(d): VA->RVA
+                if (okc && craw) {
+                    u64 first = 0;
+                    if (pe.is64) { if ((u64)craw + 8 <= pe.buf.size()) memcpy(&first, &pe.buf[craw], 8); }
+                    else { u32 v; if ((u64)craw + 4 <= pe.buf.size()) { memcpy(&v, &pe.buf[craw], 4); first = v; } }
+                    tls_cb = first != 0;
+                }
+            }
+        }
+        iat_loader = !opt.pack && !is_dot && !tls_cb;
+        if (opt.iat_prot && tls_cb)
+            L("[IAT-LOADER] atlandi (neden: TLS-callback dolu) — eski thunk modu (EP-oncesi import guvenligi)");
+        else if (opt.iat_prot && tlsz)
+            L("[IAT-LOADER] uyari: TLS dizini var ama CALLBACK BOS — loader modu suruyor");
         if (opt.iat_prot && !iat_loader)
             L("[IAT-LOADER] atlandi (neden: " + std::string(opt.pack ? "pack" : ".NET") +
               ") — eski thunk modu kullanilacak");
@@ -1677,10 +1725,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont = isreg ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(),
                                          (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent_guess, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
         c.tramp = st.size() > c.f->size;
         c.stub_len = (u32)st.size();
         cur += (u32)st.size();
@@ -1722,9 +1770,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     if (xpd_sz) {
         for (auto& ms : dn_mgd_slot) {
             u32 entry = 0;
-            auto cit = dn_meta.find(ms.first);   // MethodDef token -> rva
-            if (cit != dn_meta.end()) {
-                u32 crva = cit->second.rva;
+            u32 crva = 0;
+            for (auto& qm2 : dn_img.methods)     // cp239-FIX(c): MethodDef TOKEN -> rva
+                if (qm2.token == ms.first) { crva = qm2.rva; break; }
+            if (crva) {
                 for (auto& c2 : comps)
                     if (c2.f->rva == crva)
                         entry = (c2.ty == 1) ? (rt_any ? c2.mut_gate_rva : c2.mut_rva) : c2.stub_rva;
@@ -1796,11 +1845,24 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u64 ekey = key ^ VM_VMK(c.vm_id);
             /* 1.2.0-B1 vtAdvanced: VM_KSCA (4-byte periyot ailesi) — decoder
                scratch[5] ile ayni secimi yapar. */
-            for (size_t i = 0; i < c.plain.size(); i++) {
-                c.enc[i] = (u8)(c.plain[i] ^ (opt.vm_adv
-                    ? VM_KSCA(ekey, prev, (u32)i)
-                    : VM_KSC(ekey, prev, (u32)i)));
-                prev = c.enc[i];
+            if (opt.vm_rev) {
+                /* cp249 TERS-OKUMA: CFB zinciri SON-dan-BAS-a uretilir
+                   (prev = enc[i+1]; zincir saf konum-fonksiyonu -> JMP
+                   guvenli). Decoder sf8 ayni formulle cozer (bit4). */
+                for (size_t j = c.plain.size(); j > 0; j--) {
+                    size_t k = j - 1;
+                    u8 pv = (k + 1 < c.plain.size()) ? c.enc[k + 1] : (u8)0;
+                    c.enc[k] = (u8)(c.plain[k] ^ (opt.vm_adv
+                        ? VM_KSCA(ekey, pv, (u32)k)
+                        : VM_KSC(ekey, pv, (u32)k)));
+                }
+            } else {
+                for (size_t i = 0; i < c.plain.size(); i++) {
+                    c.enc[i] = (u8)(c.plain[i] ^ (opt.vm_adv
+                        ? VM_KSCA(ekey, prev, (u32)i)
+                        : VM_KSC(ekey, prev, (u32)i)));
+                    prev = c.enc[i];
+                }
             }
         }
     }
@@ -1890,10 +1952,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 cont2 = isreg2 ? (c.f->rva + c.f->size) : 0;
         if (pe.is64) st = build_stub_x64(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                          (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
         else         st = build_stub_x86(c.stub_rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                          (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont2,
-                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                         c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
         memcpy(&secimg[so], st.data(), st.size());
     }
     // 0.5.0: IAT thunklari (gecikmeli import cozumleyicileri)
@@ -2388,10 +2450,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u32 cont3 = isreg3 ? (f.rva + f.size) : 0;
             if (pe.is64) st = build_stub_x64(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(),
                                              (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
             else         st = build_stub_x86(f.rva, vent, c.key, c.bc_rva, (u32)c.plain.size(), c.v.retimm,
                                              (rt_any || vf_area || strenc_want || dn_pinv_want) ? xrt_entry_rva : 0, (rt_any || vf_area || strenc_want || dn_pinv_want) ? cfg_rva : 0, cont3,
-                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.rt_msgtext);
+                                             c.perm_seed, c.vm_id, opt.vm_adv ? 1 : 0, opt.vmregs ? 1 : 0, opt.rt_msg ? 1 : 0, opt.rt_exit ? 1 : 0, opt.vm_rev ? 1 : 0, opt.rt_msgtext);
             memcpy(&pe.buf[raw], st.data(), st.size());
             for (u32 i = (u32)st.size(); i < f.size; i++) pe.buf[raw + i] = 0xCC;
         }
@@ -2758,6 +2820,13 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
 
     pe.fix_checksum();
     if (!pe.save(out)) { L("[HATA] kaydedilemedi: " + out); return 1; }
+    /* cp248: cikti CLR-header butunlugu (.NET hedeflerde sessiz ezilme taramasi) */
+    { u32 dd0 = pe.e_lfanew + 24 + (pe.is64 ? 112u : 96u);
+      u32 crva = rdv32(pe.buf, dd0 + 14u * 8u);
+      bool ok2 = false; u32 craw = crva ? pe.rva2raw(crva, &ok2) : 0;
+      if (ok2 && craw && craw + 4 <= pe.buf.size() && rdv32(pe.buf, craw) != 72)
+          L("[UYARI][KORUMA-SONRASI] COR20 cb!=72 — CLR header bozulmus (dd14 RVA cakismasi)");
+    }
     snprintf(b, sizeof b, "[KAYIT] %s (%zu bayt)", out.c_str(), pe.buf.size());
     L(b);
     L("[OZET] tipler: V=" + std::to_string(nV) + " M=" + std::to_string(nM) + " U=" + std::to_string(nU)

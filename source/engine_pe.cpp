@@ -111,6 +111,36 @@ Section* PEFile::secbyname(const char* n) {
     return nullptr;
 }
 
+/* cp248-FIX (KOK: "korunan .NET exe açilmiyor"): csc/roslyn çıktılarında
+   bölüm-tablosu sonrası ham-veri (ilk section raw) başlık bölgesine YAPIŞIK
+   (RunPEForm: tablo sonu 0x1F0, .text raw 0x200, CLR hdr raw 0x208). Yeni
+   bölüm başlığı (40B) tabloyu 0x218'e taşır → CLR header EZİLİYORDU
+   (cb=0, MetaData RVA=0 → BadImageFormat). Çözüm: protect() en başında
+   tablo-sonu + need <= ilk-raw koşulunu garanti et; yetmezse TÜM ham
+   veriyi filealign kadar ileri kaydır (raw işaretçileri filealign'da kalır),
+   bölüm-tablosu raw alanları + SizeOfHeaders güncelle. */
+bool PEFile::ensure_header_room(u32 need) {
+    u16 nsec = rd16(buf, e_lfanew + 6);
+    u32 fh = e_lfanew + 4;
+    u16 optsize = rd16(buf, fh + 16);
+    u32 tabend = fh + 20 + optsize + (u32)nsec * 40;
+    u32 first_ro = 0xFFFFFFFFu;
+    for (auto& sc : secs) if (sc.rawoff && sc.rawoff < first_ro) first_ro = sc.rawoff;
+    if (first_ro == 0xFFFFFFFFu) return true;
+    if (first_ro >= tabend + need) return true;
+    u32 delta = filealign ? filealign : 0x200u;
+    while (first_ro + delta < tabend + need) delta += (filealign ? filealign : 0x200u);
+    size_t old = buf.size();
+    buf.resize(old + delta);
+    memmove(&buf[first_ro + delta], &buf[first_ro], old - (size_t)first_ro);
+    memset(&buf[first_ro], 0, delta);
+    for (auto& sc : secs) sc.rawoff += delta;
+    u32 shbase = fh + 20 + optsize;
+    for (u32 i = 0; i < nsec; i++) wr32(buf, shbase + (u32)i * 40 + 20, secs[i].rawoff);
+    wr32(buf, e_lfanew + 24 + 60, ((first_ro + delta + filealign - 1) & ~(filealign - 1)));
+    return true;
+}
+
 bool PEFile::add_section(const char* name, const std::vector<u8>& data, u32 chars, u32& out_rva) {
     if (secs.size() >= 96) return false;
     u32 vsize = (u32)((data.size() + secalign - 1) & ~(secalign - 1));
@@ -129,6 +159,12 @@ bool PEFile::add_section(const char* name, const std::vector<u8>& data, u32 char
     u32 fh = e_lfanew + 4;
     u16 optsize = rd16(buf, fh + 16);
     u32 sh = fh + 20 + optsize + (u32)(nsec * 40);
+    { u32 fro = 0xFFFFFFFFu;
+      for (auto& sc : secs) if (sc.rawoff && sc.rawoff < fro) fro = sc.rawoff;
+      if (fro != 0xFFFFFFFFu && fro < sh + 40) {
+        out_rva = 0;  // cp248: başlık-payı yok — sessiz ezme YASAK
+        return false;
+      } }
     memset(&buf[sh], 0, 40);
     memcpy(&buf[sh], name, strlen(name) > 8 ? 8 : strlen(name));
     wr32(buf, sh + 8, (u32)data.size());   // VirtualSize
