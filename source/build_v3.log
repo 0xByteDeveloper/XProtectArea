@@ -6,3 +6,6 @@ build_ui.sh: line 30:  1896 Killed                  $ZIG c++ -O2 -std=c++17 -tar
 == [B] build_ui ==
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
+Terminated
+build_ui rc=143
+== [M] muttest ==
