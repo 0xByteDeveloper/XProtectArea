@@ -1,7 +1,7 @@
-CHECKPOINT Xprotect_1.2.2_cp229 (cp229)
+CHECKPOINT Xprotect_1.2.2_cp241 (cp241)
 ==================================================
-Tarih : 2026-11-15 04:40:46
-Zip   : XProtect_1.2.2_cp229.zip (38652089 bayt)
+Tarih : 2026-11-15 07:05:16
+Zip   : XProtect_1.2.2_cp241.zip (39201864 bayt)
 Agac  : /home/z/my-project/download/XProtect_1.2.2
 
 Bu dosya otomatik uretildi: plan-once log kurallarina gore
