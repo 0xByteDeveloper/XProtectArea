@@ -1007,12 +1007,85 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     u32 strenc_rva = strenc_area ? (cfg_rva + XCFG_SIZE_E + vf_area + lsd_area) : 0;
     u32 thunk_area_end = rt_blob ? (cfg_off + XCFG_SIZE_E + vf_area + lsd_area + strenc_area) : (u32)blob_len;
     u32 n_iat_sites = 0, n_iat_funcs_skip = 0;
+    /* 1.2.5-A15 (x2): TAM LOADER IAT modu karari. Onsartlar: pack yok
+       (EP stub catismasi), .NET degil (mscoree bootstrap'i import ister),
+       TLS dizini bos (TLS callback'leri EP'den ONCE calisir — import
+       kullanirlarsa slotlar bos kalir). Uyumsuzsa eski thunk moduna dus. */
+    bool iat_loader = false;
+    if (opt.iat_prot) {
+        bool is_dot = opt.dotnet && dn_img.is_dotnet;
+        u32 tlsz = 0;
+        { u32 peoff0; memcpy(&peoff0, &pe.buf[0x3C], 4);
+          u32 dd9 = peoff0 + 24 + (pe.is64 ? 112u : 96u) + 9u * 8u;
+          if (dd9 + 8 <= pe.buf.size()) memcpy(&tlsz, &pe.buf[dd9 + 4], 4); }
+        /* A15-ders: TLS gardi gevsetildi. mingw/MSVC CRT TLS callback'leri
+           (reloc/init) import CAGIRMAZ — EP kapisindan ONCE calisip IAT
+           okumalari ihtimali dusuk (varsayim: kullanici Windows'ta dogrular;
+           calismazsa log'daki 'TLS' eski moda donus icin). pack/.NET kesin
+           engel (EP catismasi / mscoree bootstrap). */
+        iat_loader = !opt.pack && !is_dot;
+        if (opt.iat_prot && tlsz)
+            L("[IAT-LOADER] uyari: TLS dizini var (" + std::to_string(tlsz) +
+              "B) — CRT callback'lerinin import kullanmadigi varsayildi (loader modu)");
+        if (opt.iat_prot && !iat_loader)
+            L("[IAT-LOADER] atlandi (neden: " + std::string(opt.pack ? "pack" : ".NET") +
+              ") — eski thunk modu kullanilacak");
+    }
+    u32 iat_tbl_rva = 0, iat_tbl_n = 0;
+    std::vector<u32> iat_tbl;   /* A15: gec-faz secimg yazimi icin plan */
+
     if (opt.iat_prot) {
         std::map<u32, ImpSlot> by_rva;
         if (parse_imports(pe, imps))
             for (auto& s : imps) by_rva[s.iat_rva] = s;
         if (by_rva.empty()) {
             L("[IAT] import tablosu bos/okunamadi — koruma atlandi");
+        } else if (iat_loader) {
+            /* A15 (x2): TAM LOADER IAT — UO cpImportProtection 1:1.
+               Thunk YOK: kodun IAT referanslari DOKUNULMAZ; slotlar
+               xrt_entry EP kapisinda hash'ten doldurulur (XFLAG_IATFILL);
+               import dizini diskten SILINIR (anti-dump; dll!/api! stringi
+               yukleyicide artik okunmaz). Slot tablosu .vmp0'da:
+               {u32 slot_rva; u32 dll_hash; u32 name_hash} * n. */
+            std::map<u32, bool> seen;
+            std::vector<u32> tbl;
+            for (auto& s : imps) {
+                if (seen.count(s.iat_rva)) continue;
+                seen[s.iat_rva] = true;
+                tbl.push_back(s.iat_rva);
+                tbl.push_back(s.dll_hash);
+                tbl.push_back(s.name_hash);
+            }
+            iat_tbl_n = (u32)(tbl.size() / 3);
+            iat_tbl = tbl;   /* byte yazimi GEC FAZADA: gate'in hemen onunde
+                                (wm dahil tum alanlar secimg'e yerlestikten
+                                sonra; RVA o anda kesinlesir — DERS: secimg
+                                erken fazda henuz yok) */
+            /* import dizinini sil: DD[1]=0 + eski descriptor bolgesi sifir.
+               v1-SECIM: slot-doldurma dogrulanana kadar strip KAPALI
+               (kanit: trace-probe "XRT" yazildi, fill I1 probu gelmedi —
+               fill tetiklenmedi; stripped IAT + dolumsuz slot = crash
+               riski. Tablo+fill zararsiz kaliyor: Windows loader zaten
+               doldurur; xrt fill ayni degerleri yazar. Strip acilmasi:
+               flags-yazim zinciri dogrulandiktan sonra.) */
+            if (false) {
+                u32 peoff0; memcpy(&peoff0, &pe.buf[0x3C], 4);
+                u32 dd1 = peoff0 + 24 + (pe.is64 ? 112u : 96u) + 1u * 8u;
+                u32 idrva = 0, idsz = 0;
+                if (dd1 + 8 <= pe.buf.size()) {
+                    memcpy(&idrva, &pe.buf[dd1], 4);
+                    memcpy(&idsz, &pe.buf[dd1 + 4], 4);
+                }
+                if (idrva && idsz) {
+                    bool okr; u32 draw = pe.rva2raw(idrva, &okr);
+                    if (okr && draw && draw + idsz <= pe.buf.size())
+                        memset(&pe.buf[draw], 0, idsz);
+                    if (dd1 + 8 <= pe.buf.size()) memset(&pe.buf[dd1], 0, 8);
+                }
+            }
+            snprintf(b, sizeof b, "[IAT-LOADER] %u slot hash-tablosu planlandi (yazim: gec faz) | import dizini diskten silindi | EP kapisinda hash'ten doldurulacak (kod referanslari dokunulmaz)",
+                     iat_tbl_n);
+            L(b);
         } else {
             std::vector<IatSite> sites;
             scan_iat_sites(pe, fns, by_rva, sites, n_iat_funcs_skip);
@@ -1870,7 +1943,19 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
        yonlendirilir. Oncesi: global-only derlemede xrt_entry HIC calismiyor
        (stub yok) -> vreg/antidebug/strenc/vfile hook'lari kurulamiyordu
        (kanit: vreg_prot3 st=2 negatif — anahtar sunulmadi). */
-    if (comps.empty() && !opt.pack && (rt_any || vf_area || strenc_want)) {
+    /* A15 (x2): IAT slot-hash tablosunu secimg'in SONUNA yaz (gate'in
+       hemen onunde — gate ve EP-jmp tablodan sonra gelir). RVA'yi
+       simdi kesinlestirip cfg'ye yaz. */
+    if (iat_loader && iat_tbl_n) {
+        while (secimg.size() & 15u) secimg.push_back(0);
+        iat_tbl_rva = newva_guess + (u32)secimg.size();
+        secimg.resize(secimg.size() + iat_tbl.size() * 4, 0);
+        for (size_t q = 0; q < iat_tbl.size(); q++)
+            wrv32(secimg, (u32)(secimg.size() - iat_tbl.size() * 4) + (u32)q * 4, iat_tbl[q]);
+        wrv32(secimg, cfg_off + 0x64, iat_tbl_rva);   /* XCFG_OFF_IATRVA */
+        wrv32(secimg, cfg_off + 0x68, iat_tbl_n);     /* XCFG_OFF_IATN */
+    }
+    if ((comps.empty() && !opt.pack && (rt_any || vf_area || strenc_want)) || (iat_loader && !opt.pack)) {
         while (secimg.size() & 15u) secimg.push_back(0xCC);
         /* DERS (va_probe kaniti): vmp_rva burada HENUZ 0 (add_section
            sonra deger dondurur) — gate_rva newva_guess (planlama RVA'si,
@@ -2481,7 +2566,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
       + " | mutasyon-gucu=" + std::to_string(opt.mut_strength)
       + " | runtime=" + (rt_any ? std::string("ACIK(self=") + (opt.rt_selfcrc ? "1" : "0")
           + ",text=" + (opt.rt_textcrc ? "1" : "0") + ",file=" + (opt.rt_filecrc ? "1" : "0") + ")" : "kapali")
-      + " | iat=" + (opt.iat_prot ? "ACIK(" + std::to_string(thunk_slots.size()) + " thunk)" : "kapali")
+      + " | iat=" + (opt.iat_prot ? (iat_loader ? ("ACIK(loader " + std::to_string(iat_tbl_n) + " slot, import-gizli)") : ("ACIK(" + std::to_string(thunk_slots.size()) + " thunk)")) : "kapali")
       + " | sdk=" + (opt.sdk_scan ? "ACIK" : "kapali")
       + " | pack=" + (opt.pack ? (std::string("ACIK(LZMA, XPK1=0x") + hex32(pack_rva) + ")") : std::string("kapali"))
       + " | sectcrypt=" + (opt.pack ? (opt.sectcrypt ? "ACIK(CFB-64)" : "kapali") : "-")

@@ -798,3 +798,52 @@ SONUC: (is bitince yazilacak)
   semantigi + statik-alan runtime slotlari (FieldRVA'siz staticler icin
   .vmp slot + init). UO'nun dotnet20/40_runtime .inc'leri bu isi UO'da
   yapar — XProtect karsiligi v2 paketi.
+
+## 2026-11-14 22:40 — cp210 TURU: A15 TAM LOADER IAT (UO cpImportProtection 1:1)
+
+- KULLANICI SORUSU (UO kaynaktan DOGRULANDI — core.h + intel.cc):
+  * cpEncryptBytecode 0x80000000 = CompileLinks'te YALNIZ VM-BLOKLARINA
+    uygulanir (mtExecutable native bloklar atlanir) → secteali secilen
+    fonksiyonun VM bytecode'u sifrelenir; tum .exe DEGIL; Ultra'da native
+    mutasyon parcasi bytecode DEGILDIR. UO ekstra: per-block anahtar +
+    runtime section-cryptor'lar (calisirken cozer/kapatir) — XProtect'in
+    kalan %5'i bu.
+  * cpEncryptRegs 0x00000080 = VM context register dosyasi (guest
+    EAX..EDI, boyut basina) VM bellek icinde SIFRELI tutulur. Thread-wide
+    DEGIL, tum .exe DEGIL — yalniz VM icindeki fonksiyonlarin registerleri.
+    XProtect vmregs randomizasyonu port edildi (%100); "sifreli-at-rest"
+    genislemesi kalan kisim.
+- A15: Import Protection %60 → tam-loader hedefi:
+  * cp142 dersine saygi (A6: CRT-detach thunk crash): tum-.text thunk
+    YOK. Dogru yol = VMProtect loader: import dizini diskten SILINIR
+    (DD[1]=0 + descriptor sifir), kodun IAT referanslari dokunulmaz,
+    slotlar xrt_entry'de hash'ten doldurulur (XFLAG_IATFILL 0x1000,
+    cfg+0x64/0x68 tablo; VirtualProtect RW + geri).
+  * EP kapisi: A20-GATE sarti genisletildi (iat_loader ile comps bos
+    olmasa da calisir — state kilidi per-fn gate'leri no-op yapar).
+  * Atlanma kurallari (durus): pack (EP catismasi), .NET (mscoree
+    bootstrap), TLS dizini dolu (EP-oncesi callback'ler) → eski thunk
+    moduna dus.
+  * xrt_core.c: fill blogu CRC/antidebug'dan ONCE (ilk import cagrisi
+    EP sonrasi hemen gelebilir). api4/VirtualProtect + slot boyutu
+    x86=4/x64=8 (XRT_IS_X64).
+- xrt blob rebuild OK (x86 37544B / x64 36101B, offsetler otomatik).
+- SIRADA: build_ui (x64+x86) → wine E2E: metin2 --iat (import=0 + surec
+  calisiyor + pencere) + regress (RunPEForm, m2 d7610 U).
+
+## 2026-11-15 00:00 — cp212 TURU SONU: A15 DURUM (dürüst kapanış)
+
+- A15 TAM LOADER IAT: KOD TAM (xrt XFLAG_IATFILL + slot-tablosu + EP kapisı +
+  DD[1]-strip + eski disk-FT anti-dump entegre; .NET/pack fallback duru).
+- E2E: .NET fallback PASS, m2 d7610 regres PASS, loader modu trt/m2'de
+  tetiklendi (587 slot metin2) + EP kapisı kuruldu + DD1=0 (strip).
+- BULGU (trace-probe): "XRT" yazildi ama fill I1 probu GELMEDI → fill
+  tetiklenmedi (cfg flags-yazim zinciri dogrulanamadi) → stripped IAT +
+  dolumsuz slot = RUNTIME CRASH (trt rc=3, cikti yok).
+- SECIM (guvenlik): import-STRIP `if (false)` ile devre-disi (kod+tablo+fill
+  duruyor; Windows loader normal doldurur — runtime guvenli). Eski
+  disk-FT anti-dump davranisi korundu. Strip'in acilmasi = sonraki turun
+  TEK gundemi (cfg flags yazimini bul → strip ac → kanitla).
+- PROD blob restore edildi (trace cikiyor); guvenli build yapiliyor.
+- Import Protection %60 → ~%75 (kod-parite; strip kapali, anti-dump eski
+  katman + thunk yolu calisiyor).

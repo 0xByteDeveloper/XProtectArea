@@ -469,7 +469,7 @@ static void vm_perm_tab(unsigned int seed, unsigned char* t, int dec) {
 // son 8B'si (pack_rva + reserved) ilk bytecode'un ilk 8 baytini eziyor,
 // VM çöp opcode okuyor ve fonksiyon SESSIZCE no-op'a düşüyordu
 // (kullanıcı kanıtı: metin2 ULTRA+loaderCRC = damage yok, crash yok).
-#define XCFG_SIZE_E     0x68   // 1.2.2-A18: +8B (strenc_rva @0x60; sectcrypt 0x4C/0x50/0x58)
+#define XCFG_SIZE_E     0x70   // 1.2.5-A15: +8B (IAT slot-tablosu RVA @0x64 + sayi @0x68; strenc @0x60)
 
 // --- stub'in yigin rezervi (fonksiyonun kendi push/literal alani) ---
 #define VM_CTX_SZ   0xE8

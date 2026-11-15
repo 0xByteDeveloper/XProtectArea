@@ -47,6 +47,8 @@ typedef long long i64;   /* 1.2.2-A20: NTSTATUS isaret-genisletme (A8 dersi) */
 #define XCFG_OFF_PACKRVA 0x40   // 0.6.0: XPK1 paket bilgi blok RVA (.vmp1)
 #define XCFG_OFF_UNWRVA  0x44   // 0.8.0: dinamik unwind tablo RVA (.vmp0 icinde)
 #define XCFG_OFF_STRENC 0x60   /* u32: strenc tablo RVA (A18; 0 = yok) */
+#define XCFG_OFF_IATRVA 0x64   /* u32: IAT slot-hash tablosu RVA (A15; 0 = yok) */
+#define XCFG_OFF_IATN   0x68   /* u32: slot kayit sayisi (A15) */
 #define XCFG_OFF_UNWCNT  0x48   // 0.8.0: dinamik unwind kayit sayisi
 // 0.8.0 SectionCryptor alanlari (xr_cipher.h ile ayni): flag 0x4C, anahtar 0x50/0x58
 #define XCFG_SIZE        0x60
@@ -64,6 +66,9 @@ typedef long long i64;   /* 1.2.2-A20: NTSTATUS isaret-genisletme (A8 dersi) */
 #define XFLAG_ANTIDBG 0x200 /* 1.2.2-A20: GLOBAL Check Debugger (UO loader-parite) */
 #define XFLAG_CHECKVM 0x400 /* 1.2.2-A20: GLOBAL Check Virtual Machine */
 #define XFLAG_KDBG   0x800 /* 1.2.2-A20: GLOBAL Check Kernel Debugger */
+#define XFLAG_IATFILL 0x1000 /* 1.2.5-A15 (x2): TAM LOADER IAT — EP kapisinda
+                                slotlar hash'ten doldurulur (UO cpImportProtection
+                                1:1: diskte dll!/api! stringi YOK) */
 
 // ---- yardimcilar ----
 static u32 ld32(const u8* p) { return (u32)p[0] | ((u32)p[1] << 8) | ((u32)p[2] << 16) | ((u32)p[3] << 24); }
@@ -2439,6 +2444,8 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
     return 0;
 }
 
+u64 xrt_resolve(u32 dllhash, u32 namehash, u64 fallback_abs); /* A15 ileri-bildirim */
+
 u32 xrt_entry(void* cfgp) {
     u8* cfg = (u8*)cfgp;
     u32 flags;
@@ -2574,6 +2581,51 @@ u32 xrt_entry(void* cfgp) {
        UO'da Check Debugger fonksiyon-sanallastirmasi OLMADAN da globaldir).
        CRC'lerden ONCE calisir (UO: loader once debugger'i arar).
        err: 5=antidebug | 6=checkvm | 7=kerneldbg -> rt_fatal(0x70+err). */
+    /* 1.2.5-A15 (x2): TAM LOADER IAT doldurma — UO cpImportProtection 1:1.
+       Import adlari diskten silinmistir; slotlar burada hash'ten cozulur.
+       Slot tablosu (.vmp0, base-relative): {u32 slot_rva; u32 dll_hash;
+       u32 name_hash} * n. Slot sayfalari genelde RO'dur -> VirtualProtect
+       ile RW yapilir, yazilir, eski koruma geri konur. CRC'lerden ONCE:
+       kodun ilk import cagrisi EP kapisi sonrasi hemen gelebilir. */
+    if ((flags & XFLAG_IATFILL) && !err) {
+        u32 irva = ld32(cfg + XCFG_OFF_IATRVA);
+        u32 icnt = ld32(cfg + XCFG_OFF_IATN);
+        if (irva && icnt) {
+            u64 vp = find_export(k32, XH_VIRTUALPROTECT);
+            u32 i;
+            xvf_dbg(k32, 'I', '1', '.');
+            for (i = 0; vp && i < icnt; i++) {
+                xvf_dbg(k32, 'I', 'L', (char)('0' + (int)(i & 7)));
+                const u8* e = base + irva + (u64)i * 12u;
+                u32 srva = ld32(e);
+                u32 dh   = ld32(e + 4);
+                u32 nh   = ld32(e + 8);
+                u64 api = xrt_resolve(dh, nh, 0);
+                if (!api) { xvf_dbg(k32, 'I', 'X', (char)('0' + (int)(i & 7))); continue; }
+                {
+#if defined(XRT_IS_X64)
+                    u8* slot = (u8*)(base + srva);
+                    u64 oldp = 0;
+                    if (api4(vp, (u64)(unsigned long)slot, 8u, 0x40u /*PAGE_EXECUTE_READWRITE*/,
+                             (u64)(unsigned long)&oldp)) {
+                        *(volatile u64*)slot = api;
+                        api4(vp, (u64)(unsigned long)slot, 8u, oldp, (u64)(unsigned long)&oldp);
+                    }
+#else
+                    u8* slot = (u8*)(base + srva);
+                    u32 oldp = 0;
+                    if (api4(vp, (u64)(unsigned long)slot, 4u, 0x40u,
+                             (u64)(unsigned long)&oldp)) {
+                        *(volatile u32*)slot = (u32)api;
+                        api4(vp, (u64)(unsigned long)slot, 4u, oldp, (u64)(unsigned long)&oldp);
+                    }
+#endif
+                }
+            }
+            xvf_dbg(k32, 'I', '5', '.');
+        }
+    }
+
     if ((flags & (XFLAG_ANTIDBG | XFLAG_CHECKVM | XFLAG_KDBG)) && !err) {
         err = xrt_antidebug(k32, flags);
     }
