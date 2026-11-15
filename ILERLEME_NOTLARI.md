@@ -902,3 +902,17 @@ değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
 
 ### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
 (P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
+
+## 2026-11-15 07:30 — cp245+: E2E TAM PASS (P0..P4) — iki kök-düzelt daha
+- cp239 kök-zinciri (kullanıcı raporu "C# boş bile derlenmiyor" → KÖK):
+  env-setup bloğu parse'tan ÖNCE koşuyordu (dn_img.is_dotnet=false) →
+  fld_off/sfld_rva/pinv HİÇ bağlanmıyordu. Parse-sonrasına taşındı.
+- FF/6 (push [ebp+d]) + 8F/0 (pop [ebp+d]) lifter-disasm dışında kalmıştı
+  (V-lift "grp5 push/far" RED) → liftable register-aracılı formlar (cp239-e).
+- Yuva-doldurma MethodDef TOKEN→RVA çözümü + yerel-tarayıcı dup→DOTNET
+  dönüşümü + TLS-callback VA→RVA düzeltisi.
+- SONUÇ (a16 kanıt, wine): P0 RunPEForm 9/42 lift + rc=0 + çıkış (120KB);
+  P1 trt --iat STRİPLİ RUNTIME PASS ("OK hepsi dogru"); P2 fallback PASS;
+  P3 metin2 d7610 U PASS; P4 metin2 587-slot loader PASS.
+- Kalan 33 RED: 13 EH-çekirdek + 27 EH-cascade (EH-SEH v4 ile kapanır),
+  2 grp5 (residual), box/ldtoken (v4).
