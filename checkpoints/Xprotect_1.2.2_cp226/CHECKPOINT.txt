@@ -1,7 +1,7 @@
-CHECKPOINT Xprotect_1.2.2_cp214 (cp214)
+CHECKPOINT Xprotect_1.2.2_cp226 (cp226)
 ==================================================
-Tarih : 2026-11-15 03:41:39
-Zip   : XProtect_1.2.2_cp214.zip (38655407 bayt)
+Tarih : 2026-11-15 04:28:06
+Zip   : XProtect_1.2.2_cp226.zip (38653616 bayt)
 Agac  : /home/z/my-project/download/XProtect_1.2.2
 
 Bu dosya otomatik uretildi: plan-once log kurallarina gore
@@ -857,6 +857,61 @@ SONUC: (is bitince yazilacak)
 - PROD blob restore edildi (trace cikiyor); guvenli build yapiliyor.
 - Import Protection %60 → ~%75 (kod-parite; strip kapali, anti-dump eski
   katman + thunk yolu calisiyor).
+
+## 2026-11-15 03:45-04:15 — cp213+: CSharp-lifter v3 + A15-P1 kök-düzelt + Mutasyon şablon-v3
+
+### CSharp-lifter v3 (A16/CSharp) — KOD TAM, build sürüyor
+Kullanıcı raporu: "C# ye bi fonksiyon eklemeden bile boşken bile derlemiyor (rc=3)".
+RED kökleri TEK TEK kaldırıldı:
+1. managed-call (call/callvirt → kaldırılmış callee): mgd-slot yuvası
+   (call dword [abs slot], .vmp0 xpdata alanı, disk-doldurma geç-faz).
+   Callee oto-secim: seçili DOTNET IL'lerinden çağrı-grafı yayılımı
+   (DOTNET-CALLEE adayları otomatik seçilir; EH/abstract/pinvoke callee =
+   yuva YOK → caller net RED — dolumsuz-int3 güvenlik kilidi).
+2. ldfld/stfld auto-layout: xpdotnet::compute_layout() — Field tablosu
+   satırları (flags/sig/sahip) artık parse'da toplanıyor; instance alanlar
+   4B slot, bildirim sırası (offset=i*4); ExplicitLayout dokunulmaz.
+3. ldsfld/stsfld (FieldRVA yok): statik slotlar xpdata'da → field_rva
+   haritasına eklenir (A14 yolu aynen çalışır).
+4. newobj: xrt_alloc (VirtualAlloc, sıfırlı, stdcall 1-arg) + ctor yuvası +
+   4-slot sıcak-bölge arg kaydırma (≤4 arg); tip boyu type_size'tan.
+5. ldstr: #US'tan UTF-16→UTF-8 havuzu (xpdata), push imm32 ptr.
+6. throw: xrt_raise (RaiseException 0xE0434352; kernel32 hash 0xC1D5565C
+   doğrulandı) — rel32 rx_fix ikinci elemanıyla (patch-lokumu artık
+   (ofset,hedef) ikilisi taşır).
+7. SAHTE-BASARI GATE düzeltmesi: DOTNET girdide aday varsa ve HİÇbiryöntem
+   uygulanamadıysa → çıkış YİNE YAZILIR rc=0 + sesli [UYARI][DOTNET-KISMI]
+   (VMProtect davranışı; "boş C# bile derlenmiyor" çözümü). Native 0-aday
+   durumunda eski rc=3 koruması sürer.
+   - DYNAMICBASE gerektiğinde temizlenir (mutlak VA yuva/havuz).
+   - xpdata alanı thunk_area_end sonrası ÖN-PASS planlanır (derlemeden
+     ÖNCE RVA kesin; dinamik alanlar xpd_sz kadar kayar; yuva VA'ları
+     callee final RVA'sı ile doldurulur; UTF-8 havuzu yazılır).
+
+### A15-P1 (trt.exe --iat rc=3) KÖK NEDEN BULUNDU + DÜZELTİLDİ
+cp212 trace-probe bulgusunun kökü: SON cfg yazımı (memcpy pe.buf[cfg_raw])
+fl'yi XFLAG_IATFILL OLMADAN ve 0x64/0x68'i SIFIRLA yazıyordu — wrv32-secimg
+yazımı eziliyordu → fill I1 probu hiç gelmedi → strip kapalı tutulmuştu.
+Düzeltme: (a) fl |= 0x1000 (iat_loader && iat_tbl_n); (b) cwr(0x64,iat_tbl_rva)
++ cwr(0x68,iat_tbl_n) TEK kaynaktan; (c) import-strip `if(false)` → `if
+(iat_loader && iat_tbl_n)` — strip AÇILDI (geri-alma noktası belgeli).
+
+### Mutasyon şablon çeşitliliği v3 (UO intel.cc parite genişlemesi)
+Yeni ikame sınıfları (her biri canlılık+bayrak kurallıyla): S14 sub r,r→xor r,r;
+S15 test r,r→and r,r; S16 or r,r→add r,0; S17 mov r,r→nop; S18 add/sub r,1→
+inc/dec (fdead); S19 lea r,[r+d]→add r,d (fdead); S20 mov r,0→xor r,r (fdead);
+S21 shl r,1↔add r,r (fdead). Emit'e inc_r/shl1_r eklendi (x64 REX.W doğru).
+Lifter uyumu: FF /4 mod3 artık disasm'da XP_SHIFT (SHI_SHL, imm=1) — U-modu
+mutant'ı çözebilir (FF /0 inc zaten XP_INCDEC_R'di). Toplam ikame sınıfı 7→15
+(form-çeşitleriyle UO'nun şablon alanının çekirdeği).
+
+### Virtualization %90 (dürüst): ters-yön okuma + komut-klonlama = v4 kapsamı
+(VM format kırılımı: encoder+decoder eşzamanlı değişim gerekir; bu turda
+değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
+(vm_opcodes.h VM_MIX).
+
+### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
+(P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
 
 
 === PORT_DURUMU.md (parite %'leri) ===
