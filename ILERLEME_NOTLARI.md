@@ -902,15 +902,3 @@ değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
 
 ### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
 (P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
-
-## 2026-11-15 06:47 — cp238: libstdc++6.dll KÖK-DÜZELT + x86 İLK DERLEME
-- Kullanıcı raporu: "XProtectUI.exe libstdc++6.dll bulamıyor". KÖK: mingw g++
-  link'i VARSAYILAN paylaşımlı libstdc++-6.dll + libgcc + libwinpthread-1.dll
-  seçiyordu (zig bunları STATİK gömüyordu — o yüzden eskiden yoktu).
-  DÜZELT: LDFLAGS="-static" (libstdc++/libgcc/winpthread tamamen gömülü;
-  import listesi yalnız KERNEL32/msvcrt/USER32/COMCTL32/COMDLG32/GDI32/SHELL32).
-- XProtectUI32.exe (x86) İLK KEZ mingw ile derlendi (i686 mingw debs:
-  binutils/i686-dev/gcc-posix/g++-posix; cc1plus dahil) — 2.0MB statik.
-- -mconsole: CLI stdout geri geldi (GUI-subsystem kaybı giderildi).
-- Araç zinciri: zig CRT kilitlenmesi (FUSE/CRT grind) → mingw-w64 g++
-  kalıcı çözüm (build_v3_mingw.sh, /tmp/mwroot kullanıcı-önekli toolchain).
