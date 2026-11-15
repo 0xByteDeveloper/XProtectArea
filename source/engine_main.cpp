@@ -572,6 +572,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // ofsetleri (row_rva_off/row_impl_off) yama asamasinda kullanilir.
     std::map<u32, xpdotnet::Method> dn_meta;   // rva -> method
     xpdotnet::Image dn_img;                    // A13/x7a: sas_blob (StandAloneSig)
+    std::map<u32, u32> dn_ctor_owner;          // v3: MethodDef token -> TypeDef token
     // A14 (x2 devam): P/Invoke haritasi — ImplMap'ten dll/isim hash'leri
     std::map<u32, xpil::XPinvFn> dn_pinv;
     xpil::XPEnv dn_env;
@@ -623,6 +624,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             snprintf(b, sizeof b, "[DOTNET] %zu yontem adayi (metadata v%s, EP-token=0x%08X, EH-red hariç)",
                      dn_meta.size(), dn_img.ver_buf, dn_img.entry_token);
             L(b);
+            /* 1.2.3-v3 (A16/CSharp): auto-layout alan ofsetleri + tip boylari
+               — ldfld/stfld ve newobj icin CLR-uyumlu (oz-basli) hesap. */
+            xpdotnet::compute_layout(&dn_img, pe.buf.data(), pe.buf.size());
+            /* ctor token -> TypeDef token (newobj tip boyu) */
+            for (size_t ti = 0; ti < dn_img.typedefs.size(); ti++) {
+                const xpdotnet::TypeDef& td = dn_img.typedefs[ti];
+                for (u32 mi = td.method_first; mi >= 1 && mi < td.method_last && mi <= dn_img.methods.size(); mi++)
+                    dn_ctor_owner[dn_img.methods[mi - 1].token] = 0x02000000u | (u32)(ti + 1);
+            }
         }
     }
 
@@ -1062,13 +1072,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                                 sonra; RVA o anda kesinlesir — DERS: secimg
                                 erken fazda henuz yok) */
             /* import dizinini sil: DD[1]=0 + eski descriptor bolgesi sifir.
-               v1-SECIM: slot-doldurma dogrulanana kadar strip KAPALI
-               (kanit: trace-probe "XRT" yazildi, fill I1 probu gelmedi —
-               fill tetiklenmedi; stripped IAT + dolumsuz slot = crash
-               riski. Tablo+fill zararsiz kaliyor: Windows loader zaten
-               doldurur; xrt fill ayni degerleri yazar. Strip acilmasi:
-               flags-yazim zinciri dogrulandiktan sonra.) */
-            if (false) {
+               v1-SECIM (cp212): strip KAPALIydi — flags-yazim zinciri
+               eksigi bulundu ve cp213'te tamamlandi (fl |= XFLAG_IATFILL +
+               cwr(0x64/0x68) son-cfg yaziminda). Strip ARTIK ACIK; wine E2E
+               (trt --iat + metin2 --iat) kanitlayacak. Geri-alma: burayi
+               tekrar false yap. */
+            if (iat_loader && iat_tbl_n) {
                 u32 peoff0; memcpy(&peoff0, &pe.buf[0x3C], 4);
                 u32 dd1 = peoff0 + 24 + (pe.is64 ? 112u : 96u) + 1u * 8u;
                 u32 idrva = 0, idsz = 0;
@@ -1274,6 +1283,154 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             }
         }
     }
+    /* 1.2.3-v3 (A16/CSharp): yonetilen-dunya planlamasi ==================
+       Secili DOTNET metodlarindan cagri-grafi yayilimi (callee oto-secim);
+       mgd yuvalari + statik alan slotlari + ldstr UTF-8 havuzu — thunk
+       alaninin ardina ON-PASS yerlesir (derlemeden ONCE RVA'lar kesin;
+       xpd_sz dinamik alanlari esit kaydirir). Yuvalar derleme SONRASI
+       doldurulur (callee final RVA'si); string havuzu derleme sonrasi
+       yazilir (icindekiler zaten biliniyor). */
+    std::map<u32, xpil::XPmgdFn> dn_mgd;
+    std::map<u32, u32> dn_mgd_slot, dn_str_pool;
+    std::map<u32, std::string> dn_str_want;   // v3: ldstr token -> UTF-8 icerik
+    u32 xpd_off = 0, xpd_sz = 0;
+    bool v3_need_abs = false;
+    if (!dn_meta.empty()) {
+        std::set<u32> mgd_want, sfld_want;
+        std::map<u32, std::string>& str_want = dn_str_want;
+        {
+            std::vector<u32> wl;
+            for (auto& f : fns) if (f.selected && dn_meta.count(f.rva)) wl.push_back(f.rva);
+            std::set<u32> seen;
+            for (size_t wi = 0; wi < wl.size(); wi++) {
+                u32 rva = wl[wi];
+                if (!dn_meta.count(rva) || !seen.insert(rva).second) continue;
+                const xpdotnet::Method& dm = dn_meta[rva];
+                std::vector<u8> dil;
+                if (!xpdotnet::read_body(pe.buf.data(), pe.buf.size(), dm, &dil)) continue;
+                std::vector<xpil::Cmd> dcmds;
+                std::string derr2;
+                if (!xpil::decode(dil.data(), dil.size(), &dcmds, &derr2)) continue;
+                for (size_t ci = 0; ci < dcmds.size(); ci++) {
+                    u32 code = dcmds[ci].code, tok = dcmds[ci].token;
+                    if (code == 0x28 || code == 0x6F || code == 0x73) {
+                        if (dn_pinv.count(tok)) continue;
+                        if (mgd_want.count(tok)) continue;
+                        /* v3-guvenlik: callee kaldirilabilir olsun (EH/abstract/
+                           pinvoke/native/body-yok -> yuva YOK; caller net RED
+                           alir, dolumsuz int3-yuva riski sifirlanir). */
+                        bool liftable = false;
+                        for (size_t q = 0; q < dn_img.methods.size(); q++) {
+                            const xpdotnet::Method& qm = dn_img.methods[q];
+                            if (qm.token != tok) continue;
+                            if (!qm.rva || qm.is_abstract || qm.is_pinvoke || qm.is_native) break;
+                            if (qm.eh_count || !qm.body_len) break;
+                            if (code == 0x73 && qm.name != ".ctor") break;  // newobj yalniz ctor
+                            liftable = true;
+                            if (!dn_meta.count(qm.rva)) {
+                                FnInfo f2; f2.rva = qm.rva; f2.size = qm.body_len;
+                                f2.name = qm.type_name.empty() ? qm.name : (qm.type_name + "::" + qm.name);
+                                f2.note = "DOTNET-CALLEE";
+                                f2.selected = true;
+                                fns.push_back(f2);
+                                dn_meta[qm.rva] = qm;
+                            } else {
+                                for (auto& ff : fns) if (ff.rva == qm.rva) ff.selected = true;
+                            }
+                            wl.push_back(qm.rva);
+                            break;
+                        }
+                        if (liftable) mgd_want.insert(tok);
+                    } else if (code == 0x72) {
+                        if (dn_str_pool.count(tok) || str_want.count(tok)) continue;
+                        /* #US'tan UTF-16 oku -> UTF-8 (v3: temel coklu-bayt) */
+                        u32 uso = tok & 0x00FFFFFFu;
+                        u64 bp = (u64)dn_img.us_off + uso;
+                        if (dn_img.us_off && bp + 1 <= pe.buf.size()) {
+                            u32 blen = 0; u8 c0 = pe.buf[bp];
+                            if (c0 & 0x80) { if (c0 & 0x40) { if (bp + 4 <= pe.buf.size()) blen = ((u32)(c0 & 0x1F) << 24) | ((u32)pe.buf[bp+1] << 16) | ((u32)pe.buf[bp+2] << 8) | pe.buf[bp+3]; }
+                                             else if (bp + 2 <= pe.buf.size()) blen = ((u32)(c0 & 0x3F) << 8) | pe.buf[bp+1]; }
+                            else blen = c0;
+                            u64 sp2 = bp + ((c0 & 0x80) ? ((c0 & 0x40) ? 4 : 2) : 1);
+                            std::string u8s;
+                            for (u32 k2 = 0; k2 + 1 < blen && sp2 + 1 < pe.buf.size(); k2 += 2) {
+                                u16 wch = (u16)(pe.buf[sp2 + k2] | ((u16)pe.buf[sp2 + k2 + 1] << 8));
+                                if (wch < 0x80) u8s += (char)wch;
+                                else if (wch < 0x800) { u8s += (char)(0xC0 | (wch >> 6)); u8s += (char)(0x80 | (wch & 0x3F)); }
+                                else { u8s += (char)(0xE0 | (wch >> 12)); u8s += (char)(0x80 | ((wch >> 6) & 0x3F)); u8s += (char)(0x80 | (wch & 0x3F)); }
+                            }
+                            u8s += '\0';
+                            str_want[tok] = u8s;
+                        }
+                    } else if (code == 0x7E || code == 0x7F || code == 0x80) {
+                        if (!dn_img.field_rva.count(tok)) sfld_want.insert(tok);
+                    }
+                }
+            }
+        }
+        /* mgd bilgileri + yuva plani */
+        u32 xo = (thunk_area_end + 15) & ~15u;
+        xpd_off = xo;
+        u32 xpd_rva = newva_guess + xo;
+        for (u32 tk : mgd_want) {
+            xpil::XPmgdFn mf;
+            for (size_t q = 0; q < dn_img.methods.size(); q++) {
+                if (dn_img.methods[q].token != tk) continue;
+                const xpdotnet::Method& qm = dn_img.methods[q];
+                mf.param_count = qm.param_count;
+                mf.args_bytes = (qm.param_count + (qm.is_static ? 0u : 1u)) * 4u;
+                mf.has_ret = qm.has_ret;
+                break;
+            }
+            dn_mgd[tk] = mf;
+            dn_mgd_slot[tk] = xpd_rva + (xo - xpd_off);   // slot RVA (derleme bunu okur)
+            xo += 4;
+        }
+        for (u32 tk : sfld_want) {                   // statik slotlar -> field_rva
+            dn_img.field_rva[tk] = xpd_rva + (xo - xpd_off);
+            xo += 4;
+        }
+        for (auto& sw : str_want) {                  // ldstr havuzu
+            u32 pad = (u32)((4 - (xo & 3)) & 3);
+            xo += pad;
+            dn_str_pool[sw.first] = xpd_rva + (xo - xpd_off);
+            xo += (u32)sw.second.size();
+        }
+        xpd_sz = ((xo - xpd_off) + 15) & ~15u;
+        v3_need_abs = !(dn_mgd.empty() && sfld_want.empty() && str_want.empty());
+        if (v3_need_abs) {
+            dn_env.mgd = &dn_mgd;
+            dn_env.mgd_slot = &dn_mgd_slot;
+            dn_env.str_pool = &dn_str_pool;
+            dn_env.newobj_type = &dn_ctor_owner;
+            dn_env.type_sz = &dn_img.type_size;
+            if (rt_blob) {
+                u32 xr2 = newva_guess + xrt_code_off;
+                dn_env.alloc_rva = xr2 + (pe.is64 ? XRT_BLOB64_ALLOC_OFF : XRT_BLOBX86_ALLOC_OFF);
+                dn_env.raise_rva = xr2 + (pe.is64 ? XRT_BLOB64_RAISE_OFF : XRT_BLOBX86_RAISE_OFF);
+            }
+            /* mutlak adresler (call [abs slot] / push imm32) ASLR ile yasamaz —
+               gerekiyorsa DYNAMICBASE temizlenir (A14 ldsfld kararinin v3
+               genislemesi; UO da imza-reloc disinda mutlak VA kullanir). */
+            if (!dn_env.allow_abs) {
+                u32 peoff2 = pe.e_lfanew;
+                u32 magic2 = 0; memcpy(&magic2, &pe.buf[peoff2 + 24], 2);
+                u32 ddc = peoff2 + 24 + ((magic2 == 0x20B) ? 78u : 70u);
+                if ((u64)ddc + 2 <= pe.buf.size()) {
+                    u16 dc2; memcpy(&dc2, &pe.buf[ddc], 2);
+                    if (dc2 & 0x40) {
+                        dc2 &= (u16)~0x40u;
+                        memcpy(&pe.buf[ddc], &dc2, 2);
+                        dn_env.allow_abs = true;
+                        L("[DOTNET-v3] DYNAMICBASE temizlendi (yuva/havuz mutlak VA) — ASLR kapatildi");
+                    }
+                }
+            }
+            snprintf(b, sizeof b, "[DOTNET-v3] yonetilen-dunya: %zu mgd-yuva | %zu statik-slot | %zu ldstr | xpdata=0x%X (+0x%X)",
+                     dn_mgd.size(), sfld_want.size(), str_want.size(), xpd_off, xpd_sz);
+            L(b);
+        }
+    }
     for (auto& f : fns) {
         if (!f.selected) continue;
         bool okraw; u32 raw = pe.rva2raw(f.rva, &okraw);
@@ -1322,9 +1479,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 f.note = dx.why_red;
                 continue;
             }
-            /* A14: call xrt_resolve rel32'leri fonksiyonun gerçek RVA'sına patch'le */
+            /* A14/v3: rel32 çağrı alanları (xrt_resolve/alloc/raise) hedef
+               RVA'sı ile patch'lenir — ikili (ofset, hedef) taşınır. */
             for (size_t ri = 0; ri < dx.rx_fix.size(); ri++) {
-                i32 rel = (i32)(dn_env.resolve_rva - (f.rva + dx.rx_fix[ri].first + 4));
+                u32 tgt = dx.rx_fix[ri].second ? dx.rx_fix[ri].second : dn_env.resolve_rva;
+                i32 rel = (i32)(tgt - (f.rva + dx.rx_fix[ri].first + 4));
                 for (int k = 0; k < 4; k++)
                     dx.code[dx.rx_fix[ri].first + k] = (u8)((u32)rel >> (8 * k));
             }
@@ -1500,7 +1659,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
 
     // --- section icinde RVAlari planla ---
     // 0.5.0: vm blob + (xrt + cfg + thunklar erken planlandi) sonrasindan devam
-    u32 cur = thunk_area_end;
+    u32 cur = thunk_area_end + xpd_sz;   // v3: xpdata alanı önde planlandı (sonra doldurulur)
     u32 xrt_after = cur;   // xrt kodu + cfg zaten secimg'in basina yazilacak
     for (auto& c : comps) {
         if (c.ty == 1) continue;              // M: bc yerlesimi yok
@@ -1557,6 +1716,22 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             sc += ((s.len + 7) & ~7u) + 8;    // kopya + hizali + dolgu
         }
         cur = sc;
+    }
+    // --- v3: yuva doldurma (callee final RVA'lari) + xpdata icerigi ---
+    std::vector<std::pair<u32, u32> > dn_slot_fill;   // (slot RVA, mutlak VA)
+    if (xpd_sz) {
+        for (auto& ms : dn_mgd_slot) {
+            u32 entry = 0;
+            auto cit = dn_meta.find(ms.first);   // MethodDef token -> rva
+            if (cit != dn_meta.end()) {
+                u32 crva = cit->second.rva;
+                for (auto& c2 : comps)
+                    if (c2.f->rva == crva)
+                        entry = (c2.ty == 1) ? (rt_any ? c2.mut_gate_rva : c2.mut_rva) : c2.stub_rva;
+            }
+            if (entry) dn_slot_fill.push_back(std::make_pair(ms.second, pe.imagebase + entry));
+            else L("[DOTNET-v3] uyari: callee RVA yok (yuva bos -> int3)");
+        }
     }
     u32 state_off = cur;
     u32 nstate = (u32)encstr.size();          // 0.8.1: state KOPYA basina PAYLASILIR
@@ -1769,6 +1944,25 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             u32 go = c.mut_gate_rva - newva_guess;
             memcpy(&secimg[go], g.data(), g.size());
         }
+    }
+    // --- v3: xpdata icerigi — yuva VA'lari + statik slotlar (0) + ldstr havuzu ---
+    if (xpd_sz && xpd_off) {
+        if (secimg.size() < (size_t)(xpd_off + xpd_sz)) secimg.resize(xpd_off + xpd_sz, 0);
+        for (auto& sf : dn_slot_fill) {
+            u32 o = sf.first - newva_guess;
+            if (o + 4 <= secimg.size())
+                for (int k = 0; k < 4; k++) secimg[o + k] = (u8)(sf.second >> (8 * k));
+        }
+        for (auto& sw : dn_str_want) {
+            auto pit = dn_str_pool.find(sw.first);
+            if (pit == dn_str_pool.end()) continue;
+            u32 o = pit->second - newva_guess;
+            if (o + sw.second.size() <= secimg.size())
+                memcpy(&secimg[o], sw.second.data(), sw.second.size());
+        }
+        snprintf(b, sizeof b, "[DOTNET-v3] xpdata yazildi: %zu yuva (VA) | %zu ldstr (UTF-8)",
+                 dn_slot_fill.size(), dn_str_want.size());
+        L(b);
     }
     // state baytlari 0 (VM ilk calismada 1 yapar)
 
@@ -2412,6 +2606,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         if (opt.antidebug)  fl |= 0x200;   /* 1.2.2-A20: GLOBAL Check Debugger */
         if (opt.checkvm)    fl |= 0x400;   /* 1.2.2-A20: GLOBAL Check Virtual Machine */
         if (opt.kerneldbg)  fl |= 0x800;   /* 1.2.2-A20: GLOBAL Check Kernel Debugger */
+        if (iat_loader && iat_tbl_n) fl |= 0x1000; /* 1.2.5-A15: TAM LOADER IAT — EP kapisinda slot-doldurma. DERS (cp212 trace-probe): fl'de yoktu -> fill I1 probu hic gelmedi; simdi zincir tamam. */
         auto cwr = [&](u32 off, u32 v) { memcpy(cfg + off, &v, 4); };
         cwr(0x00, 0x31545258u);                 // 'XRT1'
         cwr(0x04, fl);
@@ -2437,6 +2632,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         cwr(0x44, seh_unw_rva);                 // 0.8.0: dinamik unwind tablo RVA
         cwr(0x48, seh_unw_cnt);                 // 0.8.0: dinamik unwind kayit sayisi
         cwr(0x60, strenc_rva_final);            // 1.2.2-A18: strenc tablo RVA (0=yok)
+        /* 1.2.5-A15 (x2/cp213-düzelt): IAT tablosu RVA+sayi — SON cfg yazımı
+           bu bloğu sıfırlıyordu (wrv32-secimg eziliyordu) -> fill tetiklen-
+           miyordu (cp212 trace-probe kanıtı: I1 probu gelmedi). cwr ile
+           TEK kaynaktan yazılır. */
+        cwr(0x64, iat_tbl_rva);                 /* XCFG_OFF_IATRVA */
+        cwr(0x68, iat_tbl_n);                   /* XCFG_OFF_IATN */
         // 0.8.0 SectionCryptor: flag + maskeli anahtarlar (xr_cipher.h sozlesmesi)
         u8 scf = (opt.sectcrypt && pack_rva) ? 1 : 0;
         u64 kmask = XRC_KEYMASK(cfg_rva);
@@ -2476,20 +2677,27 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         L("[XRT] yalniz IAT korumasi: xrt_resolve gecikmeli cozumleyici yerlesti (cfg kullanilmaz)");
     }
 
-    /* 0.5.1 SAHTE-BASARI KORUMASI: secili fonksiyonlarin HICBIRI
-    uygulanamadiysa cikti dosyasi HIC YAZILMAZ (0.5.0 sessiz "korunmus"
-    kopya yaziyordu). rc=3 -> GUI uyari kutusu + CLI net hata. */
-    /* 1.2.2-A20: GLOBAL-ONLY derlemeye izin (UO parite): Check Debugger /
-       Check VM / Check Kernel Debugger / CRC / memprot / strenc / VF / VR /
-       rsrc / IAT / waterline — fonksiyon-sanallastirma OLMADAN da gecerli
-       koruma setidir (UO Check Debugger globaldir). Hicbir ozellik ve
-       hicbir fonksiyon yoksa hala RED (sahte-basari korumasi surer). */
+    /* 0.5.1 SAHTE-BASARI KORUMASI + 1.2.3-v3 DOTNET kismi-basari:
+       - hicbir global ozellik ve hicbir fonksiyon uygulanamadiysa rc=3
+         (dosya yazilmaz) — eski davranis.
+       - AMA DOTNET girdide en az 1 aday vardiysa: cikti YINE YAZILIR
+         (fonksiyonlar orijinal IL — CLR calisir), rc=0 + sesli UYARI.
+         Gerekce: "bos C# bile derlenmiyor" kullanici raporu; VMProtect
+         de uygulanamayan fonksiyonu birakip dosyayi yazar. Su biraktigi
+         hicbir kanit yoksa (native, 0 aday) eski katı koruma surer. */
     if (comps.empty() && !opt.pack && !opt.strip_fixups && !opt.strip_debug && !lic_any
         && !rt_any && !opt.strenc && !opt.rsrcprot && !opt.iat_prot
         && !opt.vfiles && !opt.vreg && !opt.debugmode) {
-        L("[HATA] HICBIR FONKSIYON UYGULANAMADI - cikti dosyasi YAZILMADI.");
-        L("[HATA] Nedenler yukarida [RED] satirlarinda.");
-        return 3;
+        if (!dn_meta.empty()) {
+            L("[UYARI][DOTNET-KISMI] Hicbir yontem uygulanamadi — cikti yine yaziliyor (orijinal IL + diger katmanlar).");
+            L("[UYARI][DOTNET-KISMI] RED nedenleri yukarida; yuksek sürümde lifter kapsami genisletilecek (EH-SEH v4).");
+            snprintf(b, sizeof b, "[UYARI][DOTNET-KISMI] aday=%zu uygulanabilir=0", dn_meta.size());
+            L(b);
+        } else {
+            L("[HATA] HICBIR FONKSIYON UYGULANAMADI - cikti dosyasi YAZILMADI.");
+            L("[HATA] Nedenler yukarida [RED] satirlarinda.");
+            return 3;
+        }
     }
     // ============================================================
     // 1.2.2-A19: IMPORT PROTECTION tamamlama (UO/VMP parite):

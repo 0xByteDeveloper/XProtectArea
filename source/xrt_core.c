@@ -132,6 +132,7 @@ static u32 fnv_w(const u16* s, u32 n) {
 #define XH_NQIP   0xEA2DDA8Au  /* "NtQueryInformationProcess" (ntdll) */
 #define XH_NQSI   0x7A43974Au  /* "NtQuerySystemInformation"  (ntdll) */
 #define XH_NSIP   0x19ECB6CAu  /* "NtSetInformationProcess"   (ntdll) */
+#define XH_RAISEEXC 0xC1D5565Cu /* "RaiseException" (fnv_a, 1.2.3-v3) */
 
 // volatile 4-karakter yazisi — GCC bunlari memcpy'ye cevireMEZ (PIC guvenli)
 #define VP4(d, off, w) do { \
@@ -2849,3 +2850,32 @@ u32 xrt_unpack(void* cfgp) {
 
 // ---- 0.7.0: lisans cekirdegi (lic_sdk_core + xrt_sdk_entry asm kapilari) ----
 #include "xrt_license.c"
+
+// ============================================================
+// 1.2.3-v3 (A16/CSharp): yonetilen-kod dunyasi yardimcilari
+// xrt_alloc : .NET newobj — sifirli arena (VirtualAlloc COMMIT|RESERVE RW)
+//             stdcall 1-arg; donus isaretci. Serbest birakma YOK (duru-
+//             bilirim omru — belgelenmis v3 karari).
+// xrt_raise : CLR istisna koduyla SEH tetikler (0xE0434352 motorca gecilir)
+//             stdcall 1-arg; geri donmez (RaiseException).
+// ============================================================
+void* xrt_alloc(u32 sz) {
+    u64 k32 = peb_module(XH_KERNEL32);
+    if (!k32) return 0;
+    u64 va = find_export(k32, XH_VIRTUALALLOC);
+    if (!va) return 0;
+    u64 p = api4(va, 0, (u64)(((sz + 0xFFFu) & ~0xFFFu) ? ((sz + 0xFFFu) & ~0xFFFu) : 0x1000u),
+                0x3000u /*MEM_COMMIT|MEM_RESERVE*/, 0x04u /*PAGE_READWRITE*/);
+    return (void*)(unsigned long)p;
+}
+
+void __attribute__((noreturn)) xrt_raise(u32 code) {
+    u64 k32 = peb_module(XH_KERNEL32);
+    if (k32) {
+        u64 re = find_export(k32, XH_RAISEEXC);
+        if (re) api4(re, (u64)code, 0, 0, 0);   /* RaiseException(code,0,0,0) */
+        u64 ep2 = find_export(k32, XH_EXITPROCESS);
+        if (ep2) api1(ep2, (u64)(0xE0434352u & 0xFFu));  /* ExitProcess — donus yok */
+    }
+    for (;;) { }
+}

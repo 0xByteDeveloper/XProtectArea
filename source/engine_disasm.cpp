@@ -546,6 +546,11 @@ Insn disasm(const u8* p, int maxlen, bool is64, u32 pc, u64 imagebase, u32 image
         } else if (sub == 4 && m.present) {
             I.op = XP_JMPI; I.sz = sz; I.mem = m;
             I.text = "jmp [mem]";
+        } else if (sub == 4 && !m.present) {
+            /* 1.2.3-v3-M: shl r,1 (FF /4 mod3) — mutasyon S21b ikamesi
+               lifter akisinda da cozunmeli (U = mutasyon(lift)). */
+            I.op = XP_SHIFT; I.shi = SHI_SHL; I.r1 = m.base;
+            I.imm = 1; I.immsz = 1; I.sz = sz;
         } else { I.text = "grp5 push/far"; return I; }
         break;
     }

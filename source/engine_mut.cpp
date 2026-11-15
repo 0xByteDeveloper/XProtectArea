@@ -125,6 +125,18 @@ struct Enc {
     }
     void push_r(int r)  { if (r >= 8) b(0x41); b((u8)(0x50 + (r & 7))); }
     void pop_r(int r)   { if (r >= 8) b(0x41); b((u8)(0x58 + (r & 7))); }
+    // v3-M: inc/dec r (FF /0 | FF /1) — x64'te sz==8 icin REX.W zorunlu
+    void inc_r(int r, int dec, int sz) {
+        if (is64 && sz == 8) b(0x48);
+        else if (r >= 8) b(0x41);
+        b(0xFF); b((u8)(0xC0 | ((dec ? 1 : 0) << 3) | (r & 7)));
+    }
+    // v3-M: shl r,1 (FF /4) — x64'te sz==8 icin REX.W zorunlu
+    void shl1_r(int r, int sz) {
+        if (is64 && sz == 8) b(0x48);
+        else if (r >= 8) b(0x41);
+        b(0xFF); b((u8)(0xC0 | (4 << 3) | (r & 7)));
+    }
     void push_imm32(u32 v) { b(0x68); w32(v); }
     void nop1() { b(0x90); }
     void nop5() { b(0x0F); b(0x1F); b(0x44); b(0x00); b(0x00); }
@@ -531,6 +543,15 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
         static const bool noS8 = getenv("CPL_NOS8") != nullptr;   // mov rr->push/pop
         static const bool noS9 = getenv("CPL_NOS9") != nullptr;   // inc/dec
         static const bool noS13 = getenv("CPL_NOS13") != nullptr; // not->xor
+        // v3-M (şablon çeşitliliği — UO intel.cc parite genişlemesi):
+        static const bool noS14 = getenv("CPL_NOS14") != nullptr; // sub r,r -> xor r,r
+        static const bool noS15 = getenv("CPL_NOS15") != nullptr; // test r,r -> and r,r
+        static const bool noS16 = getenv("CPL_NOS16") != nullptr; // or r,r -> add r,0
+        static const bool noS17 = getenv("CPL_NOS17") != nullptr; // mov r,r -> nop
+        static const bool noS18 = getenv("CPL_NOS18") != nullptr; // add/sub r,1 -> inc/dec
+        static const bool noS19 = getenv("CPL_NOS19") != nullptr; // lea r,[r+d] -> add r,d
+        static const bool noS20 = getenv("CPL_NOS20") != nullptr; // mov r,0 -> xor r,r
+        static const bool noS21 = getenv("CPL_NOS21") != nullptr; // shl r,1 <-> add r,r
         switch (I.op) {
         case XP_ALU: {
             if (I.mem.present) return false;
@@ -541,6 +562,28 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
             // test r,r -> or r,r  (bayraklar birebir esit)
             if (I.immsz == 0 && I.alu == ALU_TEST && I.r1 >= 0 && I.r1 == I.r2 && !noS6) {
                 E.alu_rr(ALU_OR, I.r1, I.r2, I.sz); return true;
+            }
+            // v3-M S14: sub r,r -> xor r,r (bayraklar birebir esit)
+            if (I.immsz == 0 && I.alu == ALU_SUB && I.r1 >= 0 && I.r1 == I.r2 && !noS14) {
+                E.alu_rr(ALU_XOR, I.r1, I.r2, I.sz); return true;
+            }
+            // v3-M S15: test r,r -> and r,r (r&r=r; deger+bayrak ayni)
+            if (I.immsz == 0 && I.alu == ALU_TEST && I.r1 >= 0 && I.r1 == I.r2 && !noS15) {
+                E.alu_rr(ALU_AND, I.r1, I.r2, I.sz); return true;
+            }
+            // v3-M S16: or r,r -> add r,0 (CF=0 OF=0; ZF/SF/PF degerden — esit)
+            if (I.immsz == 0 && I.alu == ALU_OR && I.r1 >= 0 && I.r1 == I.r2 && !noS16) {
+                E.alu_r_imm(ALU_ADD, I.r1, 0, I.sz); return true;
+            }
+            // v3-M S21b: add r,r -> shl r,1 (CF farkli -> bayrak-olumu gerek)
+            if (I.immsz == 0 && I.alu == ALU_ADD && I.r1 >= 0 && I.r1 == I.r2
+                && fdead && sz48 && !I.mem.present && !noS21) {
+                E.shl1_r(I.r1, I.sz); return true;
+            }
+            // v3-M S18: add/sub r,1 -> inc/dec r (inc CF yazmaz -> fdead gerek)
+            if (I.immsz > 0 && (I.alu == ALU_ADD || I.alu == ALU_SUB) && I.r1 >= 0
+                && !I.mem.present && fdead && sz48 && I.imm == 1 && !noS18) {
+                E.inc_r(I.r1, I.alu == ALU_SUB, I.sz); return true;
             }
             if (I.immsz > 0 && I.r1 >= 0) {
                 i64 imm = (i64)(long long)(int)(u32)I.imm;   // s32 isaret genisletme
@@ -570,6 +613,10 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
                     E.push_imm32(imm); E.pop_r(I.r1); return true;
                 }
             }
+            // v3-M S20: mov r32,0 -> xor r,r (xor bayrak yazar -> fdead gerek)
+            if (I.imm == 0 && I.sz == 4 && I.r1 >= 0 && I.r1 != 4 && fdead && !noS20) {
+                E.alu_rr(ALU_XOR, I.r1, I.r1, 4); return true;
+            }
             return false;
         }
         case XP_MOV_MR: case XP_MOV_RM: {   // mod3: mov r1,r2 -> push r2; pop r1
@@ -577,6 +624,25 @@ MutFn mutate_function(const u8* code, u32 rva, u32 size, bool is64,
                 if ((!is64 && I.sz == 4) || (is64 && I.sz == 8)) {
                     E.push_r(I.r2); E.pop_r(I.r1); return true;
                 }
+            }
+            // v3-M S17: mov r,r (ayni reg) -> nop (tam denk, bayrak yok)
+            if (!I.mem.present && I.r1 >= 0 && I.r1 == I.r2 && !noS17) {
+                E.nop1(); return true;
+            }
+            return false;
+        }
+        case XP_LEA: {   // v3-M S19: lea r,[r+d] -> add r,d (lea bayrak yazmaz -> fdead)
+            if (!noS19 && fdead && sz48 && I.mem.present && I.r1 >= 0
+                && I.mem.base == I.r1 && I.mem.idx < 0 && I.mem.scale == 0
+                && I.mem.disp != 0 && !I.mem.riprel && I.r1 != 4) {
+                E.alu_r_imm(ALU_ADD, I.r1, (i64)I.mem.disp, I.sz); return true;
+            }
+            return false;
+        }
+        case XP_SHIFT: {   // v3-M S21: shl r,1 -> add r,r (CF farkli -> fdead)
+            if (!noS21 && fdead && sz48 && I.shi == SHI_SHL && !I.mem.present
+                && I.r1 >= 0 && I.r1 != 4 && I.immsz == 1 && I.imm == 1) {
+                E.alu_rr(ALU_ADD, I.r1, I.r1, I.sz); return true;
             }
             return false;
         }

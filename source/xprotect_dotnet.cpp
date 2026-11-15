@@ -161,6 +161,8 @@ bool parse(const u8* d, size_t n, Image* out) {
         else if (name == "#Blob") { blob_off = meta_off + o; blob_sz = sz; }
     }
     if (!tab_off || tab_off + 24 > n) { out->err = "#~ akisi yok"; return false; }
+    out->us_off = us_off;                    // v3: #US (ldstr havuzu)
+    out->us_sz = us_sz;
     if (md_flags & 0x1) {
         /* ExtraData biti: stream-header'lardan sonra 4 bayt ek veri (II.24.2.2) */
         p += 4;
@@ -333,6 +335,28 @@ bool parse(const u8* d, size_t n, Image* out) {
             ? (s4 ? rd32(d + ro + td_w + 10) : rd16(d + ro + td_w + 10))
             : sc.rows[4] + 1;
         out->typedefs.push_back(td);
+    }
+    // v3: Field satirlari (flags + imza + sahip) — auto-layout + static slot
+    // Field tablosu TypeDef'i izler (md_base = f_base + rows[4]*wField).
+    {
+        u64 f_base = (md_base >= (u64)sc.rows[4] * wField)
+                     ? md_base - (u64)sc.rows[4] * wField : 0;
+        for (u32 r = 0; f_base && r < sc.rows[4]; r++) {
+            u64 ro = f_base + (u64)r * wField;
+            if (ro + wField > n) break;
+            u32 tok = 0x04000000u | (r + 1);
+            out->field_flags[tok] = rd16(d + ro);
+            out->field_sig[tok] = b4 ? rd32(d + ro + 2 + sidx)
+                                     : rd16(d + ro + 2 + sidx);
+            out->field_owner[tok] = 0xFFFFFFFFu;   // asagida TypeDef gezinmesi atar
+        }
+        for (size_t ti = 0; ti < out->typedefs.size(); ti++) {
+            const TypeDef& td = out->typedefs[ti];
+            for (u32 fi = td.field_first; fi >= 1 && fi < td.field_last; fi++) {
+                u32 tok = 0x04000000u | fi;
+                if (out->field_flags.count(tok)) out->field_owner[tok] = (u32)ti;
+            }
+        }
     }
     for (u32 r = 0; r < sc.rows[6]; r++) {
         u64 ro = md_base + (u64)r * md_w;
@@ -710,6 +734,36 @@ bool parse_locals(const u8* d, size_t n, const Image& img, u32 local_sig_token,
         if (!xdn_skip_type(s2, len, &ip, &sz)) return false;
         types->push_back(t);
         sizes->push_back(sz);
+    }
+    return true;
+}
+
+// v3: auto-layout alan ofsetleri + tip boylari.
+// Kural (oz-basli dunya): her instance alani 4B slot, bildirim sirasi,
+// offset = i*4. ExplicitLayout'a dokunulmaz. Statik/literal alanlar atlanir
+// (statikler ayri slot havuzunda — motor). Tip boyu = 4*alan_sayisi (min 4).
+bool compute_layout(Image* img, const u8* d, size_t n) {
+    (void)d; (void)n;
+    if (!img || !img->ok) return false;
+    for (size_t ti = 0; ti < img->typedefs.size(); ti++) {
+        const TypeDef& td = img->typedefs[ti];
+        bool explicit_layout = (td.flags & 0x00000010u) != 0;
+        u32 cnt = 0;
+        for (u32 fi = td.field_first; fi >= 1 && fi < td.field_last; fi++) {
+            u32 tok = 0x04000000u | fi;
+            auto ff = img->field_flags.find(tok);
+            if (ff == img->field_flags.end()) continue;
+            u32 fl = ff->second;
+            if (fl & 0x0010u) continue;             // Static
+            if (fl & 0x0040u) continue;             // Literal
+            if (fl & 0x8000u) continue;             // HasFieldRVA (disk-merkezli)
+            if (explicit_layout) continue;          // field_off zaten dolu
+            if (img->field_off.count(tok)) continue;  // ezme yok
+            img->field_off[tok] = (i32)(cnt * 4u);
+            cnt++;
+        }
+        u32 tok_t = 0x02000000u | (u32)(ti + 1);
+        img->type_size[tok_t] = cnt ? (cnt * 4u) : 4u;
     }
     return true;
 }

@@ -88,12 +88,26 @@ struct Image {
     // 1.2.5-A14 (x2 devam): P/Invoke + statik/explicit alanlar
     std::map<u32, u32> field_rva;   // Field token (0x04xxxxxx) -> FieldRVA
     std::map<u32, i32> field_off;   // Field token -> explicit-layout offset
+    // 1.2.3-v3 (A16/CSharp): Field satirlari + auto-layout + #US
+    std::map<u32, u32> field_flags; // Field token -> FieldAttributes
+    std::map<u32, u32> field_sig;   // Field token -> #Blob indeksi (imza)
+    std::map<u32, u32> field_owner; // Field token -> TypeDef satiri (0-tabanli)
+    u32 us_off = 0, us_sz = 0;      // #US akisi (ldstr havuzu icin)
+    std::map<u32, u32> type_size;   // TypeDef token -> instance byte (newobj)
 };
 
 bool parse(const u8* d, size_t n, Image* out);
 bool read_body(const u8* d, size_t n, const Method& m, std::vector<u8>* il);
 bool parse_locals(const u8* d, size_t n, const Image& img, u32 local_sig_token,
                   std::vector<u8>* types, std::vector<u32>* sizes);
+
+// 1.2.3-v3: auto-layout alan ofsetleri + tip boyu hesabi.
+// XProtect derleyici dunyasi oz-basli: tum instance alanlarina 4B slot
+// (bildirim sirasi, offset = i*4), ebeveyn alanlari yalniz ayni derlemedeki
+// TypeDef ebeveynlerden devralinir (TypeRef/dis ebeveyn = 0 taban).
+// ldfld/stfld 4B okur/yazar; I8/R8 alanlar dusuk 4B'yi tutar (A13 limiti).
+// ExplicitLayout tiplerine DOKUNULMAZ (field_off zaten dolu).
+bool compute_layout(Image* img, const u8* d, size_t n);
 
 } // namespace xpdotnet
 

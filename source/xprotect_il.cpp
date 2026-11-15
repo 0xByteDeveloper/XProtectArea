@@ -462,10 +462,24 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         loc_total += is64 ? slot : ((sz >= 8) ? 8u : 4u);
     }
     u32 loc_bytes = ((loc_total + 15) & ~15u);
-    if (loc_bytes) {
-        if (is64) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }  // sub rsp,imm8
-        else { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes); }
+    // v3: newobj arg-kaydirma sicak bolgesi — 16B ek (4 slot)
+    u32 max_ctor_args = 0;
+    for (size_t pi = 0; pi < cmds.size(); pi++) {
+        if (cmds[pi].code == 0x73 && env && env->mgd) {
+            std::map<u32, XPmgdFn>::const_iterator it = env->mgd->find(cmds[pi].token);
+            if (it != env->mgd->end() && it->second.param_count > max_ctor_args)
+                max_ctor_args = it->second.param_count;
+        }
     }
+    bool has_scratch = max_ctor_args > 0 && max_ctor_args <= 4;
+    u32 loc_bytes_x = has_scratch ? (loc_bytes + 16) : loc_bytes;
+    if (loc_bytes_x) {
+        if (is64) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }  // sub rsp,imm8
+        else { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }
+    }
+    auto scratch_disp = [&](u32 k) -> i32 {
+        return (i32)(LOC_BASE - (i64)loc_bytes - 4 * (i64)k - 4);
+    };
     const i32 LOC_BASE = -12;            // saved ebx/esi/edi (12 bayt)
     auto loc_disp = [&](u32 i) -> i32 {
         u32 lo = (i < loff.size()) ? loff[i] : slot * i;
@@ -536,15 +550,39 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         case 0x22: case 0x23: RED("r4/r8 sabiti (FPU v2)"); break;
         case 0x25: x_dup(&c); break;                             // dup
         case 0x26: e8(&c, 0x83); e8(&c, 0xC4); e8(&c, 0x04); break;  // pop: add esp,4
-        case 0x28: case 0x6F: {  // A14 (x2 devam): call/callvirt — yalniz P/Invoke
+        case 0x28: case 0x6F: {  // A14: call/callvirt; v3: P/Invoke + yonetilen-cagri
             u32 tok = cm.token;
             const XPinvFn* pf = 0;
             if (env && env->pinv) {
                 std::map<u32, XPinvFn>::const_iterator it = env->pinv->find(tok);
                 if (it != env->pinv->end()) pf = &it->second;
             }
-            if (!pf || !env || !env->resolve_rva) {
-                snprintf(red_buf, sizeof red_buf, "cagri: yonetilen metod (nesne-ops v2 kapsaminda) (%s)", inf->name);
+            if (!pf) {
+                /* v3: yonetilen-metod cagrisi — kaldırılmış callee yuvasına
+                   dolaylı çağrı (call dword [abs slot]). Callee stdcall:
+                   argümanları kendisi temizler; arg0=this yığında zaten var
+                   (callvirt aynı biçim). Yuva disk-doldurur (motor, geç faz). */
+                const XPmgdFn* mf = 0;
+                u32 slot_rva = 0;
+                if (env && env->mgd) {
+                    std::map<u32, XPmgdFn>::const_iterator it = env->mgd->find(tok);
+                    if (it != env->mgd->end()) mf = &it->second;
+                }
+                if (mf && env->mgd_slot) {
+                    std::map<u32, u32>::const_iterator si = env->mgd_slot->find(tok);
+                    if (si != env->mgd_slot->end()) slot_rva = si->second;
+                }
+                if (!mf || !slot_rva || !env->imagebase) {
+                    snprintf(red_buf, sizeof red_buf, "cagri: yonetilen metod kaldırılamadı (callee-lift/slot yok) (%s)", inf->name);
+                    RED(red_buf); break;
+                }
+                u32 va = env->imagebase + slot_rva;
+                e8(&c, 0xFF); e8(&c, 0x15); e32(&c, va);   // call dword [abs slot]
+                if (mf->has_ret) e8(&c, 0x50);             // push eax (IL yiginina)
+                break;
+            }
+            if (!env || !env->resolve_rva) {
+                snprintf(red_buf, sizeof red_buf, "cagri: xrt_resolve yok (%s)", inf->name);
                 RED(red_buf); break;
             }
             if (op == 0x6F) { RED("callvirt P/Invoke ustunde olmaz"); break; }
@@ -572,8 +610,50 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             if (pf->has_ret) e8(&c, 0x50);                // push eax (IL yiginina)
             break;
         }
-        case 0x27: case 0x29: case 0x73:   // jmp/calli/newobj
-            snprintf(red_buf, sizeof red_buf, "cagri formu v1 disi (%s)", inf->name); RED(red_buf); break;
+        case 0x73: {  // v3: newobj — xrt_alloc (sifirli) + ctor yuvasi
+            u32 tok = cm.token;
+            const XPmgdFn* mf = 0;
+            u32 slot_rva = 0;
+            if (env && env->mgd) {
+                std::map<u32, XPmgdFn>::const_iterator it = env->mgd->find(tok);
+                if (it != env->mgd->end()) mf = &it->second;
+            }
+            if (mf && env->mgd_slot) {
+                std::map<u32, u32>::const_iterator si = env->mgd_slot->find(tok);
+                if (si != env->mgd_slot->end()) slot_rva = si->second;
+            }
+            u32 sz = 4;
+            if (env && env->newobj_type && env->type_sz) {
+                std::map<u32, u32>::const_iterator ti = env->newobj_type->find(tok);
+                if (ti != env->newobj_type->end()) {
+                    std::map<u32, u32>::const_iterator zi = env->type_sz->find(ti->second);
+                    if (zi != env->type_sz->end()) sz = zi->second;
+                }
+            }
+            if (!mf || !slot_rva || !env || !env->imagebase || !env->alloc_rva) {
+                snprintf(red_buf, sizeof red_buf, "newobj: ctor-lift/alloc yok (%s)", inf->name);
+                RED(red_buf); break;
+            }
+            u32 narg = mf->param_count;
+            if (narg > 4) { RED("newobj: >4 arg (sicak bolge v3 limiti)"); break; }
+            if (narg > 0 && !has_scratch) { RED("newobj: sicak bolge ayrilmadi (tutarlilik kilidi)"); break; }
+            /* arg'lari sicak bolgeye indir (ust=son-arg), this uret, sirala */
+            for (u32 k = narg; k >= 1; k--) {
+                i32 sd = scratch_disp(k - 1);
+                e8(&c, 0x59);                       // pop ecx
+                e8(&c, 0x89); e8(&c, 0x8D); e32(&c, (u32)sd);   // mov [ebp+d],ecx
+            }
+            e8(&c, 0x68); e32(&c, sz);              // push size
+            e8(&c, 0xE8); e32(&c, 0);               // call xrt_alloc — rel32 patch
+            out->rx_fix.push_back(std::make_pair((u32)c.size() - 4, env->alloc_rva));
+            x_push_eax(&c);                         // push this
+            u32 va = env->imagebase + slot_rva;
+            e8(&c, 0xFF); e8(&c, 0x15); e32(&c, va);// call ctor [abs slot]
+            x_push_eax(&c);                         // push nesne (IL yiginina)
+            break;
+        }
+        case 0x27: case 0x29:   // jmp/calli (v3 disi)
+            snprintf(red_buf, sizeof red_buf, "cagri formu v3 disi (%s)", inf->name); RED(red_buf); break;
         case 0x2A: {  // ret
             if (has_ret) x_pop_eax(&c);
             e8(&c, 0x5F); e8(&c, 0x5E); e8(&c, 0x5B);   // pop edi; pop esi; pop ebx
@@ -683,12 +763,29 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             }
             break;
         }
-        case 0x70: case 0x71: case 0x72: case 0x74: case 0x75: case 0x79: case 0x7C:
+        case 0x72: {  // v3: ldstr — UTF-8 havuz işaretçisi (motor .xpdata)
+            u32 prva = 0;
+            if (env && env->str_pool) {
+                std::map<u32, u32>::const_iterator it = env->str_pool->find(cm.token);
+                if (it != env->str_pool->end()) prva = it->second;
+            }
+            if (!prva || !env || !env->imagebase) { RED("ldstr: havuz yuvası yok (motor v3)"); break; }
+            e8(&c, 0x68); e32(&c, env->imagebase + prva);   // push imm32 (UTF-8 ptr)
+            break;
+        }
+        case 0x70: case 0x71: case 0x74: case 0x75: case 0x79: case 0x7C:
         case 0x81: case 0x8C: case 0x8D: case 0x8E: case 0x8F:
         case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97: case 0x98: case 0x99: case 0x9A:
         case 0x9B: case 0x9C: case 0x9D: case 0x9E: case 0x9F: case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:
-            snprintf(red_buf, sizeof red_buf, "nesne/alani/dizi op v1 disi (%s)", inf->name); RED(red_buf); break;
-        case 0x7A: case 0xDC: case 0xDD: case 0xDE: RED("throw/leave/endfinally (EH v1 disi)"); break;
+            snprintf(red_buf, sizeof red_buf, "nesne/alani/dizi op v3 disi (%s)", inf->name); RED(red_buf); break;
+        case 0x7A: {  // v3: throw — xrt_raise(.NET istisna kodu) (geri donmez)
+            if (!env || !env->raise_rva) { RED("throw: xrt_raise yok (v3)"); break; }
+            e8(&c, 0x68); e32(&c, 0xE0434352u);     // push code (.NET CLR_imza)
+            e8(&c, 0xE8); e32(&c, 0);               // call xrt_raise — rel32 patch
+            out->rx_fix.push_back(std::make_pair((u32)c.size() - 4, env->raise_rva));
+            break;
+        }
+        case 0xDC: case 0xDD: case 0xDE: RED("endfinally/leave (EH-SEH v4 alanı)"); break;
         case 0x82: case 0x83: case 0x84: case 0x85: case 0x86: case 0x87: case 0x88: case 0x89:
         case 0x8A: case 0x8B: case 0xB3: case 0xB4: case 0xB5: case 0xB6: case 0xB7: case 0xB8: case 0xB9: case 0xBA:
         case 0xD4: case 0xD5: RED("conv.ovf (tasma kontrolu v1 disi)"); break;

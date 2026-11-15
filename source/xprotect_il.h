@@ -94,13 +94,28 @@ struct XPinvFn {
     bool has_ret = false;
     bool is_cdecl = false;
 };
+// 1.2.3-v3 (A16/CSharp): yonetilen-metod cagri yuvasi — kaldirlmis callee
+// (MethodDef RVA -> stub/mut govdesi). stdcall: callee temizler, donus EAX.
+struct XPmgdFn {
+    u32 args_bytes = 0;      // param + (instance: this)
+    u32 param_count = 0;     // newobj kaydirma icin
+    bool has_ret = false;
+};
 struct XPEnv {
     const std::map<u32, XPinvFn>* pinv = nullptr;      // MethodDef token -> P/Invoke
     u32 resolve_rva = 0;       // xrt_resolve RVA (ayni imaj; rel32 call)
     u32 imagebase = 0;         // ldsfld/stsfld mutlak VA
-    const std::map<u32, u32>* sfld_rva = nullptr;      // Field token -> RVA
-    const std::map<u32, i32>* fld_off = nullptr;       // Field token -> explicit offset
+    const std::map<u32, u32>* sfld_rva = nullptr;      // Field token -> RVA (FieldRVA + slot)
+    const std::map<u32, i32>* fld_off = nullptr;       // Field token -> offset (explicit + auto)
     bool allow_abs = false;    // ASLR yoksa mutlak adres serbest
+    // v3: yonetilen-cagri + nesne-ops
+    const std::map<u32, XPmgdFn>* mgd = nullptr;       // MethodDef token -> callee
+    const std::map<u32, u32>* mgd_slot = nullptr;      // MethodDef token -> slot RVA
+    const std::map<u32, u32>* str_pool = nullptr;      // ldstr token (US-off) -> havuz RVA
+    const std::map<u32, u32>* newobj_type = nullptr;   // ctor token -> TypeDef token
+    const std::map<u32, u32>* type_sz = nullptr;       // TypeDef token -> instance byte
+    u32 alloc_rva = 0;         // xrt_alloc RVA (rel32; rx_fix ile patch)
+    u32 raise_rva = 0;         // xrt_raise RVA (rel32; throw)
 };
 
 bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
