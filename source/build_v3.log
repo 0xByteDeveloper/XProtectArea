@@ -1,3 +1,4 @@
 == [0/2] LZMA C nesneleri ==
 == [1/2] XProtectUI.exe (x64) ==
 build_ui.sh: line 30:  1896 Killed                  $ZIG c++ -O2 -std=c++17 -target x86_64-windows-gnu -DUNICODE -D_UNICODE -I. $SRCS lzma_enc_x64.o lzma_find_x64.o -o XProtectUI.exe -lcomctl32 -lcomdlg32 -lshell32 -lgdi32 -luser32 -fno-sanitize=undefined
+== [W] CRT x64 on-isitma ==
