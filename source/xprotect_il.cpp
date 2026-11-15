@@ -472,15 +472,20 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
         }
     }
     bool has_scratch = max_ctor_args > 0 && max_ctor_args <= 4;
-    u32 loc_bytes_x = has_scratch ? (loc_bytes + 16) : loc_bytes;
+    u32 loc_bytes_x = has_scratch ? (loc_bytes + 32) : loc_bytes;
     if (loc_bytes_x) {
-        if (is64) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }  // sub rsp,imm8
-        else { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }
+        if (is64) {
+            if (loc_bytes_x <= 127) { e8(&c, 0x48); e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }
+            else { e8(&c, 0x48); e8(&c, 0x81); e8(&c, 0xEC); e32(&c, loc_bytes_x); }
+        }
+        else if (loc_bytes_x <= 127) { e8(&c, 0x83); e8(&c, 0xEC); e8(&c, (u8)loc_bytes_x); }
+        else { e8(&c, 0x81); e8(&c, 0xEC); e32(&c, loc_bytes_x); }   // sub esp,imm32
     }
+    const i32 LOC_BASE = -12;            // saved ebx/esi/edi (12 bayt)
+    // v3: newobj sicak-bolge slotlari (arg kaydirma) — yerel alanin ALTINDA
     auto scratch_disp = [&](u32 k) -> i32 {
         return (i32)(LOC_BASE - (i64)loc_bytes - 4 * (i64)k - 4);
     };
-    const i32 LOC_BASE = -12;            // saved ebx/esi/edi (12 bayt)
     auto loc_disp = [&](u32 i) -> i32 {
         u32 lo = (i < loff.size()) ? loff[i] : slot * i;
         return (i32)(LOC_BASE - (i64)(lo + slot));
