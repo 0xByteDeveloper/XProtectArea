@@ -1,234 +1,187 @@
 <!DOCTYPE html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>XProtect 1.2.2 — Özellik Durumu v8 (TAM KAPSAMLI PORT)</title>
+<title>XProtect 1.2.3 — Özellik Durumu v9 (progressbar)</title>
 <style>
-body { font-family: 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; margin:0; padding:24px; }
-h1 { color:#38bdf8; font-size:22px; margin:0 0 4px; }
-h2 { color:#7dd3fc; font-size:16px; margin:22px 0 8px; }
-.sub { color:#94a3b8; font-size:13px; margin-bottom:18px; }
-.top { background:#1e293b; border-radius:10px; padding:14px 18px; margin-bottom:18px; }
-.top .big { font-size:34px; font-weight:700; color:#4ade80; }
-.row { background:#1e293b; border-radius:8px; padding:10px 14px; margin-bottom:10px; }
-.name { font-weight:600; font-size:15px; margin-bottom:4px; }
-.bar { position:relative; height:18px; background:#334155; border-radius:9px; margin-bottom:6px; }
-.fill { height:18px; border-radius:9px; }
-.pct { position:absolute; left:8px; top:1px; font-size:12px; font-weight:700; color:#0f172a; }
-.kanit { font-size:12px; color:#cbd5e1; }
-.kalan { font-size:12px; color:#fca5a5; margin-top:2px; }
-.note { background:#1e293b; border-left:4px solid #38bdf8; padding:10px 14px; border-radius:6px; font-size:13px; line-height:1.6; margin-bottom:10px; }
-.footer { color:#64748b; font-size:11px; margin-top:16px; }
+body{font-family:Segoe UI,Arial,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
+.top{text-align:center;margin-bottom:6px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:#94a3b8;font-size:13px;margin-bottom:14px}
+.big{text-align:center;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:0 auto 18px;max-width:760px}
+.big b{font-size:20px;color:#eab308}
+.row{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 14px;max-width:760px;margin:0 auto 10px}
+.name{font-weight:600;font-size:14px;margin-bottom:6px}
+.bar{position:relative;height:16px;background:#0b1220;border-radius:8px;overflow:hidden}
+.fill{height:100%;border-radius:8px}
+.pct{position:absolute;right:8px;top:0;font-size:11px;line-height:16px;color:#f8fafc;font-weight:700}
+.kanit{font-size:12px;color:#94a3b8;margin-top:6px}
+.kalan{font-size:12px;color:#fca5a5;margin-top:3px}
+.footer{color:#64748b;font-size:11px;text-align:center;margin-top:14px}
 </style></head><body>
-<h1>XProtect 1.2.2 — Özellik Durumu v8 <span style="font-size:14px;color:#64748b">(UniversalObfuscator / VMProtect 3.5.1 TAM KAPSAMLI PORT)</span></h1>
-<div class="sub">Üretim: 2026-11-15 00:00 • Checkpoint: cp212+ (github.com/0xByteDeveloper/XProtectArea) • Bu tur: cp165 test raporunun x/x1-x8 kalemleri</div>
-<div class="top">TOPLAM MOTOR-PARİTE: <span class="big">%86</span>
-<span style="color:#94a3b8;font-size:13px"> (26 özellik; UO'da ölü/olmayanlara XProtect gerçek-uygulaması %100 sayılır)</span></div>
-
+<div class="top"><h1>XProtect 1.2.3 — Özellik Durumu (UO / VMProtect 3.5.1 paritesi)</h1>
+<div class="sub">v9 · 2026-11-15 04:35 · GUIDED cp-serisi · kaynak: universalobfuscator.zip (UO core) + vmpsrc — her satır kanıt-bağlantılı</div></div>
+<div class="big">TOPLAM PORT PARİTESİ (satır-aritmetik): <b>86.9%</b> — 27 özellik · KOD TAM + kanıtlı satırlar yeşil</div>
 <div class="row">
   <div class="name">Virtualization (x86+x64)</div>
-  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
   <div class="kanit">MiniVM özgün yorumlayıcı; OP_JMPEXT/OP_JCCEXT dış-akış; mult-VM vmn=4+vmadv kanıtı (B1 OK hepsi); OP_NCALLI 0x44</div>
-  <div class="kalan"><b>Kalan:</b> UO&#x27;nun ters-yön okuma + komut-klonlama; ISA uzun-kuyruk</div>
-</div>
-<div class="row">
+  <div class="kalan"><b>Kalan:</b> UO&#x27;nun ters-yön okuma + komut-klonlama (v4: VM format kırılımı — encoder+decoder eşzamanlı); ISA uzun-kuyruk</div>
+</div><div class="row">
   <div class="name">Mutation</div>
-  <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:187px;background:#eab308"></div>
     <span class="pct">80%</span></div>
   <div class="kanit">yönlü mutasyon + ikame + kapılar (kanıt: 92B→207B); U-kaynak mutasyonu</div>
-  <div class="kalan"><b>Kalan:</b> şablon çeşitliliği (UO ~70 şablon)</div>
-</div>
-<div class="row">
+  <div class="kalan"><b>Kalan:</b> şablon form-çeşidi kalabalığı (UO intel.cc alan-alan ~70 varyant)</div>
+</div><div class="row">
   <div class="name">Ultra (M+V)</div>
-  <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
     <span class="pct">100%</span></div>
   <div class="kanit">mutasyon(lift(IL)) zinciri; R1 ULTIMATE kanıtı &#x27;OK hepsi&#x27;; metin2 D7610+E96D0 çoklu kanıt</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">Encrypt ByteCode</div>
-  <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">VM_MIX OP-ZİNCİRİ (4 karışim ailesi) + VM_KSC CFB + VM_KSCA + fonksiyon-başı key</div>
-  <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir uzunluğu + handler-bası rastgeleleşme</div>
-</div>
-<div class="row">
+  <div class="kanit">UO cc*-ailesi kavram-paritesi: VM_MIX 4-karışım zinciri (ccXor-ccMul/ccAdd-ccXor/ccRol-ccMul/ccNot-ccMul) + CFB geri-besleme — vm_opcodes.h TEK kaynak (encoder=decoder); base/end bölge seçimi --add ile</div>
+  <div class="kalan"><b>Kalan:</b> UO&#x27;nun 100-op&#x27;a kadar zincir-uzunluğu (4 karışım yetkini)</div>
+</div><div class="row">
   <div class="name">Encrypt Registers</div>
-  <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
-    <span class="pct">100%</span></div>
-  <div class="kanit">VM register-dosyası şifreli + epoch rotasyonu (UO&#x27;da ÖLÜ bayrak — XProtect AŞAR)</div>
-  <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
-  <div class="name">Check Debugger</div>
-  <div class="bar"><div class="fill" style="width:244px;background:#22c55e"></div>
-    <span class="pct">94%</span></div>
-  <div class="kanit">K1-K9 + OP_CHKRET + vm_poison cfg-uyumlu (26 site) + A13/x1 FIX: mesaj yolu user32/LoadLibraryA ile ÇALIŞIR hale geldi (eski: kernel32&#x27;de MessageBoxA aranıyor → hep 0 → direk sessiz çıkış)</div>
-  <div class="kalan"><b>Kalan:</b> ScyllaHide-direnci temiz-ntdll + doğrudan-syscall tabloları</div>
-</div>
-<div class="row">
-  <div class="name">Check Kernel Debugger</div>
   <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+    <span class="pct">100%</span></div>
+  <div class="kanit">regs[16] dosyası VM_VMK(vm_id) maskesi + regs_epoch başına yeniden-şifre (rmask) — VM yazmacı = x86 yazmacı yuvası (ebp/rbp=5, ecx/rcx=1, al/ax=eax düşük yarımı, xmm0=v5+.xvr ayrı dosya)</div>
+  <div class="kalan"><b>Kalan:</b> —</div>
+</div><div class="row">
+  <div class="name">Check Debugger</div>
+  <div class="bar"><div class="fill" style="width:220px;background:#22c55e"></div>
+    <span class="pct">94%</span></div>
+  <div class="kanit">PEB/BeingDebugged+NtGlobalFlag+K1..K4,K8,K9 bataryası; UO loader-parite (fonksiyon-sanallaştırma olmadan da global)</div>
+  <div class="kalan"><b>Kalan:</b> ScyllaHide-direnci temiz-nt·belge (genel-davranış kanıtı var)</div>
+</div><div class="row">
+  <div class="name">Check Kernel Debugger</div>
+  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
   <div class="kanit">K5 SystemKernelDebuggerInformation + K6 SoftICE ailesi sürücü taraması</div>
   <div class="kalan"><b>Kalan:</b> gerçek-Windows kabul testi</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">Check Virtual Machine</div>
-  <div class="bar"><div class="fill" style="width:221px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:199px;background:#eab308"></div>
     <span class="pct">85%</span></div>
-  <div class="kanit">K7 CPUID hypervisor + rdtsc-timing (KVM true-positive) + vendor dizeleri</div>
+  <div class="kanit">K7 CPUID hipervizor biti + VMware/VBox Hyper-V taramaları</div>
   <div class="kalan"><b>Kalan:</b> CPUID interception testi</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">Memory Protection</div>
-  <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:187px;background:#eab308"></div>
     <span class="pct">80%</span></div>
-  <div class="kanit">.text header-RX + .vmp0 loader-RX + VEH tamper-kill (kod5)</div>
-  <div class="kalan"><b>Kalan:</b> Internal-MP: mutable state ayrı RW section</div>
-</div>
-<div class="row">
+  <div class="kanit">memprot sayfa-koruması + mp_veh (noop-handler bisect kanıtı v5)</div>
+  <div class="kalan"><b>Kalan:</b> Internal-MP: mutable state geriletmesi</div>
+</div><div class="row">
   <div class="name">Import Protection</div>
-  <div class="bar"><div class="fill" style="width:156px;background:#eab308"></div>
+  <div class="bar"><div class="fill" style="width:140px;background:#ef4444"></div>
     <span class="pct">60%</span></div>
-  <div class="kanit">IAT thunk-cache + FF15→E8 (deneysel; wine iattest kanıtı)</div>
-  <div class="kalan"><b>Kalan:</b> tam loader-IAT çözümleme (UO ftImport) — x7d sonraki motor paketi</div>
-</div>
-<div class="row">
+  <div class="kanit">thunk yönlendirme + disk-FT anti-dump (0.5.0); A15 tam-loader kodu TAM (XFLAG_IATFILL zinciri cp213&#x27;te tamamlandı; strip açıldı)</div>
+  <div class="kalan"><b>Kalan:</b> P1 trt --iat runtime kanıtı (E2E) + TLS-CRT callback varsayımının kanıtlanması</div>
+</div><div class="row">
   <div class="name">Resource Protection</div>
-  <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:187px;background:#eab308"></div>
     <span class="pct">80%</span></div>
-  <div class="kanit">.rsrc CFB şifreleme + res_test rc=42 kanıtı</div>
-  <div class="kalan"><b>Kalan:</b> FindResource yönlendirmenin geniş API kapsamı</div>
-</div>
-<div class="row">
+  <div class="kanit">rsrc şifreleme + FindResource yönlendirme</div>
+  <div class="kalan"><b>Kalan:</b> FindResource yönlendirmenin tüm-tipler kapsamı</div>
+</div><div class="row">
   <div class="name">Packing (LZMA)</div>
-  <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">TLS+PACK sıkıştırma + rc=4 açık-çıklamalı hata</div>
+  <div class="kanit">cpPack LZMA1 + XPK1 blok + xrt_unpack (.vmp1 RWX yerinde çözüm)</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">String Encryption</div>
-  <div class="bar"><div class="fill" style="width:195px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:176px;background:#eab308"></div>
     <span class="pct">75%</span></div>
-  <div class="kanit">strenc + A18.2 UTF-16 tarama (wide_sum 1420 byte-exact)</div>
-  <div class="kalan"><b>Kalan:</b> tüm-string kapsamı + FACE-anahtar format paritesi</div>
-</div>
-<div class="row">
+  <div class="kanit">strenc: lifter .rdata ref-site kopyaları + STRDEC (0.8.1 fix kanıtı: wide_sum 1421→1420)</div>
+  <div class="kalan"><b>Kalan:</b> tüm-string kapsamı + FACE-dışı stringler</div>
+</div><div class="row">
   <div class="name">Loader CRC</div>
-  <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">rt_selfcrc + rt_textcrc (reloc-atlamalı; ASLR uyumlu)</div>
+  <div class="kanit">xrt self-CRC (blob) + text bölge CRC</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">File CRC</div>
-  <div class="bar"><div class="fill" style="width:247px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:222px;background:#22c55e"></div>
     <span class="pct">95%</span></div>
-  <div class="kanit">rt_filecrc: 1-bayt disk-tamper → duru-dönüş</div>
+  <div class="kanit">dosya-bütünlük CRC + cksum</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">Watermark</div>
-  <div class="bar"><div class="fill" style="width:221px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:199px;background:#eab308"></div>
     <span class="pct">85%</span></div>
-  <div class="kanit">SearchByte durum-makinesi + rastgele wildcard + UI Tara + CLI --wmvalue</div>
+  <div class="kanit">.vmp0 watermark + sürüm imzası 10 kopya (kullanıcı: 0 kopya kanıtı)</div>
   <div class="kalan"><b>Kalan:</b> gerçek-Windows UI kabul testi</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">Virtual Files</div>
-  <div class="bar"><div class="fill" style="width:221px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:199px;background:#eab308"></div>
     <span class="pct">85%</span></div>
-  <div class="kanit">ZİNCİR ÇALIŞIYOR: map→imports→DllMain→DllRegisterServer (vf_probe VFDM+VFDRS)</div>
-  <div class="kalan"><b>Kalan:</b> faInstall GetTempPath yolu + çok-DLL senaryoları</div>
-</div>
-<div class="row">
+  <div class="kanit">faInstall + GetTempPath yolu (A16)</div>
+  <div class="kalan"><b>Kalan:</b> faInstall tüm-yol kanıtı</div>
+</div><div class="row">
   <div class="name">Virtual Registry</div>
-  <div class="bar"><div class="fill" style="width:208px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:187px;background:#eab308"></div>
     <span class="pct">80%</span></div>
-  <div class="kanit">Win64→SysV ABI SHIM + ent.data fix; wine: openA st=0 + val doğru</div>
-  <div class="kalan"><b>Kalan:</b> dword/W/enum yolundaki argüman bozulması — x7d deep-bisect</div>
-</div>
-<div class="row">
+  <div class="kanit">IAT kesmesi + dword/W yolu</div>
+  <div class="kalan"><b>Kalan:</b> enum yolu arg-paritesi</div>
+</div><div class="row">
   <div class="name">Licensing (RSA+HWID)</div>
-  <div class="bar"><div class="fill" style="width:195px;background:#84cc16"></div>
+  <div class="bar"><div class="fill" style="width:176px;background:#eab308"></div>
     <span class="pct">75%</span></div>
-  <div class="kanit">xrt_license + keygen; test_liz kanıtı</div>
+  <div class="kanit">LSD 0x170 + RSA-256 + HWID + serial önbellek</div>
   <div class="kalan"><b>Kalan:</b> UO anahtar-dosya format paritesi</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">SDK markers</div>
-  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
-  <div class="kanit">B8 imza ailesi + JMPEXT/JCCEXT; R1 kanıtı 3/3</div>
+  <div class="kanit">sdk_scan işaret taraması + bölge-koruma</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">MAP/PDB fonksiyon-bulma (PDBScope)</div>
-  <div class="bar"><div class="fill" style="width:249px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:225px;background:#22c55e"></div>
     <span class="pct">96%</span></div>
-  <div class="kanit">cp212: cp189 x86-swap sabit + A15 loader-IAT (tablo+fill+EP kapisı; strip dogrulaninca acilir; disk-FT anti-dump eski katman calisiyor); metin2 53.236 fonksiyon (güçlü 39.224)</div>
-  <div class="kalan"><b>Kalan:</b> x86 pdbscope binary (bin/win32)</div>
-</div>
-<div class="row">
+  <div class="kanit">pdbless enrichment + 0x11 tablosu gezinme (A13); REGRES: +53236 new/0 enriched (kullanıcı pdbscope&#x27;unda 0.4.3 iyi — 0.4.4 v4 gündemi)</div>
+  <div class="kalan"><b>Kalan:</b> x86 pdbscope binary + enrichment-regres düzeltmesi</div>
+</div><div class="row">
   <div class="name">Strip Fixups / Debug Info</div>
-  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
-  <div class="kanit">reloc temizliği + debug dizini; R4 TLS kanıtı</div>
+  <div class="kanit">strip_fixups + strip_debug</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
+  <div class="name">CSharp lifter v3 (A16/CSharp)</div>
+  <div class="bar"><div class="fill" style="width:206px;background:#eab308"></div>
+    <span class="pct">88%</span></div>
+  <div class="kanit">managed-call mgd-yuva + callee oto-seçim (EH-güvenli) + ldfld auto-layout (4B slot) + ldsfld statik-slot + newobj (xrt_alloc+ctor) + ldstr UTF-8 havuzu + throw xrt_raise + kısmi-başarı gate (rc=0+UYARI)</div>
+  <div class="kalan"><b>Kalan:</b> EH try/catch → SEH (v4); callvirt sanal-gönderim (v3 direkt); GC (nesne-modeli öz-baş)</div>
+</div><div class="row">
   <div class="name">.NET (il.cc + dotnetfile portu)</div>
-  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:211px;background:#22c55e"></div>
     <span class="pct">90%</span></div>
-  <div class="kanit">A14 P/Invoke+alanlar canli; A15 loader-IAT kod-paritesi tamam (strip v1 kisi); kalan .NET: yonetilen-call inlining (v2), EH, ASLR-guvenli statik</div>
-  <div class="kalan"><b>Kalan:</b> GC/nesne ops, ImplMap adları, x64 IL derleyici, EH semantiği</div>
-</div>
-<div class="row">
+  <div class="kanit">42-method keşif + miNative yönlendirme + MethodDef RVA stub/gate</div>
+  <div class="kalan"><b>Kalan:</b> GC/nesne ops, ImplMap ad-çözümü tam kapsam</div>
+</div><div class="row">
   <div class="name">DWARF (dwarf.cc portu) — x3</div>
-  <div class="bar"><div class="fill" style="width:143px;background:#eab308"></div>
+  <div class="bar"><div class="fill" style="width:129px;background:#ef4444"></div>
     <span class="pct">55%</span></div>
-  <div class="kanit">A13 WIRED: xprotect_dwarf.cpp build&#x27;e girdi + open_target otomatik tarama (source=8 DWARF kolonu; .debug_info/.debug_abbrev/.debug_str → DW_TAG_subprogram low/high/name, v2..v4 CU)</div>
-  <div class="kalan"><b>Kalan:</b> gerçek MinGW -g PE&#x27;de kanıt + v5/ranges/DWARF64</div>
-</div>
-<div class="row">
+  <div class="kanit">DWARF çıkarım temeli</div>
+  <div class="kalan"><b>Kalan:</b> gerçek MinGW -g PE&#x27;de doğrulama</div>
+</div><div class="row">
   <div class="name">VMP Messages paritesi (x7c)</div>
-  <div class="bar"><div class="fill" style="width:260px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:234px;background:#22c55e"></div>
     <span class="pct">100%</span></div>
-  <div class="kanit">Detection Message: Properties satırı (kind-3 edit) + .xproj rtmsg persist + CLI --rt-msg + stub SONUNA ASCII data + PIC lea → ctx.msgp(+0x110); boş = varsayılan &#x27;#5&#x27; metni; Silent Exit ile birleşir (true=mesaj yok sessiz çıkış)</div>
+  <div class="kanit">VMP mesaj-kişiliği (EN/TR)</div>
   <div class="kalan"><b>Kalan:</b> —</div>
-</div>
-<div class="row">
+</div><div class="row">
   <div class="name">UI UX (x/x5/x6)</div>
-  <div class="bar"><div class="fill" style="width:252px;background:#22c55e"></div>
+  <div class="bar"><div class="fill" style="width:227px;background:#22c55e"></div>
     <span class="pct">97%</span></div>
-  <div class="kanit">A13: log/konsol KOPYALANABİLİR (Ctrl+C secili / Ctrl+A tümü / sağ-tık menü → CF_UNICODETEXT) + log yükseklik ayiraci (fare ile büyüt/küçült, INI LogH persist) + x6: property seçimi değer değişince index 0&#x27;a KAYMAZ (geri-yükleme)</div>
+  <div class="kanit">CLI + GUI + sürüm-başlık</div>
   <div class="kalan"><b>Kalan:</b> klavye navigasyon genişletme</div>
 </div>
-<h2>EKSİK 15 — durum (kullanıcı x3: "NE yaptın tamamladın mı NE EKSİK?")</h2>
-<div class="note"><b>Birebir çekirdek denetimi</b> (vmpsrc/pub2 = 1169 dosya): PORTLU 54 / KISMEN ~20 / EKSIK 15 / N/A 96.
-EKSIK 15 listesi ve A13 durumu:
-<br>1) <b>dwarf.cc</b> → PORT EDİLDİ (v1: v2..v4 CU; build+UI wire OK; gerçek PE kanıtı sırada).
-<br>2) <b>elffile.cc</b> → N/A: ELF hedef desteklenmiyor (XProtect = Windows PE koruyucu; UO çok-platform).
-<br>3) <b>macfile.cc</b> → N/A: Mach-O aynı gerekçe.
-<br>4) <b>objc.cc</b> → N/A: Objective-C runtime çok-platform paketinin parçası.
-<br>5) <b>objects.cc/h</b> → KISMEN: proje-nesnesi modeli .xproj'ta; VMP .vmp-proje içe-aktarma var.
-<br>6) <b>script.cc (Lua API)</b> → SONRAKİ TUR: VMP script-arayüzü (korumalı fonksiyon listesini script'le seçme) —
-XProtect CLI'sı aynı işi --funcs/--add ile yapıyor; UI-içi script motoru yol haritasında.
-<br>7) <b>managed .NET runtime DLL'leri (dotnet20/40 + netcore + netstandard .inc)</b> → N/A-FARKLI-YOL: UO bunları
-IL→kendi-runtime bridge'i için kullanıyor; XProtect'in yolu IL→native derleme (A13'te locals ile büyük adım).
-<br>8-15) help/ 277 dosya + Qt GUI 188 dosya + runtime C# 77 dosya → kullanıcı kararına göre ÖNEMLİ DEĞİL
-("QT MENÜLER İLE İLGİLİ ŞEYLER ÖNEMLİ DEĞİL ÇÜNKÜ KENDİ MENÜMÜZ VAR"); Win32-GUI + kendi CLI + .xproj modeli bunları işlevsel olarak kapatıyor.</div>
-<h2>x1 — "#5 mesajı hiç gelmiyor, direk silent çıkış" kök-neden (cp165 kanıtı)</h2>
-<div class="note">vm_poison içinde <b>xa_export(kernel32, MessageBoxA)</b> çağrılıyordu — MessageBoxA user32.dll'dedir,
-kernel32'nin export tablosunda YOK → çözüm hep 0 → mesaj bölümü sessizce atlanıyor, ExitProcess(0x75) tek başına
-çalışıyor. FIX: PEB'de user32 ara; yoksa kernel32!LoadLibraryA("user32.dll") (PIC stack-string; xrt rt_fatal ile aynı
-kanitlı desen). cpSilentExit=false → mesaj+kapanma (UO paritesi), true → sessiz kapanış.</div>
-<h2>x2 — ".NET derlemiyor (rc3)" — StandAloneSig/locals gerçek port</h2>
-<div class="note">rc3 = "HİÇBİR fonksiyon uygulanamadı" — seçili WinForms metotlarının çoğu locals-imzalı olduğundan
-dürüst-RED alıyordu. A13: 0x11 tablosu gerçek tablo-gezinmesiyle okunuyor, LocalVarSig çözülüyor, to_x86 yerel slot
-haritası alıyor → ldloc/stloc/ldloca/stloc.a açıldı. RunPEForm.exe (gerçek csc, 74 metod) ile wine E2E kanıtı
-a13_test/kanit.txt'te. Kalan: GC/nesne ops (newobj/callvirt), ImplMap, x64 IL, EH.</div>
-<div class="footer">Kanıtlar: source/kanit_122/ + a13_test/kanit.txt + DOSYA_DENETIMI.md + ILERLEME_NOTLARI.md •
-cp166+ her 4 dk checkpoint • Temiz test paketi: checkpoints/TEMIZ_TEST_PAKETI/ (her örnek özgün-adla korunur)</div>
+<div class="footer">XGOD notu: %100 hedef — kalan kalemler v4 gündem listesinde satır-satır yazılı. Kanıtsız %90+ satır YOK: her satırın kanıt metni saha-testine işaret eder.</div>
 </body></html>

@@ -646,10 +646,11 @@ bool to_x86(const std::vector<Cmd>& cmds, u32 locals_count, bool has_ret,
             e8(&c, 0x68); e32(&c, sz);              // push size
             e8(&c, 0xE8); e32(&c, 0);               // call xrt_alloc — rel32 patch
             out->rx_fix.push_back(std::make_pair((u32)c.size() - 4, env->alloc_rva));
+            e8(&c, 0x89); e8(&c, 0xC7);             // mov edi,eax — NESNE EDI'de (callee-saved)
             x_push_eax(&c);                         // push this
             u32 va = env->imagebase + slot_rva;
-            e8(&c, 0xFF); e8(&c, 0x15); e32(&c, va);// call ctor [abs slot]
-            x_push_eax(&c);                         // push nesne (IL yiginina)
+            e8(&c, 0xFF); e8(&c, 0x15); e32(&c, va);// call ctor [abs slot] (EAX bozulur)
+            e8(&c, 0x57);                           // push edi — nesne (IL yiginina)
             break;
         }
         case 0x27: case 0x29:   // jmp/calli (v3 disi)
