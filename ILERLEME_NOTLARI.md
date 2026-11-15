@@ -902,3 +902,17 @@ değil — risk disiplini). EncryptByteCode cc*-zinciri zaten 1.2.3'te VAR
 
 ### DURUM: build_ui x64 sürüyor → x86 → muttest eşdeğerlik → wine E2E
 (P1 trt --iat strip'li runtime PASS hedefi + RunPEForm rc=0 + metin2 regres).
+
+## 2026-11-15 05:05 — cp235 KAPANIŞ (bu mesajın endpoint'i)
+- BUILD TAMAM: mingw-w64 g++ x64 (zig CRT bypass'ı; build_v3_mingw.sh kalıcı).
+  muttest3 OK; Unicorn mutasyon doğrulaması 5/5 EŞİT (S14-S21 aktif).
+- A16 E2E BAŞLADI ama -mconsole eksik → stdout kapalı → P0 kanıtı okunamadı.
+  ENDPOINT: link'i `-mconsole` ile ver (tek engel: o link denemesi rc=1 — log
+  /tmp/link3.log) → a16_e2e.sh tam koş (P0 rc=0 + [LIFT]>0 hedefi; P1 trt
+  --iat STRİPLİ runtime PASS hedefi) → yüzdeleri ozellik_html_v9.py'a yaz →
+  cp push. v4: EH-SEH, ters-yön okuma/komut-klonlama (VM format), pdbscope
+  enrichment-regres, x86 (i686) mingw debs.
+- DAEMON: cp_daemon_122h.py (kalıcı /home, cp213'ten devam, budama 12,
+  disk-güvenlik 1.5G). Token güncel. Klasör: checkpoints/Xprotect_1.2.2_cpN.
+- KALICI: /home/z/my-project/scripts/xprotect_snap/XProtect_1.2.2 (94M tam ağaç)
+  + /home/z/my-project/download/XProtect_1.2.3_v3 (exe+muttest3+HTML v9+scriptler).
