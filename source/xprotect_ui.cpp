@@ -183,7 +183,7 @@ struct Project {
     bool open = false, modified = false;
     std::wstring target;                 // hedef PE (tam yol)
     std::wstring path;                   // .xproj dosya yolu
-    unsigned long long options = 0x80000000ull | 0x00000080ull;   // cp* bitleri (core.h birebir)
+    unsigned long long options = 0x80000000ull | 0x00000080ull | 0x00002000ull;   // cp* bitleri + cp282 kapatma (acik)
                                         // = cpEncryptBytecode | cpEncryptRegs — enum tanimi
                                         // asagida oldugu icin sabit degerlerle: 1.2.0-A9
                                         // varsayilan GUC ACIK (UO kayitli-sürüm davranisi:
@@ -222,8 +222,11 @@ enum ProjectOption {
     cpInternalMemoryProtection = 0x04000000,
     cpLoader                = 0x02000000,
     cpFileCRC               = 0x20000000,  // 0.5.0: XProtect ozel — disk dosya CRC (core.h disi)
-    cpSilentExit            = 0x00000010   // 1.2.5 (x2): true = hata mesaji YOK (sessiz kapanis;
+    cpSilentExit            = 0x00000010,  // 1.2.5 (x2): true = hata mesaji YOK (sessiz kapanis;
                                            //   adamaya zaman/bilgi kazandirma — rt_msg kapatir)
+    cpClose                 = 0x00002000   // cp282 (x2): "kapatma" — true = tetikte kapat (varsayilan,
+                                           //   eski davranis); false = HIC KAPANMAZ (mesaj da yok,
+                                           //   runtime rt_fatal doner, calismaya devam eder)
 };
 
 // ---------------- PE cozumleyici: export + COFF + PDB + MAP + stub ----------------
@@ -361,9 +364,12 @@ static void load_symbol_sources(PeInfo& pi, const std::wstring& target_path) {
 
     // --- MAP ---
     if (!base.empty()) {
+        /* cp282 (x4): once <ad>.vmp_info (UI'in kendi yazdigi), sonra
+           <ad>.map (gercek linker map). */
         std::vector<unsigned char> md;
-        std::wstring mpath = dir + L"\\" + base + L".map";
-        if (sym_slurp(mpath, md)) {
+        std::wstring mpath = dir + L"\\" + base + L".vmp_info";
+        if (!sym_slurp(mpath, md)) { mpath = dir + L"\\" + base + L".map"; sym_slurp(mpath, md); }
+        if (!md.empty()) {
             std::vector<SymEntry> fns; std::string err;
             if (map_parse((const char*)md.data(), md.size(), ss, (su32)pi.imagebase, fns, err)) {
                 size_t added = 0;
@@ -527,6 +533,9 @@ static bool parse_pe_file(const std::wstring& path, PeInfo& pi, std::wstring& er
             if (pi.funcs[i].size) continue;   // PDB'den biliniyor
             unsigned long long end = (i + 1 < pi.funcs.size()) ? pi.funcs[i + 1].rva : (text->va + text->vsz);
             pi.funcs[i].size = end - pi.funcs[i].rva;
+            /* cp282 (x4): bilinmeyen-boyut doldurmasinda 64KB capi —
+               map/sembol uyusmazliginda "bir fonksiyon = 3MB" gorunumu onlenir */
+            if (pi.funcs[i].size > 0x10000) pi.funcs[i].size = 0x10000;
         }
     }
     pi.ok = !pi.funcs.empty() || nsec > 0;
@@ -1237,9 +1246,10 @@ static void fill_prop() {
             { cpLoader, L"Loader" },
             { cpFileCRC, L"File CRC (disk)" },
             { cpSilentExit, L"Silent Exit (mesaj kutusu yok)" },
+            { cpClose, L"kapatma" },   // cp282 (x2)
         };
         prop_add_row(0, L(LS_PROTECTION), L"", 0);
-        for (int i = 0; i < 21; i++)
+        for (size_t i = 0; i < sizeof(opts) / sizeof(opts[0]); i++)   // cp282: dinamik — sabit sayi yeni satiri gizliyordu
             prop_add_row(1, opts[i].nm, (g_proj.options & opts[i].bit) ? L"Yes" : L"No", opts[i].bit);
         // 1.2.5-A13 (x7): ozel tespit mesaji — UO/VMP "Messages" paritesi.
         // Satira cift-tik/Enter: metni duzenle; bos = varsayilan "#5" metni.
@@ -2848,8 +2858,11 @@ static bool write_engine_map(const std::wstring& target) {
     size_t bslash = target.rfind(L'\\');
     if (dot == std::wstring::npos || (bslash != std::wstring::npos && dot < bslash)) return false;
     std::wstring base = target.substr(0, dot);
-    std::wstring mpath = base + L".map";
-    if (GetFileAttributesW(mpath.c_str()) != INVALID_FILE_ATTRIBUTES) return false;   // ezme YASAK
+    /* cp282 (x4): artik <ad>.map YAZMIYOR — <ad>.vmp_info. Neden: kendi
+       yazdigi .map'i sonraki acilista .map-OKUYUCU geri okuyup boyut-fill'i
+       buga sokuyordu (kullanici: d7610 ~3MB gorunuyordu). Bicim ayni
+       LINK-map; ezme SERBEST (her derlemede taze garanti). */
+    std::wstring mpath = base + L".vmp_info";
     /* secim-listesi motorun keşfiyle aynı sira: PE bolum tablosu (1-bazli seg) */
     std::string out;
     char line[512];
@@ -2950,8 +2963,13 @@ static void start_compile() {
     /* 1.2.5 (x2): Silent Exit kutusu — true = mesaj kutusu YOK (sessiz
        kapanis); false = UO/VMP davranisi (mesaj + kapanma, history.htm:492).
        rt_exit her zaman acik: tespit -> kapanma. */
-    opt.rt_msg = (g_proj.options & cpSilentExit) == 0;
-    opt.rt_exit = true;
+    /* cp282 (x2): "kapatma" kutusu —
+       isaretli (true)  -> rt_exit=1: tetikte kapanir (mesaj SilentExit'e gore)
+       isaretsiz (false)-> rt_msg=0 + rt_exit=0: cfg'de ikisi de yok -> runtime
+                           rt_fatal HICBIR SEY YAPMADAN DONER (blob degismeden
+                           "hic kapanmaz, devam eder" davranisi) */
+    opt.rt_exit = (g_proj.options & cpClose) != 0;
+    opt.rt_msg = opt.rt_exit && (g_proj.options & cpSilentExit) == 0;
     opt.checkvm = (g_proj.options & cpCheckVirtualMachine) != 0;   // 1.1.0-A7: motor baglandi
     opt.kerneldbg = (g_proj.options & cpCheckKernelDebugger) != 0;  // 1.2.2-A15: K5+K6 ayri gate
     opt.strenc = (g_proj.options & cpCryptValues) != 0;
@@ -3149,6 +3167,7 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             g_proj.target = s2w(line.substr(7));
         } else if (line.rfind("options=", 0) == 0) {
             g_proj.options = wcstoull(s2w(line.substr(8)).c_str(), NULL, 16);
+            g_proj.options |= 0x00002000ull;   // cp282: eski projede kapatma varsayilan ACIK
         } else if (line.rfind("execparams=", 0) == 0) {
             g_proj.exec_params = unesc_t(s2w(line.substr(11)));
         } else if (line.rfind("rtmsg=", 0) == 0) {              // 1.2.5-A13 (x7)
@@ -3223,6 +3242,9 @@ static void fill_neighbor_sizes(PeInfo& pi) {
             if (pi.funcs[i].size) continue;   // PDB/PDBScope'tan biliniyor
             unsigned long long end = (i + 1 < pi.funcs.size()) ? pi.funcs[i + 1].rva : (text->va + text->vsz);
             pi.funcs[i].size = end - pi.funcs[i].rva;
+            /* cp282 (x4): bilinmeyen-boyut doldurmasinda 64KB capi —
+               map/sembol uyusmazliginda "bir fonksiyon = 3MB" gorunumu onlenir */
+            if (pi.funcs[i].size > 0x10000) pi.funcs[i].size = 0x10000;
         }
     }
 }

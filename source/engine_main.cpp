@@ -525,11 +525,23 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         }
         // MAP
         {
-            std::vector<u8> md;
-            if (slurp_n(dir + (char)XP_DIRSEP + base + ".map", md)) {
-                std::vector<SymEntry> mfns;
-                if (map_parse((const char*)md.data(), md.size(), ss, pe.imagebase, mfns, serr))
-                    for (auto& e : mfns) sfns.push_back(e);
+            /* cp282 (x4): once <hedef>.vmp_info (UI el-cikmasi; ayni
+               LINK-map bicimi), sonra <hedef>.map (gercek linker map). */
+            {
+                std::vector<u8> md;
+                if (slurp_n(dir + (char)XP_DIRSEP + base + ".vmp_info", md)) {
+                    std::vector<SymEntry> mfns;
+                    if (map_parse((const char*)md.data(), md.size(), ss, pe.imagebase, mfns, serr))
+                        for (auto& e : mfns) sfns.push_back(e);
+                }
+            }
+            {
+                std::vector<u8> md;
+                if (slurp_n(dir + (char)XP_DIRSEP + base + ".map", md)) {
+                    std::vector<SymEntry> mfns;
+                    if (map_parse((const char*)md.data(), md.size(), ss, pe.imagebase, mfns, serr))
+                        for (auto& e : mfns) sfns.push_back(e);
+                }
             }
         }
         for (auto& e : sfns) {
@@ -2847,7 +2859,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         L(b);
         L(std::string("[XRT] xrt_entry=0x") + hex32(xrt_entry_rva) + " cfg=0x" + hex32(cfg_rva) +
           " | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: " +
-          (opt.rt_msg ? "MessageBoxA + " : "") + (opt.rt_exit ? "ExitProcess" : "ud2 zehir") +
+          (opt.rt_msg ? "MessageBoxA + " : "") +
+          (opt.rt_exit ? std::string("ExitProcess") : std::string("KAPATMA-YOK (tetikte devam; cp282)")) +
           (opt.rt_msgtext.empty() ? std::string("") :
            (std::string(" | mesaj=\"") + opt.rt_msgtext + "\" (A13/x7)")));
     } else if (opt.iat_prot) {

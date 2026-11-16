@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
         else if (a == "--iatdisk") opt.iat_disk = true;   /* cp280: DENEYSEL disk-IAT silme (varsayilan KAPALI) */      /* cp279: UI-checkvm esdegeri (E2E kanit) */
         else if (a == "--antidebug") opt.antidebug = true;  /* cp279: UI-antidebug esdegeri */
         else if (a == "--rt") { opt.rt_selfcrc = opt.rt_textcrc = opt.rt_filecrc = opt.rt_exit = true; } /* cp278: UI-runtime esdegeri (repro) */
+        else if (a == "--rtnoexit") opt.rt_exit = false;   /* cp282 (x2): tetik -> kapatma yok (devam) */
         else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */
         else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
         else if (a == "--dwarf") opt.dwarf = true;   /* cp275: DWARF kesfi acik */
