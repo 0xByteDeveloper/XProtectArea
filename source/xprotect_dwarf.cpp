@@ -108,8 +108,7 @@ static Val read_val(Cursor& c, u64 form, u8 addr_size) {
     case 0x1C: c.u8_(); break;                                             // ref1?
     case 0x1D: c.u16_(); break;
     case 0x1E: c.u64_(); break;
-    case 0x1F:                                                          /* DW_FORM_line_strp (v5) */
-        { u32 o = c.u32_(); v.k = VK_ISTR; v.s = (lst && o < lstn) ? (lst + o) : 0; } break;
+    case 0x1F: c.u16_(); break;
     case 0x20: c.u32_(); break;
     default: c.ok = false; break;                                          // bilinmeyen form → CU bırak
     }
@@ -124,38 +123,18 @@ bool parse(const unsigned char* d, size_t n, unsigned long long imagebase,
     u16 nsec = rd16(d + e_lfa + 6);
     u16 optsz = rd16(d + e_lfa + 20);
     size_t so = e_lfa + 24 + optsz;
-    /* cp273: uzun bolum isimleri (".debug_info" 11k) mingw'de COFF string
-       tablosuna "/NN" seklinde yazilir — UO dwarf.cc paritesi: cozer */
-    const char* strtab = 0; u32 strtab_sz = 0;
-    {
-        u32 symoff = rd32(d + e_lfa + 12);
-        u32 nsym = rd32(d + e_lfa + 16);
-        u32 stroff = symoff + nsym * 18u;
-        if (stroff + 4 <= n) {
-            strtab_sz = rd32(d + stroff);
-            if (strtab_sz && stroff + strtab_sz <= n) strtab = (const char*)(d + stroff);
-        }
-    }
     const u8* di = 0; size_t din = 0;
     const u8* ab = 0; size_t abn = 0;
     const u8* st = 0; size_t stn = 0;
-    const u8* lst = 0; size_t lstn = 0;   /* v5: .debug_line_str */
     u64 ibase = imagebase;
     for (u16 i = 0; i < nsec; i++) {
         size_t s = so + (size_t)i * 40;
         if (s + 40 > n) break;
         char nm[9]; memset(nm, 0, 9); memcpy(nm, d + s, 8);
-        const char* ln = 0;   /* "/NN" -> string tablo adi */
-        if (nm[0] == '/' && strtab) {
-            unsigned long idx2 = strtoul(nm + 1, 0, 10);
-            if (idx2 < strtab_sz) ln = strtab + idx2;
-        }
-        const char* eff = ln ? ln : nm;
         u32 vsz = rd32(d + s + 8), va = rd32(d + s + 12), rawsz = rd32(d + s + 16), raw = rd32(d + s + 20);
-        if (!strncmp(eff, ".debug_info", 11) && rawsz) { di = d + raw; din = rawsz < vsz ? rawsz : vsz; }
-        else if (!strncmp(eff, ".debug_abbrev", 13) && rawsz) { ab = d + raw; abn = rawsz < vsz ? rawsz : vsz; }
-        else if (!strncmp(eff, ".debug_str", 10) && rawsz) { st = d + raw; stn = rawsz < vsz ? rawsz : vsz; }
-        else if (!strncmp(eff, ".debug_line_str", 15) && rawsz) { lst = d + raw; lstn = rawsz < vsz ? rawsz : vsz; }
+        if (!strcmp(nm, ".debug_info") && rawsz) { di = d + raw; din = rawsz < vsz ? rawsz : vsz; }
+        else if (!strcmp(nm, ".debug_abbrev") && rawsz) { ab = d + raw; abn = rawsz < vsz ? rawsz : vsz; }
+        else if (!strcmp(nm, ".debug_str") && rawsz) { st = d + raw; stn = rawsz < vsz ? rawsz : vsz; }
         (void)va;
     }
     if (!di || !ab) { if (err) *err = ".debug_info/.debug_abbrev yok"; return false; }
@@ -174,12 +153,7 @@ bool parse(const unsigned char* d, size_t n, unsigned long long imagebase,
             addr_size = c.u8_();
             (void)c.u8_();                                                  // segment/offset size
             aboff = c.u32_();
-        } else if (ver == 5) {
-            /* cp273: DWARF5 CU header (unit_type, addr_size, aboff) */
-            (void)c.u8_();                                                  // unit_type
-            addr_size = c.u8_();
-            aboff = c.u32_();
-        } else break;
+        } else break;                                                       // v5 sonraki tur
         if (!c.ok) break;
         std::vector<AbbDecl> abd;
         if (!read_abbrev(ab, abn, aboff, &abd)) break;

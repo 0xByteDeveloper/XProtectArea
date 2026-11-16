@@ -1925,22 +1925,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             for (int wi = 0; wi < 8; wi++) lsd[0x118 + wi] = (u8)(w >> (8 * wi));
             /* 1.1.0-A7: watermark METNI gomulu (UO cpIncludeWatermark 1:1:
                sizinti izleme — korunan dosyada metin okunur bulunur).
-               LSD_CRC (0x000..0x11F) DISINDA — runtime etkisi yok.
-               cp273 PORT E: cap 31 (0x130..0x14F) — URL alanina yer acildi. */
+               LSD_CRC (0x000..0x11F) DISINDA — runtime etkisi yok. */
             u32 wl = (u32)opt.lic_watermark.size();
-            if (wl > 31) wl = 31;
+            if (wl > 64) wl = 64;
             for (u32 wi = 0; wi < wl; wi++) lsd[0x130 + wi] = (u8)opt.lic_watermark[wi];
             lsd[0x12C] = (u8)wl;
             lsd[0x12D] = (u8)(wl >> 8);
-        }
-        /* cp273 PORT E: aktivasyon URL'i LSD 0x150 (max 31B + NUL) —
-           runtime lic_http_get buradan okur (licensing_manager Send paritesi).
-           CRC-disi; em-cache (0x12C+) runtime yazimina dahil degil bu slotlar. */
-        if (!opt.lic_url.empty()) {
-            u32 ul = (u32)opt.lic_url.size();
-            if (ul > 31) { L("[LSD] UYARI: lic_url 31B uzun — kirpildi (online aktivasyon calismaz)"); ul = 31; }
-            for (u32 wi = 0; wi < ul; wi++) lsd[0x150 + wi] = (u8)opt.lic_url[wi];
-            lsd[0x150 + ul] = 0;
         }
         /* 0.7.0-final FIX: CRC SADECE 0x000..0x11F (LSD_CRC_LEN) — state(0x120)
            /tick(0x124) runtime-yazılabilir; CRC'ye dahil edilirse ilk SetSerial

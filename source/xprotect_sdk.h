@@ -193,10 +193,10 @@ int   XProtectLoadStringA(void* i, unsigned int u, char* b, int m) { (void)i; (v
 int   XProtectLoadStringW(void* i, unsigned int u, wchar_t* b, int m) { (void)i; (void)u; (void)b; (void)m; return 0; }
 int   XProtectEnumResourceNamesA(void* h, const char* t, void* c, long long p) { (void)h; (void)t; (void)c; (void)p; return 0; }
 int   XProtectEnumResourceNamesW(void* h, const wchar_t* t, void* c, long long p) { (void)h; (void)t; (void)c; (void)p; return 0; }
-int   XProtectEnumResourceLanguagesA(void* h, const char* t, const char* n, void* c, long long p) { (void)h; (void)t; (void)n; (void)c; (void)p; return 0; }
-int   XProtectEnumResourceLanguagesW(void* h, const wchar_t* t, const wchar_t* n, void* c, long long p) { (void)h; (void)t; (void)n; (void)c; (void)p; return 0; }
-int   XProtectEnumResourceTypesA(void* h, void* c, long long p) { (void)h; (void)c; (void)p; return 0; }
-int   XProtectEnumResourceTypesW(void* h, void* c, long long p) { (void)h; (void)c; (void)p; return 0; }
+int   XProtectEnumResourceLanguagesA(void* h, const char* t, const char* n, void* c, long p) { (void)h; (void)t; (void)n; (void)c; (void)p; return 0; }
+int   XProtectEnumResourceLanguagesW(void* h, const wchar_t* t, const wchar_t* n, void* c, long p) { (void)h; (void)t; (void)n; (void)c; (void)p; return 0; }
+int   XProtectEnumResourceTypesA(void* h, void* c, long p) { (void)h; (void)c; (void)p; return 0; }
+int   XProtectEnumResourceTypesW(void* h, void* c, long p) { (void)h; (void)c; (void)p; return 0; }
 void* XProtectDecryptBuffer(void* b, unsigned int s, unsigned long long k) { (void)b; (void)s; (void)k; return b; }
 unsigned long long XProtectRandom(void) { return 0; }
 void* XProtectBoxPointer(void* p) { return p; }
