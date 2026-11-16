@@ -2314,29 +2314,39 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
     /* ---- (K7) CHECK VM: CPUID hipervizor-present + vendor dizeleri ---- */
     if (flags & XFLAG_CHECKVM) {
         u32 a, b, c, d;
-#if defined(XRT_IS_X64)
-        __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(1));
-#else
-        __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
-                         : "=a"(a), "=c"(c), "=d"(d) : "a"(1) : "memory");
-#endif
-        if (c & 0x80000000u) return 6;             /* hipervizor icinde */
-        /* 1.2.2-A20: hypervisor leaf 0x40000000 vendor taramasi
-           (VBOX/KVM/HyperV/Xen/Parallels/VMware — UO checkvm deseni).
-           Sabitler LE-dword (ebx,ecx,edx) — rodata YASAK (PIC). */
+        /* cp279 KRITIK DERS (kullanici E2E): Windows'ta VBS/Hyper-V/WSL2/
+           Docker acik olan GERCEK makinalarda CPUID leaf-1 bit-31 SET ve
+           vendor "Microsoft Hv" doner — cp278 bu makinalarda exe'yi kendi
+           ExitProcess(0x76) ile kapatiyordu ("acilmiyor"). VMProtect
+           paritesi: Microsoft Hv BEYAZ-LISTE (gercek makina + VBS sanal
+           degil sayilmaz); KVM/VBox/Xen/VMware/prl isaretlenmeye devam.
+           Not: vendor leaf BIT-TARAF (b=c=d) kiyaslayicisi microsoft icin
+           kontrol gerekmez — string dogrudan eslesir. */
+        u32 mshv = 0;
 #if defined(XRT_IS_X64)
         __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(0x40000000));
 #else
         __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
                          : "=a"(a), "=c"(c), "=d"(d) : "a"(0x40000000) : "memory");
 #endif
-        if (a) {
-            if (b == 0x4b4d564bu && c == 0x564b4d56u && d == 0x0000004du) return 6; /* KVMKVMKVM */
-            if (b == 0x7263694du && c == 0x666f736fu && d == 0x76482074u) return 6; /* Microsoft Hv */
-            if (b == 0x786f4256u && c == 0x786f4256u && d == 0x786f4256u) return 6; /* VBoxVBoxVBox */
-            if (b == 0x206c7270u && c == 0x65707968u && d == 0x00002076u) return 6; /* prl hyperv  */
-            if (b == 0x566e6558u && c == 0x65584d4du && d == 0x4d4d566eu) return 6; /* XenVMMXenVMM */
-            if (b == 0x61774d56u && c == 0x4d566572u && d == 0x65726177u) return 6; /* VMwareVMware */
+        if (b == 0x7263694du && c == 0x666f736fu && d == 0x76482074u) mshv = 1; /* Microsoft Hv */
+        if (!mshv) {
+#if defined(XRT_IS_X64)
+            __asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(1));
+#else
+            __asm__ volatile("pushl %%ebx\n\tcpuid\n\tpopl %%ebx"
+                             : "=a"(a), "=c"(c), "=d"(d) : "a"(1) : "memory");
+#endif
+            if (c & 0x80000000u) return 6;         /* hipervizor icinde (mshv degilse) */
+            /* 1.2.2-A20: hypervisor leaf vendor taramasi (UO deseni).
+               Sabitler LE-dword (ebx,ecx,edx) — rodata YASAK (PIC). */
+            if (a) {
+                if (b == 0x4b4d564bu && c == 0x564b4d56u && d == 0x0000004du) return 6; /* KVMKVMKVM */
+                if (b == 0x786f4256u && c == 0x786f4256u && d == 0x786f4256u) return 6; /* VBoxVBoxVBox */
+                if (b == 0x206c7270u && c == 0x65707968u && d == 0x00002076u) return 6; /* prl hyperv  */
+                if (b == 0x566e6558u && c == 0x65584d4du && d == 0x4d4d566eu) return 6; /* XenVMMXenVMM */
+                if (b == 0x61774d56u && c == 0x4d566572u && d == 0x65726177u) return 6; /* VMwareVMware */
+            }
         }
     }
     /* ---- (K1) PEB.BeingDebugged + NtGlobalFlag ---- */
