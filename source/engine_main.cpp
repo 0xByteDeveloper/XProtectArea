@@ -2289,17 +2289,6 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                     } else if ((p[0] & 0xF8) == 0x48 && p[1] >= 0xB8 && p[1] <= 0xBF) {
                         u64 d; memcpy(&d, p + 2, 8);
                         tgt = (u32)(d - pe.imagebase); adv = 10; hit = 1; /* mov r64,imm64 */
-                    } else if (p[0] == 0x68) {
-                        /* cp273 PORT C: push imm32 — x86 string-arg ana kaynagi
-                           (printf/memcpy/DialogParam tarzi). UO Parse operand
-                           taramasinin karsiligi. */
-                        memcpy(&tgt, p + 1, 4);
-                        adv = 5; hit = 1;
-                    } else if (p[0] == 0xB8 || p[0] == 0xB9 || p[0] == 0xBA ||
-                               p[0] == 0xBB || p[0] == 0xBE || p[0] == 0xBF) {
-                        /* cp273 PORT C: mov e?x, imm32 — string pointer yukleme */
-                        memcpy(&tgt, p + 1, 4);
-                        adv = 5; hit = 1;
                     }
                     if (hit && tgt) {
                         for (auto& s : strings)
@@ -2358,18 +2347,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 if (s.rva == fr) { enc_orig.push_back(s); break; }
             }
         }
-        /* cp273 PORT C — UO/intel.cc AddString 1:1 kapsam: .text'ten
-           REFERANS EDILEN her string sifrelenir (otString listesi gibi);
-           lift-eslesme ve <=64 siniri kaldirildi. reloc-kesisme guvesi
-           (asagida) oldugu gibi calisir. */
-        { u32 n_refed = 0; for (auto& kv : total_refs) if (kv.second) n_refed++;
-          snprintf(b, sizeof b, "[STRENC] cp273 kapsam: %u referanslı string (UO AddString paritesi)", n_refed); L(b); }
         for (auto& s : strings) {
             u32 t = total_refs.count(s.rva) ? total_refs[s.rva] : 0;
-            (void)t;
-            if (t > 0) {
-                snprintf(b, sizeof b, "[STRENC-dbg] rva=0x%06X len=%u total=%u -> SIFRELE (cp273 kapsam)",
-                         s.rva, s.len, t);
+            u32 l = lifted_refs.count(s.rva) ? lifted_refs[s.rva] : 0;
+            if (l > 0) {
+                snprintf(b, sizeof b, "[STRENC-dbg] rva=0x%06X len=%u total=%u lifted=%u%s",
+                         s.rva, s.len, t, l, (t == l) ? " -> SIFRELE" : " -> atla");
                 L(b);
             }
             bool forced = false;
@@ -2378,8 +2361,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 L("[STRENC] atla (reloc kesismesi): rva=0x" + hex32(s.rva));
                 forced = false;
             }
-            if (((total_refs.count(s.rva) && total_refs[s.rva] > 0) || forced)
-                && !reloc_overlaps(s.rva, s.len))
+            if (((l > 0 && t == l && t <= 64) || forced) && !reloc_overlaps(s.rva, s.len))
                 enc_orig.push_back(s);
         }
         if (!enc_orig.empty()) {
