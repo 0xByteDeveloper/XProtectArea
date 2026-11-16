@@ -1,0 +1,25 @@
+[PE] Z:\tmp\my-project\download\XProtect_1.2.2\source\vreg_kanit.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1660
+  sec .text    RVA=0x001000 VSz=0x028186 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B868 Raw=0x028600 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005F Raw=0x034000 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034200 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x001764 Raw=0x034400 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035C00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x035E00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=547 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 543 aday (.text)
+[VFDBG] fi=0 enc-ilk: 91 09 E5 21 | rt-ilk: 4D 5A 78 00 | k=3DA5613E926487E7 k1=438FA2D210150CF3 n=4139908714 | P-ilk: 4D 5A 78
+[VFDBG] blok-ilk: 58 56 56 31 01 00 00 00 | data-off=64 dsz0=218624
+[VF] gomuldu: xvf_t.dll (218624B, faLoad)
+[LIFT] 0/0 secili fonksiyon | V=0 M=0 U=0 (U-mutdus=0)
+[SEH] dinamik unwind: kayit=0 tabloRVA=0x084920 (xrt ilk kapida RtlAddFunctionTable)
+[WM] watermark alanı: .vmp0+0x47920 (232B) | sürüm imzası: 8 kopya | kullanıcı: 0 kopya (0 watermark)
+[A20-GATE] global-only EP kapisı: EP 0x1660 -> 0x84A10 (xrt_entry + jmp)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x047A60 | VM blob 31380B | vm_entry RVA=0x0447B0
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[XRT] runtime katmani: flags=0x50 | self=0x00000000 (0B) | text=0x00000000 (0x28186, reloc-atla 0B) | file=0x0F1F426B (atla: cksum+208, .vmp0 221184..515072) | pack=0x0
+[XRT] xrt_entry=0x0004B3A0 cfg=0x0004F270 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: ExitProcess
+[KAYIT] Z:\tmp\my-project\download\XProtect_1.2.2\source\vf_t1.exe (515072 bayt)
+[OZET] tipler: V=0 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

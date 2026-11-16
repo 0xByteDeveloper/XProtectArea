@@ -1,0 +1,54 @@
+[PE] Z:\tmp\my-project\download\XProtect_1.2.2\source\trt.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x14F0
+  sec .text    RVA=0x001000 VSz=0x027FC6 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x029000 VSz=0x00B6D0 Raw=0x028400 Chars=0x40000040
+  sec .buildid RVA=0x035000 VSz=0x000058 Raw=0x033C00 Chars=0x40000040
+  sec .data    RVA=0x036000 VSz=0x001158 Raw=0x033E00 Chars=0xC0000040
+  sec .pdata   RVA=0x038000 VSz=0x001764 Raw=0x034000 Chars=0x40000040
+  sec .tls     RVA=0x03A000 VSz=0x000010 Raw=0x035800 Chars=0xC0000040
+  sec .reloc   RVA=0x03B000 VSz=0x000060 Raw=0x035A00 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=542 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 538 aday (.text)
+[SDK] isaret bulundu: SDK_V_0x0000104F boyut=0x0000000E tip=V
+[SDK] isaret bulundu: SDK_M_0x0000106F boyut=0x0000000A tip=M
+[SDK] isaret bulundu: SDK_U_0x00001088 boyut=0x00000026 tip=U
+[SDK] isaret bulundu: SDK_V_0x000010BD boyut=0x0000000E tip=V
+[MANUEL] SDK_V_0x0000104F @RVA=0x00104F boyut=0xE tip=V
+[MANUEL] SDK_M_0x0000106F @RVA=0x00106F boyut=0xA tip=M
+[MANUEL] SDK_U_0x00001088 @RVA=0x001088 boyut=0x26 tip=U
+[MANUEL] SDK_V_0x000010BD @RVA=0x0010BD boyut=0xE tip=V
+[LIFT] 4/4 secili fonksiyon | V=3 M=1 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0x7EE0 (290B) | sürüm imzası: 10 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x03C000 boyut=0x008002 | VM blob 31380B | vm_entry RVA=0x0437B0
+[YAMA] SDK_V_0x0000104F @RVA=0x00104F boyut=0xE | bc=35B key=0xE8F1175818906FD5 | stubRVA=0x043B50 retimm=4294967295 (trampoline)
+  0000104F: alu5 (sz4)
+  00001052: lea rax, [mem]
+  00001056: lea rbx, [mem]
+  0000105A: cmov13 rax
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[MUT] SDK_M_0x0000106F @RVA=0x00106F boyut=0xA | ikame=0 junk=2 kapi=0 (blok=1) | 10B->38B (x3.80) | govde=0x043EB0
+  [BOLGE] sona E9 -> 0x00001079 (region devami)
+[YAMA] SDK_U_0x00001088 @RVA=0x001088 boyut=0x26 | bc=106B key=0x234B2FC16EF7440B | stubRVA=0x043C70 retimm=4294967295 (trampoline)
+  00001088: xor-rr KAPI-dekompoze (sz4)
+  0000108A: mov rdx, imm=0x58
+  0000108C: lea rcx, [mem]
+  00001090: mov r8, rax (sz4)
+  00001093: shift 5
+  00001097: alu1 (sz4)
+  0000109A: movzx32<-8 rdx
+  0000109D: alu0 (sz4)
+  000010A0: movzx32<-8 [mem]
+  000010A3: alu0 (sz8)
+  000010A7: alu6 (sz1)
+  000010A9: jcc5 0x1090
+  000010AB: movzx32<-16 rax
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[YAMA] SDK_V_0x000010BD @RVA=0x0010BD boyut=0xE | bc=17B key=0xE4C7616679A53DA3 | stubRVA=0x043D90 retimm=4294967295 (trampoline)
+  000010BD: lea rcx, [mem]
+  000010C4: mov rdx, rbx (sz4)
+  000010C6: call 0x1e80 (ncall)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\tmp\my-project\download\XProtect_1.2.2\source\trt_plain.exe (253440 bayt)
+[OZET] tipler: V=3 M=1 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

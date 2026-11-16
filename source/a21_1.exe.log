@@ -1,0 +1,3938 @@
+[PE] Z:\tmp\my-project\scripts\adbgdiag.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1790
+  sec .text    RVA=0x001000 VSz=0x0282D6 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00BA60 Raw=0x028800 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005D Raw=0x034400 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034600 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x001764 Raw=0x034800 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x036000 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x036200 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=549 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 545 aday (.text)
+[LIFT] 97/427 secili fonksiyon | V=427 M=0 U=0 (U-mutdus=0) | UYARI: 330 fonksiyon RED edildi (asagida)
+[RED] __tmainCRTStartup @0x000013E0: RED: pc=0x0000140B: opcode desteklenmiyor
+[RED] __dyn_tls_init @0x00001810: RED: fixup hedefi yok @0x00001875
+[RED] __mingw_raise_matherr @0x00001AD0: RED: pc=0x00001AE6: 0F ikinci opcode desteklenmiyor
+[RED] _amsg_exit @0x00001B40: RED: ret oncesi int3
+[RED] _matherr @0x00001B90: RED: pc=0x00001BD0: 0F ikinci opcode desteklenmiyor
+[RED] __write_memory @0x00001F00: RED: pc=0x00001FDF: 0F ikinci opcode desteklenmiyor
+[RED] __report_error @0x000020A0: RED: ret oncesi int3
+[RED] fastMemset @0x00002210: RED: pc=0x00002220: 0F ikinci opcode desteklenmiyor
+[RED] __negti2 @0x000023E0: RED: pc=0x000023EF: 0F ikinci opcode desteklenmiyor
+[RED] __strncat_chk @0x00002A70: RED: pc=0x00002A90: 0F ikinci opcode desteklenmiyor
+[RED] __strcat_chk @0x00002B00: RED: pc=0x00002B5F: 0F ikinci opcode desteklenmiyor
+[RED] __strncpy_chk @0x00002B70: RED: fixup hedefi yok @0x00002BE6
+[RED] __strcpy_chk @0x00002BF0: RED: pc=0x00002C17: 0F ikinci opcode desteklenmiyor
+[RED] memmoveFast @0x00002C50: RED: pc=0x00002CC0: 0F ikinci opcode desteklenmiyor
+[RED] ___chkstk @0x000030F0: RED: pc=0x00003128: grp5 push/far
+[RED] __atomic_load @0x00003130: RED: pc=0x00003156: xchg mem destegi yok
+[RED] __atomic_compare_exchange_16 @0x00003190: RED: pc=0x000031B6: xchg mem destegi yok
+[RED] __atomic_compare_exchange_8 @0x00003210: RED: pc=0x00003217: opcode desteklenmiyor
+[RED] __atomic_compare_exchange_4 @0x00003230: RED: pc=0x00003236: opcode desteklenmiyor
+[RED] __atomic_compare_exchange_2 @0x00003250: RED: pc=0x00003257: opcode desteklenmiyor
+[RED] __atomic_compare_exchange_1 @0x00003270: RED: pc=0x00003277: opcode desteklenmiyor
+[RED] __atomic_exchange_16 @0x00003290: RED: pc=0x000032B6: xchg mem destegi yok
+[RED] __atomic_store_16 @0x00003320: RED: pc=0x00003346: xchg mem destegi yok
+[RED] __atomic_load_16 @0x000033A0: RED: pc=0x000033C5: xchg mem destegi yok
+[RED] __atomic_fetch_umin_16 @0x00003420: RED: pc=0x00003446: xchg mem destegi yok
+[RED] __atomic_fetch_umin_8 @0x00003480: RED: pc=0x0000349A: opcode desteklenmiyor
+[RED] __atomic_fetch_umin_4 @0x000034B0: RED: pc=0x000034C9: opcode desteklenmiyor
+[RED] __atomic_fetch_umin_2 @0x000034E0: RED: pc=0x000034FA: opcode desteklenmiyor
+[RED] __atomic_fetch_umin_1 @0x00003510: RED: pc=0x0000352C: opcode desteklenmiyor
+[RED] __atomic_fetch_umax_16 @0x00003540: RED: pc=0x00003566: xchg mem destegi yok
+[RED] __atomic_fetch_umax_8 @0x000035A0: RED: pc=0x000035BA: opcode desteklenmiyor
+[RED] __atomic_fetch_umax_4 @0x000035D0: RED: pc=0x000035E9: opcode desteklenmiyor
+[RED] __atomic_fetch_umax_2 @0x00003600: RED: pc=0x0000361A: opcode desteklenmiyor
+[RED] __atomic_fetch_umax_1 @0x00003630: RED: pc=0x0000364C: opcode desteklenmiyor
+[RED] __atomic_fetch_nand_16 @0x00003660: RED: pc=0x00003686: xchg mem destegi yok
+[RED] __atomic_fetch_nand_8 @0x000036B0: RED: pc=0x000036C9: opcode desteklenmiyor
+[RED] __atomic_fetch_nand_4 @0x000036E0: RED: pc=0x000036F9: opcode desteklenmiyor
+[RED] __atomic_fetch_nand_2 @0x00003710: RED: pc=0x00003729: opcode desteklenmiyor
+[RED] __atomic_fetch_nand_1 @0x00003740: RED: pc=0x00003759: opcode desteklenmiyor
+[RED] __atomic_fetch_xor_16 @0x00003770: RED: pc=0x00003796: xchg mem destegi yok
+[RED] __atomic_fetch_xor_8 @0x000037C0: RED: pc=0x000037D6: opcode desteklenmiyor
+[RED] __atomic_fetch_xor_4 @0x000037E0: RED: pc=0x000037F6: opcode desteklenmiyor
+[RED] __atomic_fetch_xor_2 @0x00003800: RED: pc=0x00003816: opcode desteklenmiyor
+[RED] __atomic_fetch_xor_1 @0x00003820: RED: pc=0x00003836: opcode desteklenmiyor
+[RED] __atomic_fetch_or_16 @0x00003840: RED: pc=0x00003866: xchg mem destegi yok
+[RED] __atomic_fetch_or_8 @0x00003890: RED: pc=0x000038A6: opcode desteklenmiyor
+[RED] __atomic_fetch_or_4 @0x000038B0: RED: pc=0x000038C6: opcode desteklenmiyor
+[RED] __atomic_fetch_or_2 @0x000038D0: RED: pc=0x000038E6: opcode desteklenmiyor
+[RED] __atomic_fetch_or_1 @0x000038F0: RED: pc=0x00003906: opcode desteklenmiyor
+[RED] __atomic_fetch_and_16 @0x00003910: RED: pc=0x00003936: xchg mem destegi yok
+[RED] __atomic_fetch_and_8 @0x00003960: RED: pc=0x00003976: opcode desteklenmiyor
+[RED] __atomic_fetch_and_4 @0x00003980: RED: pc=0x00003996: opcode desteklenmiyor
+[RED] __atomic_fetch_and_2 @0x000039A0: RED: pc=0x000039B6: opcode desteklenmiyor
+[RED] __atomic_fetch_and_1 @0x000039C0: RED: pc=0x000039D6: opcode desteklenmiyor
+[RED] __atomic_fetch_sub_16 @0x000039E0: RED: pc=0x00003A06: xchg mem destegi yok
+[RED] __atomic_fetch_add_16 @0x00003A80: RED: pc=0x00003AA6: xchg mem destegi yok
+[RED] __atomic_compare_exchange @0x00003B10: RED: pc=0x00003B35: xchg mem destegi yok
+[RED] __atomic_exchange @0x00003BB0: RED: pc=0x00003BD6: xchg mem destegi yok
+[RED] __atomic_store @0x00003C30: RED: pc=0x00003C56: xchg mem destegi yok
+[RED] __udivei4 @0x00003CA0: RED: pc=0x00003CDD: 0F ikinci opcode desteklenmiyor
+[RED] __umodei5 @0x00004310: RED: pc=0x00004354: 0F ikinci opcode desteklenmiyor
+[RED] __udivei5 @0x00004B60: RED: pc=0x00004BA4: 0F ikinci opcode desteklenmiyor
+[RED] __umodei4 @0x000051E0: RED: pc=0x0000521D: 0F ikinci opcode desteklenmiyor
+[RED] __divei4 @0x00005A20: RED: pc=0x00005A5D: 0F ikinci opcode desteklenmiyor
+[RED] __modei5 @0x000061B0: RED: pc=0x000061F4: 0F ikinci opcode desteklenmiyor
+[RED] __divei5 @0x00006A60: RED: pc=0x00006AA4: 0F ikinci opcode desteklenmiyor
+[RED] __modei4 @0x000072C0: RED: pc=0x000072FD: 0F ikinci opcode desteklenmiyor
+[RED] __trunch @0x00007AD0: RED: pc=0x00007ADA: 0F ikinci opcode desteklenmiyor
+[RED] truncq @0x00007B50: RED: pc=0x00007B65: 0F ikinci opcode desteklenmiyor
+[RED] __truncx @0x00007C30: RED: pc=0x00007C5D: 0F ikinci opcode desteklenmiyor
+[RED] trunc @0x00007D40: RED: pc=0x00007D45: 0F ikinci opcode desteklenmiyor
+[RED] truncf @0x00007DA0: RED: pc=0x00007DA5: 0F ikinci opcode desteklenmiyor
+[RED] tan_f32 @0x00008000: RED: pc=0x0000800A: 0F ikinci opcode desteklenmiyor
+[RED] rem_pio2l__func_35 @0x000082B0: RED: pc=0x00008486: 0F ikinci opcode desteklenmiyor
+[RED] rem_pio2f @0x000087F0: RED: pc=0x000087FC: 0F ikinci opcode desteklenmiyor
+[RED] rem_pio2_large @0x00008930: RED: pc=0x0000894B: 0F ikinci opcode desteklenmiyor
+[RED] ldexp__func_39 @0x00009A40: RED: pc=0x00009A44: 0F ikinci opcode desteklenmiyor
+[RED] tanx @0x00009BC0: RED: pc=0x00009BE9: fpu
+[RED] tanq @0x00009D50: RED: pc=0x00009D61: 0F ikinci opcode desteklenmiyor
+[RED] tan @0x00009EF0: RED: pc=0x00009EFB: 0F ikinci opcode desteklenmiyor
+[RED] rem_pio2l__func_48 @0x0000A2A0: RED: pc=0x0000A2B5: 0F ikinci opcode desteklenmiyor
+[RED] ldexp__func_51 @0x0000ACB0: RED: pc=0x0000ACC3: 0F ikinci opcode desteklenmiyor
+[RED] rem_pio2 @0x0000AF10: RED: pc=0x0000AF1C: 0F ikinci opcode desteklenmiyor
+[RED] tanq @0x0000B4C0: RED: pc=0x0000B4D3: 0F ikinci opcode desteklenmiyor
+[RED] __sqrth @0x0000C280: RED: pc=0x0000C28B: 0F ikinci opcode desteklenmiyor
+[RED] sqrt_f80 @0x0000C400: RED: fixup hedefi yok @0x0000C73D
+[RED] sqrtq @0x0000C770: RED: pc=0x0000C785: 0F ikinci opcode desteklenmiyor
+[RED] sqrt @0x0000CA90: RED: pc=0x0000CA95: 0F ikinci opcode desteklenmiyor
+[RED] sqrtf @0x0000CC40: RED: pc=0x0000CC44: 0F ikinci opcode desteklenmiyor
+[RED] sincosh @0x0000CD80: RED: pc=0x0000CD8C: 0F ikinci opcode desteklenmiyor
+[RED] sincos_f80 @0x0000CE30: RED: pc=0x0000CFA7: grp5 push/far
+[RED] sincos_f32 @0x0000D0B0: RED: pc=0x0000D0BB: 0F ikinci opcode desteklenmiyor
+[RED] sincosq @0x0000D670: RED: pc=0x0000D683: 0F ikinci opcode desteklenmiyor
+[RED] sincos @0x0000D8D0: RED: pc=0x0000D8DC: 0F ikinci opcode desteklenmiyor
+[RED] cosq @0x0000DBF0: RED: pc=0x0000DC00: 0F ikinci opcode desteklenmiyor
+[RED] sinq @0x0000E0B0: RED: pc=0x0000E0C1: 0F ikinci opcode desteklenmiyor
+[RED] sincosf @0x0000E5D0: RED: pc=0x0000E5E6: 0F ikinci opcode desteklenmiyor
+[RED] sin_f80 @0x0000E630: RED: pc=0x0000E6E0: grp5 push/far
+[RED] sin_f32 @0x0000E8D0: RED: pc=0x0000E8DA: 0F ikinci opcode desteklenmiyor
+[RED] sinq @0x0000EB90: RED: pc=0x0000EBA1: 0F ikinci opcode desteklenmiyor
+[RED] sin @0x0000EDD0: RED: pc=0x0000EDDA: 0F ikinci opcode desteklenmiyor
+[RED] __roundh @0x0000F140: RED: pc=0x0000F14F: 0F ikinci opcode desteklenmiyor
+[RED] round_f128 @0x0000F1F0: RED: pc=0x0000F202: 0F ikinci opcode desteklenmiyor
+[RED] roundq @0x0000F3D0: RED: pc=0x0000F3DA: 0F ikinci opcode desteklenmiyor
+[RED] __roundx @0x0000F400: RED: pc=0x0000F41C: 0F ikinci opcode desteklenmiyor
+[RED] round @0x0000F450: RED: pc=0x0000F455: 0F ikinci opcode desteklenmiyor
+[RED] roundf @0x0000F510: RED: pc=0x0000F515: 0F ikinci opcode desteklenmiyor
+[RED] __log2h @0x0000F5C0: RED: pc=0x0000F5CB: 0F ikinci opcode desteklenmiyor
+[RED] log2_f128 @0x0000F750: RED: pc=0x0000F763: 0F ikinci opcode desteklenmiyor
+[RED] log2q @0x000105C0: RED: pc=0x000105CA: 0F ikinci opcode desteklenmiyor
+[RED] __log2x @0x000105F0: RED: pc=0x0001060C: 0F ikinci opcode desteklenmiyor
+[RED] log2 @0x00010640: RED: pc=0x0001064A: 0F ikinci opcode desteklenmiyor
+[RED] log2f @0x00010830: RED: pc=0x00010834: 0F ikinci opcode desteklenmiyor
+[RED] __log10h @0x00010980: RED: pc=0x0001098B: 0F ikinci opcode desteklenmiyor
+[RED] log10_f128 @0x00010B30: RED: pc=0x00010B43: 0F ikinci opcode desteklenmiyor
+[RED] log10q @0x000119E0: RED: pc=0x000119EA: 0F ikinci opcode desteklenmiyor
+[RED] __log10x @0x00011A10: RED: pc=0x00011A2C: 0F ikinci opcode desteklenmiyor
+[RED] log10 @0x00011A60: RED: pc=0x00011A6A: 0F ikinci opcode desteklenmiyor
+[RED] log10f @0x00011C60: RED: pc=0x00011C64: 0F ikinci opcode desteklenmiyor
+[RED] __logh @0x00011DC0: RED: pc=0x00011DCB: 0F ikinci opcode desteklenmiyor
+[RED] log_f128 @0x00011F30: RED: pc=0x00011F43: 0F ikinci opcode desteklenmiyor
+[RED] logq @0x00012C80: RED: pc=0x00012C8A: 0F ikinci opcode desteklenmiyor
+[RED] __logx @0x00012CB0: RED: pc=0x00012CCC: 0F ikinci opcode desteklenmiyor
+[RED] log @0x00012D00: RED: pc=0x00012D0A: 0F ikinci opcode desteklenmiyor
+[RED] logf @0x00013010: RED: pc=0x00013014: 0F ikinci opcode desteklenmiyor
+[RED] __fmodh @0x00013130: RED: pc=0x0001313A: 0F ikinci opcode desteklenmiyor
+[RED] fmod_f32 @0x000133D0: RED: pc=0x000133D4: 0F ikinci opcode desteklenmiyor
+[RED] fmodq @0x00013560: RED: pc=0x00013575: 0F ikinci opcode desteklenmiyor
+[RED] fmod @0x00013960: RED: pc=0x00013964: 0F ikinci opcode desteklenmiyor
+[RED] __fminh @0x00013B00: RED: pc=0x00013B0C: 0F ikinci opcode desteklenmiyor
+[RED] fminq @0x00013B90: RED: pc=0x00013BA0: 0F ikinci opcode desteklenmiyor
+[RED] __fminx @0x00013C30: RED: pc=0x00013C6D: fpu
+[RED] fmin @0x00013C90: RED: pc=0x00013C94: 0F ikinci opcode desteklenmiyor
+[RED] fminf @0x00013CD0: RED: pc=0x00013CD4: 0F ikinci opcode desteklenmiyor
+[RED] __fmaxh @0x00013D00: RED: pc=0x00013D0C: 0F ikinci opcode desteklenmiyor
+[RED] fmaxq @0x00013D90: RED: pc=0x00013DA0: 0F ikinci opcode desteklenmiyor
+[RED] __fmaxx @0x00013E30: RED: pc=0x00013E6F: fpu
+[RED] fmax @0x00013EA0: RED: pc=0x00013EA4: 0F ikinci opcode desteklenmiyor
+[RED] fmaxf @0x00013EE0: RED: pc=0x00013EE4: 0F ikinci opcode desteklenmiyor
+[RED] __fmah @0x00013F10: RED: pc=0x00013F1A: 0F ikinci opcode desteklenmiyor
+[RED] fma_f128 @0x00014020: RED: pc=0x00014033: 0F ikinci opcode desteklenmiyor
+[RED] fmaq @0x00014750: RED: pc=0x0001475A: 0F ikinci opcode desteklenmiyor
+[RED] add_and_denorm128 @0x00014790: RED: pc=0x000147A1: 0F ikinci opcode desteklenmiyor
+[RED] add_adjusted128 @0x00014930: RED: pc=0x00014940: 0F ikinci opcode desteklenmiyor
+[RED] dd_add128 @0x00014A90: RED: pc=0x00014AA1: 0F ikinci opcode desteklenmiyor
+[RED] dd_mul128 @0x00014B80: RED: pc=0x00014B91: 0F ikinci opcode desteklenmiyor
+[RED] __fmax @0x00014E20: RED: pc=0x00014E31: 0F ikinci opcode desteklenmiyor
+[RED] fma @0x00014ED0: RED: pc=0x00014EDF: 0F ikinci opcode desteklenmiyor
+[RED] fmaf @0x000152E0: RED: pc=0x000152E4: 0F ikinci opcode desteklenmiyor
+[RED] add_and_denorm @0x000153B0: RED: pc=0x000153B7: 0F ikinci opcode desteklenmiyor
+[RED] __floorh @0x00015440: RED: pc=0x0001544D: 0F ikinci opcode desteklenmiyor
+[RED] ceilq @0x00015540: RED: pc=0x00015553: 0F ikinci opcode desteklenmiyor
+[RED] ceil @0x00015800: RED: pc=0x00015805: 0F ikinci opcode desteklenmiyor
+[RED] ceilf @0x000158C0: RED: pc=0x000158C5: 0F ikinci opcode desteklenmiyor
+[RED] __ceilh @0x00015950: RED: pc=0x0001595D: 0F ikinci opcode desteklenmiyor
+[RED] floorq @0x00015A30: RED: pc=0x00015A43: 0F ikinci opcode desteklenmiyor
+[RED] floor @0x00015CE0: RED: pc=0x00015CE5: 0F ikinci opcode desteklenmiyor
+[RED] floorf @0x00015DA0: RED: pc=0x00015DA5: 0F ikinci opcode desteklenmiyor
+[RED] __exp2h @0x00015E90: RED: pc=0x00015E9F: 0F ikinci opcode desteklenmiyor
+[RED] exp2 @0x00015FC0: RED: pc=0x00015FD2: 0F ikinci opcode desteklenmiyor
+[RED] exp2q @0x00016590: RED: pc=0x0001659A: 0F ikinci opcode desteklenmiyor
+[RED] __exp2x @0x000165C0: RED: pc=0x000165DC: 0F ikinci opcode desteklenmiyor
+[RED] exp2 @0x00016610: RED: pc=0x00016615: 0F ikinci opcode desteklenmiyor
+[RED] exp2f @0x00016790: RED: pc=0x00016795: 0F ikinci opcode desteklenmiyor
+[RED] exp_f32 @0x000168D0: RED: pc=0x000168D5: 0F ikinci opcode desteklenmiyor
+[RED] exp @0x00016A40: RED: pc=0x00016A52: 0F ikinci opcode desteklenmiyor
+[RED] ldexp__func_87 @0x00017030: RED: pc=0x00017034: 0F ikinci opcode desteklenmiyor
+[RED] expq @0x00017170: RED: pc=0x0001717A: 0F ikinci opcode desteklenmiyor
+[RED] __expx @0x000171A0: RED: pc=0x000171BC: 0F ikinci opcode desteklenmiyor
+[RED] exp @0x000171F0: RED: pc=0x000171FA: 0F ikinci opcode desteklenmiyor
+[RED] cos_f80 @0x000173D0: RED: pc=0x00017454: grp5 push/far
+[RED] cos_f32 @0x00017660: RED: pc=0x0001766A: 0F ikinci opcode desteklenmiyor
+[RED] cosq @0x00017930: RED: pc=0x00017941: 0F ikinci opcode desteklenmiyor
+[RED] cos @0x00017B00: RED: pc=0x00017B0A: 0F ikinci opcode desteklenmiyor
+[RED] __divhc3 @0x00017E90: RED: pc=0x00017EA3: 0F ikinci opcode desteklenmiyor
+[RED] __divtc3 @0x00018530: RED: pc=0x00018545: 0F ikinci opcode desteklenmiyor
+[RED] ldexp__func_91 @0x00018DD0: RED: pc=0x00018DDB: 0F ikinci opcode desteklenmiyor
+[RED] __divxc3 @0x00018F50: RED: pc=0x0001901B: 0F ikinci opcode desteklenmiyor
+[RED] __divdc3 @0x00019D30: RED: pc=0x00019D43: 0F ikinci opcode desteklenmiyor
+[RED] __divsc3 @0x0001A0A0: RED: pc=0x0001A0B2: 0F ikinci opcode desteklenmiyor
+[RED] __mulhc3 @0x0001A3D0: RED: pc=0x0001A3E3: 0F ikinci opcode desteklenmiyor
+[RED] __multc3 @0x0001A8B0: RED: pc=0x0001A8C5: 0F ikinci opcode desteklenmiyor
+[RED] __mulxc3 @0x0001AF70: RED: pc=0x0001B081: fpu
+[RED] __muldc3 @0x0001B3B0: RED: pc=0x0001B3C0: 0F ikinci opcode desteklenmiyor
+[RED] __mulsc3 @0x0001B700: RED: pc=0x0001B70A: 0F ikinci opcode desteklenmiyor
+[RED] __powihf2 @0x0001B9C0: RED: pc=0x0001B9CC: 0F ikinci opcode desteklenmiyor
+[RED] __powitf2 @0x0001BAB0: RED: pc=0x0001BAC9: 0F ikinci opcode desteklenmiyor
+[RED] __powidf2 @0x0001BC10: RED: pc=0x0001BC14: 0F ikinci opcode desteklenmiyor
+[RED] __powisf2 @0x0001BC90: RED: pc=0x0001BC94: 0F ikinci opcode desteklenmiyor
+[RED] __divtf3 @0x0001BD00: RED: pc=0x0001BD25: 0F ikinci opcode desteklenmiyor
+[RED] __divdf3 @0x0001CBF0: RED: pc=0x0001CC05: 0F ikinci opcode desteklenmiyor
+[RED] __divhf3 @0x0001CF50: RED: pc=0x0001CF5A: 0F ikinci opcode desteklenmiyor
+[RED] div_f32 @0x0001CFB0: RED: pc=0x0001CFB7: 0F ikinci opcode desteklenmiyor
+[RED] __mulhf3 @0x0001D220: RED: pc=0x0001D227: 0F ikinci opcode desteklenmiyor
+[RED] __multf3 @0x0001D450: RED: pc=0x0001D475: 0F ikinci opcode desteklenmiyor
+[RED] __mulxf3 @0x0001DA10: RED: fixup hedefi yok @0x0001DD30
+[RED] __muldf3 @0x0001DD60: RED: pc=0x0001DD81: 0F ikinci opcode desteklenmiyor
+[RED] __mulsf3 @0x0001DFF0: RED: pc=0x0001DFF7: 0F ikinci opcode desteklenmiyor
+[RED] __subtf3 @0x0001E220: RED: pc=0x0001E22A: 0F ikinci opcode desteklenmiyor
+[RED] add_f16 @0x0001E260: RED: pc=0x0001E266: 0F ikinci opcode desteklenmiyor
+[RED] add_f128 @0x0001E500: RED: pc=0x0001E51B: 0F ikinci opcode desteklenmiyor
+[RED] add_f80 @0x0001E990: RED: pc=0x0001EA86: 0F ikinci opcode desteklenmiyor
+[RED] add_f64 @0x0001EDE0: RED: pc=0x0001EDEB: 0F ikinci opcode desteklenmiyor
+[RED] add_f32 @0x0001F090: RED: pc=0x0001F096: 0F ikinci opcode desteklenmiyor
+[RED] __addtf3 @0x0001F300: RED: pc=0x0001F30A: 0F ikinci opcode desteklenmiyor
+[RED] __cmphf2 @0x0001F390: RED: pc=0x0001F394: 0F ikinci opcode desteklenmiyor
+[RED] __unordtf2 @0x0001F440: RED: pc=0x0001F444: 0F ikinci opcode desteklenmiyor
+[RED] __unorddf2 @0x0001F870: RED: pc=0x0001F874: 0F ikinci opcode desteklenmiyor
+[RED] __gedf2 @0x0001F8B0: RED: pc=0x0001F8B4: 0F ikinci opcode desteklenmiyor
+[RED] __cmpdf2 @0x0001F950: RED: pc=0x0001F954: 0F ikinci opcode desteklenmiyor
+[RED] __unordsf2 @0x0001FA00: RED: pc=0x0001FA04: 0F ikinci opcode desteklenmiyor
+[RED] __gesf2 @0x0001FA30: RED: pc=0x0001FA34: 0F ikinci opcode desteklenmiyor
+[RED] __cmpsf2 @0x0001FAC0: RED: pc=0x0001FAC4: 0F ikinci opcode desteklenmiyor
+[RED] __unordhf2 @0x0001FB70: RED: pc=0x0001FB74: 0F ikinci opcode desteklenmiyor
+[RED] __gehf2 @0x0001FBB0: RED: pc=0x0001FBB4: 0F ikinci opcode desteklenmiyor
+[RED] __floatunsihf @0x0001FC50: RED: pc=0x0001FC5A: 0F ikinci opcode desteklenmiyor
+[RED] __floatuneitf @0x0001FCE0: RED: pc=0x0001FD09: 0F ikinci opcode desteklenmiyor
+[RED] __floatuntitf_x86_64_windows @0x0001FF30: RED: pc=0x0001FF3C: 0F ikinci opcode desteklenmiyor
+[RED] __floatunditf @0x00020020: RED: pc=0x00020029: 0F ikinci opcode desteklenmiyor
+[RED] __floatunsitf @0x00020090: RED: pc=0x00020098: 0F ikinci opcode desteklenmiyor
+[RED] __floatuneixf @0x00020100: RED: pc=0x0002012F: 0F ikinci opcode desteklenmiyor
+[RED] __floatuntixf @0x00020440: RED: pc=0x00020457: 0F ikinci opcode desteklenmiyor
+[RED] __floatundixf @0x00020520: RED: pc=0x0002052C: 0F ikinci opcode desteklenmiyor
+[RED] __floatunsixf @0x00020590: RED: pc=0x0002059B: 0F ikinci opcode desteklenmiyor
+[RED] __floatuneidf @0x000205F0: RED: pc=0x00020617: 0F ikinci opcode desteklenmiyor
+[RED] __floatuntidf @0x00020820: RED: pc=0x00020833: 0F ikinci opcode desteklenmiyor
+[RED] __floatundidf @0x000208F0: RED: pc=0x000208FC: 0F ikinci opcode desteklenmiyor
+[RED] __floatunsidf @0x00020980: RED: pc=0x00020988: 0F ikinci opcode desteklenmiyor
+[RED] __floatuneisf @0x000209D0: RED: pc=0x000209F7: 0F ikinci opcode desteklenmiyor
+[RED] __floatuntisf @0x00020BD0: RED: pc=0x00020BE3: 0F ikinci opcode desteklenmiyor
+[RED] __floatundisf @0x00020C80: RED: pc=0x00020C8C: 0F ikinci opcode desteklenmiyor
+[RED] __floatunsisf @0x00020D00: RED: pc=0x00020D0A: 0F ikinci opcode desteklenmiyor
+[RED] __floatuneihf @0x00020D70: RED: pc=0x00020D97: 0F ikinci opcode desteklenmiyor
+[RED] __floatuntihf @0x00020F90: RED: pc=0x00020FA4: 0F ikinci opcode desteklenmiyor
+[RED] __floatundihf @0x00021060: RED: pc=0x0002106C: 0F ikinci opcode desteklenmiyor
+[RED] __floatsihf @0x000210F0: RED: pc=0x0002110C: 0F ikinci opcode desteklenmiyor
+[RED] __floateitf @0x000211A0: RED: pc=0x000211C9: 0F ikinci opcode desteklenmiyor
+[RED] __floattitf @0x00021410: RED: pc=0x0002144A: 0F ikinci opcode desteklenmiyor
+[RED] __floatditf @0x00021540: RED: pc=0x00021560: 0F ikinci opcode desteklenmiyor
+[RED] __floatsitf @0x000215C0: RED: pc=0x000215DA: 0F ikinci opcode desteklenmiyor
+[RED] __floateixf @0x00021640: RED: pc=0x0002166F: 0F ikinci opcode desteklenmiyor
+[RED] __floattixf @0x000219E0: RED: pc=0x00021A11: 0F ikinci opcode desteklenmiyor
+[RED] __floatdixf @0x00021AF0: RED: pc=0x00021B06: 0F ikinci opcode desteklenmiyor
+[RED] __floatsixf @0x00021B70: RED: pc=0x00021B85: 0F ikinci opcode desteklenmiyor
+[RED] __floateidf @0x00021BE0: RED: pc=0x00021C07: 0F ikinci opcode desteklenmiyor
+[RED] __floattidf @0x00021E00: RED: pc=0x00021E3A: 0F ikinci opcode desteklenmiyor
+[RED] __floatdidf @0x00021F00: RED: pc=0x00021F20: 0F ikinci opcode desteklenmiyor
+[RED] __floatsidf @0x00021FB0: RED: pc=0x00021FCA: 0F ikinci opcode desteklenmiyor
+[RED] __floateisf @0x00022010: RED: pc=0x00022037: 0F ikinci opcode desteklenmiyor
+[RED] __floattisf @0x00022210: RED: pc=0x00022247: 0F ikinci opcode desteklenmiyor
+[RED] __floatdisf @0x000222F0: RED: pc=0x0002230D: 0F ikinci opcode desteklenmiyor
+[RED] __floatsisf @0x00022380: RED: pc=0x00022397: 0F ikinci opcode desteklenmiyor
+[RED] __floateihf @0x00022400: RED: pc=0x00022427: 0F ikinci opcode desteklenmiyor
+[RED] __floattihf @0x000225F0: RED: pc=0x00022628: 0F ikinci opcode desteklenmiyor
+[RED] __floatdihf @0x000226E0: RED: pc=0x000226FD: 0F ikinci opcode desteklenmiyor
+[RED] __fixunshfsi @0x00022790: RED: pc=0x00022794: 0F ikinci opcode desteklenmiyor
+[RED] __fixunstfei @0x00022800: RED: pc=0x0002281B: 0F ikinci opcode desteklenmiyor
+[RED] __fixunstfti @0x00022C20: RED: pc=0x00022CD2: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsxfei @0x00022DF0: RED: pc=0x00022E1F: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsxfti @0x00023110: RED: pc=0x00023199: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsdfei @0x00023280: RED: pc=0x000232A8: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsdfti @0x00023570: RED: pc=0x00023574: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsdfdi @0x00023620: RED: pc=0x00023624: 0F ikinci opcode desteklenmiyor
+[RED] __fixunsdfsi @0x000236A0: RED: pc=0x000236A4: 0F ikinci opcode desteklenmiyor
+[RED] __fixunssfei @0x00023710: RED: pc=0x00023736: 0F ikinci opcode desteklenmiyor
+[RED] __fixunssfti @0x00023970: RED: pc=0x00023974: 0F ikinci opcode desteklenmiyor
+[RED] __fixunssfdi @0x00023A10: RED: pc=0x00023A14: 0F ikinci opcode desteklenmiyor
+[RED] __fixunssfsi @0x00023A80: RED: pc=0x00023A84: 0F ikinci opcode desteklenmiyor
+[RED] __fixunshfei @0x00023AE0: RED: pc=0x00023B08: 0F ikinci opcode desteklenmiyor
+[RED] __fixunshfti @0x00023D70: RED: pc=0x00023D74: 0F ikinci opcode desteklenmiyor
+[RED] __fixunshfdi @0x00023E10: RED: pc=0x00023E14: 0F ikinci opcode desteklenmiyor
+[RED] __fixhfsi @0x00023E80: RED: pc=0x00023E84: 0F ikinci opcode desteklenmiyor
+[RED] __fixtfei @0x00023F00: RED: pc=0x00023F1B: 0F ikinci opcode desteklenmiyor
+[RED] __fixtfti @0x00024410: RED: pc=0x000244DC: 0F ikinci opcode desteklenmiyor
+[RED] __fixxfei @0x00024600: RED: pc=0x00024639: 0F ikinci opcode desteklenmiyor
+[RED] __fixxfti @0x00024AB0: RED: pc=0x00024B47: 0F ikinci opcode desteklenmiyor
+[RED] __fixdfei @0x00024C30: RED: pc=0x00024C5A: 0F ikinci opcode desteklenmiyor
+[RED] __fixdfti @0x00024F90: RED: pc=0x00024F94: 0F ikinci opcode desteklenmiyor
+[RED] __fixdfdi @0x00025060: RED: pc=0x00025064: 0F ikinci opcode desteklenmiyor
+[RED] __fixdfsi @0x000250F0: RED: pc=0x000250F4: 0F ikinci opcode desteklenmiyor
+[RED] __fixsfei @0x00025160: RED: pc=0x0002518A: 0F ikinci opcode desteklenmiyor
+[RED] __fixsfti @0x00025400: RED: pc=0x00025404: 0F ikinci opcode desteklenmiyor
+[RED] __fixsfdi @0x000254C0: RED: pc=0x000254C4: 0F ikinci opcode desteklenmiyor
+[RED] __fixsfsi @0x00025540: RED: pc=0x00025544: 0F ikinci opcode desteklenmiyor
+[RED] __fixhfei @0x000255B0: RED: pc=0x000255DA: 0F ikinci opcode desteklenmiyor
+[RED] __fixhfti @0x00025890: RED: pc=0x00025894: 0F ikinci opcode desteklenmiyor
+[RED] __fixhfdi @0x00025950: RED: pc=0x00025954: 0F ikinci opcode desteklenmiyor
+[RED] __truncsfhf2 @0x000259D0: RED: pc=0x000259D4: 0F ikinci opcode desteklenmiyor
+[RED] __trunctfxf2 @0x00025AE0: RED: pc=0x00025AF7: 0F ikinci opcode desteklenmiyor
+[RED] __trunctfdf2 @0x00025BC0: RED: pc=0x00025D53: 0F ikinci opcode desteklenmiyor
+[RED] __truncxfdf2 @0x00025D60: RED: pc=0x00025E76: 0F ikinci opcode desteklenmiyor
+[RED] __trunctfsf2 @0x00025E80: RED: pc=0x00025FFA: 0F ikinci opcode desteklenmiyor
+[RED] __truncxfsf2 @0x00026010: RED: pc=0x00026120: 0F ikinci opcode desteklenmiyor
+[RED] __truncdfsf2 @0x00026130: RED: pc=0x00026134: 0F ikinci opcode desteklenmiyor
+[RED] __trunctfhf2 @0x00026270: RED: pc=0x000263FC: 0F ikinci opcode desteklenmiyor
+[RED] __truncxfhf2 @0x00026410: RED: pc=0x00026525: 0F ikinci opcode desteklenmiyor
+[RED] __truncdfhf2 @0x00026530: RED: pc=0x00026534: 0F ikinci opcode desteklenmiyor
+[RED] __extendhfsf2 @0x00026680: RED: pc=0x00026684: 0F ikinci opcode desteklenmiyor
+[RED] __extenddftf2 @0x000267C0: RED: pc=0x000267C4: 0F ikinci opcode desteklenmiyor
+[RED] __extenddfxf2 @0x000268B0: RED: pc=0x000268B7: 0F ikinci opcode desteklenmiyor
+[RED] __extendsftf2 @0x00026980: RED: pc=0x00026984: 0F ikinci opcode desteklenmiyor
+[RED] __extendsfxf2 @0x00026A40: RED: pc=0x00026A47: 0F ikinci opcode desteklenmiyor
+[RED] __extendsfdf2 @0x00026AF0: RED: pc=0x00026AF4: 0F ikinci opcode desteklenmiyor
+[RED] __extendhftf2 @0x00026B90: RED: pc=0x00026B94: 0F ikinci opcode desteklenmiyor
+[RED] __extendhfxf2 @0x00026C60: RED: pc=0x00026C68: 0F ikinci opcode desteklenmiyor
+[RED] __extendhfdf2 @0x00026D30: RED: pc=0x00026D34: 0F ikinci opcode desteklenmiyor
+[RED] __muloti4 @0x00026E00: RED: pc=0x00026E7F: grp3 imul kalmadi
+[RED] __mulvsi3 @0x00026F20: RED: fixup hedefi yok @0x00026F38
+[RED] __subvdi3 @0x00026F40: RED: fixup hedefi yok @0x00026F57
+[RED] __negvti2 @0x00026FD0: RED: pc=0x00026FD4: 0F ikinci opcode desteklenmiyor
+[RED] __absvti2 @0x00027020: RED: pc=0x00027040: 0F ikinci opcode desteklenmiyor
+[RED] __umodti3 @0x000270A0: RED: pc=0x000270CC: 0F ikinci opcode desteklenmiyor
+[RED] __udivmodti4 @0x000270E0: RED: pc=0x0002710B: 0F ikinci opcode desteklenmiyor
+[RED] __divti3 @0x000275E0: RED: pc=0x00027640: 0F ikinci opcode desteklenmiyor
+[RED] __udivti3 @0x00027660: RED: pc=0x0002768C: 0F ikinci opcode desteklenmiyor
+[RED] __modti3 @0x000276A0: RED: pc=0x00027704: 0F ikinci opcode desteklenmiyor
+[RED] __multi3 @0x00027750: RED: pc=0x000277BC: 0F ikinci opcode desteklenmiyor
+[RED] __divmodti4 @0x00027850: RED: pc=0x000278CE: 0F ikinci opcode desteklenmiyor
+[RED] __udivmodsi4 @0x00027910: RED: pc=0x00027933: 0F ikinci opcode desteklenmiyor
+[RED] __umodsi3 @0x00027A60: RED: pc=0x00027A85: 0F ikinci opcode desteklenmiyor
+[RED] __udivsi3 @0x00027C10: RED: pc=0x00027C2B: 0F ikinci opcode desteklenmiyor
+[RED] __udivmoddi4 @0x00027D80: RED: pc=0x00027DC3: 0F ikinci opcode desteklenmiyor
+[RED] __lshrti3 @0x00028290: RED: pc=0x000282C8: 0F ikinci opcode desteklenmiyor
+[RED] __ashrti3 @0x000282E0: RED: pc=0x0002831A: 0F ikinci opcode desteklenmiyor
+[RED] __ashlti3 @0x00028330: RED: pc=0x0002836B: 0F ikinci opcode desteklenmiyor
+[RED] __bswapti2 @0x00028530: RED: pc=0x00028541: 0F ikinci opcode desteklenmiyor
+[RED] __bitreverseti2 @0x000285C0: RED: pc=0x00028659: 0F ikinci opcode desteklenmiyor
+[RED] __mingw_TLScallback @0x000289E0: RED: pc=0x00028A08: grp5 push/far
+[RED] _ValidateImageBase @0x00028BE0: RED: pc=0x00028C05: rcl/rcr desteklenmiyor
+[RED] __mingw_enum_import_library_names @0x00028ED0: RED: fixup hedefi yok @0x00028F82
+[SEH] dinamik unwind: kayit=94 tabloRVA=0x05C890 (xrt ilk kapida RtlAddFunctionTable)
+[WM] watermark alanı: .vmp0+0x1FFF0 (232B) | sürüm imzası: 8 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x0200D8 | VM blob 31380B | vm_entry RVA=0x0447B0
+[YAMA] main @RVA=0x001000 boyut=0x3B9 | bc=1593B key=0x15D289B9F04EDA4B | stubRVA=0x054F50 retimm=4294967295 (yerinde)
+  00001000: push rbp
+  00001001: push r15
+  00001003: push r14
+  00001005: push rsi
+  00001006: push rdi
+  00001007: push rbx
+  00001008: mov rax, imm=0x4048
+  0000100D: call 0x30c0 (ncall)
+  00001012: alu1 (sz8)
+  00001015: lea rbp, [mem]
+  0000101D: call 0x19f0 (ncall)
+  00001022: lea rcx, [mem]
+  00001029: call [mem] (ncalli sz4)
+  0000102F: mov rsi, rax (sz8)
+  00001032: lea rdx, [mem]
+  00001039: mov rbx, [mem] (sz8)
+  00001040: mov rcx, rax (sz8)
+  00001043: call rbx (ncalli reg)
+  00001045: mov rdi, rax (sz8)
+  00001048: lea rdx, [mem]
+  0000104F: mov rcx, rsi (sz8)
+  00001052: call rbx (ncalli reg)
+  00001054: mov rbx, rax (sz8)
+  00001057: lea rcx, [mem]
+  0000105E: call 0x290d0 (ncall)
+  00001063: call [mem] (ncalli sz4)
+  00001069: lea rcx, [mem]
+  00001070: mov rdx, rax (sz4)
+  00001072: call 0x2120 (ncall)
+  00001077: mov rax, [mem] (sz8)
+  00001080: movzx32<-8 [mem]
+  00001084: movzx32<-8 [mem]
+  0000108C: mov r9, r8 (sz4)
+  0000108F: and-imm KAPI-dekompoze (sz4)
+  00001093: lea r15, [mem]
+  0000109A: lea rax, [mem]
+  000010A1: cmov4 r15
+  000010A5: mov [mem], rax (sz8)
+  000010AA: lea rcx, [mem]
+  000010B1: call 0x2120 (ncall)
+  000010B6: mov [mem], imm32=0x0
+  000010C0: lea rdx, [mem]
+  000010C4: lea r9, [mem]
+  000010CB: mov rcx, imm=0x23
+  000010D0: mov r8, imm=0x2
+  000010D6: call rbx (ncalli reg)
+  000010D8: mov r14, rax (sz4)
+  000010DB: movzx32<-8 [mem]
+  000010E0: movzx32<-8 [mem]
+  000010E5: mov rax, [mem] (sz4)
+  000010EB: mov [mem], rax (sz4)
+  000010EF: lea rcx, [mem]
+  000010F6: mov rdx, r14 (sz4)
+  000010F9: call 0x2120 (ncall)
+  000010FE: alu6 (sz4)
+  00001101: jcc8 0x111b
+  00001103: alu5 (sz1)
+  00001107: jcc4 0x111b
+  00001109: alu5 (sz1)
+  0000110D: jcc5 0x111b
+  0000110F: lea rcx, [mem]
+  00001116: call 0x2120 (ncall)
+  0000111B: mov rcx, imm=0xa
+  00001120: call 0x290c0 (ncall)
+  00001125: mov [mem], imm32=0x0
+  0000112F: lea rdx, [mem]
+  00001133: lea r9, [mem]
+  0000113A: mov rcx, imm=0xb
+  0000113F: mov r8, imm=0x4000
+  00001145: call rbx (ncalli reg)
+  00001147: mov rbx, rax (sz4)
+  00001149: mov r8, [mem] (sz4)
+  00001150: lea rcx, [mem]
+  00001157: mov rdx, rax (sz4)
+  00001159: call 0x2120 (ncall)
+  0000115E: alu6 (sz4)
+  00001160: jcc8 0x1181
+  00001162: mov rax, [mem] (sz4)
+  00001168: alu0 (sz4)
+  0000116B: alu5 (sz4)
+  00001170: jcc7 0x1181
+  00001172: mov rdx, [mem] (sz4)
+  00001175: lea rcx, [mem]
+  0000117C: call 0x2120 (ncall)
+  00001181: mov rcx, imm=0xa
+  00001186: call 0x290c0 (ncall)
+  0000118B: mov [mem], imm64=0x0
+  00001193: mov [mem], imm64=0x0
+  0000119C: lea r8, [mem]
+  000011A0: mov rcx, imm=0xffffffff
+  000011A7: mov rdx, imm=0x7
+  000011AC: mov r9, imm=0x8
+  000011B2: call rdi (ncalli reg)
+  000011B4: mov rbx, rax (sz4)
+  000011B6: mov r8, [mem] (sz8)
+  000011BA: lea rcx, [mem]
+  000011C1: mov rdx, rax (sz4)
+  000011C3: call 0x2120 (ncall)
+  000011C8: alu6 (sz4)
+  000011CA: jcc8 0x11df
+  000011CC: alu5 (sz8)
+  000011D1: jcc4 0x11df
+  000011D3: lea rcx, [mem]
+  000011DA: call 0x2120 (ncall)
+  000011DF: mov rcx, imm=0xa
+  000011E4: call 0x290c0 (ncall)
+  000011E9: mov [mem], imm64=0x0
+  000011F1: mov [mem], imm64=0x0
+  000011FA: lea r8, [mem]
+  000011FE: mov rcx, imm=0xffffffff
+  00001205: mov rdx, imm=0x1e
+  0000120A: mov r9, imm=0x8
+  00001210: call rdi (ncalli reg)
+  00001212: mov rdi, rax (sz4)
+  00001214: mov r8, [mem] (sz8)
+  00001218: lea rcx, [mem]
+  0000121F: mov rdx, rax (sz4)
+  00001221: call 0x2120 (ncall)
+  00001226: alu6 (sz4)
+  00001228: jcc8 0x1236
+  0000122A: lea rcx, [mem]
+  00001231: call 0x2120 (ncall)
+  00001236: mov rcx, imm=0xa
+  0000123B: call 0x290c0 (ncall)
+  00001240: mov rcx, imm=0xdeadc0de
+  00001245: call [mem] (ncalli sz4)
+  0000124B: mov rdi, rax (sz4)
+  0000124D: lea rcx, [mem]
+  00001254: mov rdx, rax (sz4)
+  00001256: call 0x2120 (ncall)
+  0000125B: alu6 (sz4)
+  0000125D: jcc4 0x126b
+  0000125F: lea rcx, [mem]
+  00001266: call 0x2120 (ncall)
+  0000126B: mov rcx, imm=0xa
+  00001270: call 0x290c0 (ncall)
+  00001275: lea rdi, [mem]
+  00001279: mov r8, imm=0x4d0
+  0000127F: mov rcx, rdi (sz8)
+  00001282: xor-rr KAPI-dekompoze (sz4)
+  00001284: call 0x2210 (ncall)
+  00001289: mov [mem], imm32=0x100010
+  00001290: mov r14, [mem] (sz8)
+  00001297: call r14 (ncalli reg)
+  0000129A: mov rbx, [mem] (sz8)
+  000012A1: mov rcx, rax (sz8)
+  000012A4: mov rdx, rdi (sz8)
+  000012A7: call rbx (ncalli reg)
+  000012A9: mov r8, [mem] (sz8)
+  000012AD: mov r9, [mem] (sz8)
+  000012B1: lea rcx, [mem]
+  000012B8: mov rdx, rax (sz4)
+  000012BA: call 0x2120 (ncall)
+  000012BF: lea rcx, [mem]
+  000012C6: call 0x290d0 (ncall)
+  000012CB: mov r8, imm=0x4d0
+  000012D1: mov rcx, rdi (sz8)
+  000012D4: xor-rr KAPI-dekompoze (sz4)
+  000012D6: call 0x2210 (ncall)
+  000012DB: mov [mem], imm32=0x100010
+  000012E2: call r14 (ncalli reg)
+  000012E5: mov rcx, rax (sz8)
+  000012E8: mov rdx, rdi (sz8)
+  000012EB: call rbx (ncalli reg)
+  000012ED: mov r8, [mem] (sz8)
+  000012F1: lea rcx, [mem]
+  000012F8: mov rdx, rax (sz4)
+  000012FA: call 0x2120 (ncall)
+  000012FF: lea rdx, [mem]
+  00001306: mov rcx, rsi (sz8)
+  00001309: call [mem] (ncalli sz4)
+  0000130F: mov rcx, imm=0xfffffffe
+  00001316: mov rdx, imm=0x11
+  0000131B: xor-rr KAPI-dekompoze (sz4)
+  0000131E: xor-rr KAPI-dekompoze (sz4)
+  00001321: call rax (ncalli reg)
+  00001323: lea rcx, [mem]
+  0000132A: mov rdx, rax (sz4)
+  0000132C: call 0x2120 (ncall)
+  00001331: lea rsi, [mem]
+  00001335: mov r8, imm=0x4d0
+  0000133B: mov rcx, rsi (sz8)
+  0000133E: xor-rr KAPI-dekompoze (sz4)
+  00001340: call 0x2210 (ncall)
+  00001345: mov [mem], imm32=0x100010
+  0000134C: call r14 (ncalli reg)
+  0000134F: mov rcx, rax (sz8)
+  00001352: mov rdx, rsi (sz8)
+  00001355: call rbx (ncalli reg)
+  00001357: mov r8, [mem] (sz8)
+  0000135B: mov r9, [mem] (sz8)
+  0000135F: mov rcx, [mem] (sz8)
+  00001363: mov rdx, [mem] (sz8)
+  00001367: mov r10, r9 (sz8)
+  0000136A: or-rr KAPI-dekompoze (sz8)
+  0000136D: or-rr KAPI-dekompoze (sz8)
+  00001370: or-rr KAPI-dekompoze (sz8)
+  00001373: lea r10, [mem]
+  0000137A: cmov4 r15
+  0000137E: mov [mem], rdx (sz8)
+  00001383: mov [mem], rcx (sz8)
+  00001388: mov [mem], r10 (sz8)
+  0000138D: lea rcx, [mem]
+  00001394: mov rdx, rax (sz4)
+  00001396: call 0x2120 (ncall)
+  0000139B: lea rcx, [mem]
+  000013A2: call 0x290d0 (ncall)
+  000013A7: xor-rr KAPI-dekompoze (sz4)
+  000013A9: alu0 (sz8)
+  000013B0: pop rbx
+  000013B1: pop rdi
+  000013B2: pop rsi
+  000013B3: pop r14
+  000013B5: pop r15
+  000013B7: pop rbp
+  000013B8: ret
+[YAMA] cpp_unhandled_exception_filter @RVA=0x0017E0 boyut=0x24 | bc=109B key=0xAB0DB99DEC921BF | stubRVA=0x055090 retimm=4294967295 (trampoline)
+  000017E0: push rbp
+  000017E1: mov rbp, rsp (sz8)
+  000017E4: mov rcx, [mem] (sz8)
+  000017E7: mov rax, imm=0x20ffffff
+  000017EC: alu2 (sz4)
+  000017EE: alu5 (sz4)
+  000017F3: jcc5 0x1800
+  000017F5: mov rax, imm=0xffffffff
+  000017FA: alu6 (sz1)
+  000017FE: jcc4 0x1802
+  00001800: xor-rr KAPI-dekompoze (sz4)
+  00001802: pop rbp
+  00001803: ret
+[YAMA] __getmainargs @RVA=0x0018C0 boyut=0x6D | bc=236B key=0x7B3B56795C7D75AD | stubRVA=0x0551D0 retimm=4294967295 (trampoline)
+  000018C0: push rbp
+  000018C1: push r15
+  000018C3: push r14
+  000018C5: push rsi
+  000018C6: push rdi
+  000018C7: push rbx
+  000018C8: alu1 (sz8)
+  000018CC: lea rbp, [mem]
+  000018D1: mov rdi, r9 (sz4)
+  000018D4: mov rsi, r8 (sz8)
+  000018D7: mov rbx, rdx (sz8)
+  000018DA: mov r14, rcx (sz8)
+  000018DD: mov r15, [mem] (sz8)
+  000018E1: call 0x29170 (ncall)
+  000018E6: alu5 (sz4)
+  000018E9: mov rcx, imm=0x2
+  000018EE: alu8 (sz4)
+  000018F1: call 0x29180 (ncall)
+  000018F6: call 0x29190 (ncall)
+  000018FB: mov rax, [mem] (sz4)
+  000018FD: mov [mem], rax (sz4)
+  00001900: call 0x291a0 (ncall)
+  00001905: mov rax, [mem] (sz8)
+  00001908: mov [mem], rax (sz8)
+  0000190B: call 0x291b0 (ncall)
+  00001910: mov rax, [mem] (sz8)
+  00001913: mov [mem], rax (sz8)
+  00001916: mov rcx, [mem] (sz4)
+  00001919: call 0x291c0 (ncall)
+  0000191E: xor-rr KAPI-dekompoze (sz4)
+  00001920: alu0 (sz8)
+  00001924: pop rbx
+  00001925: pop rdi
+  00001926: pop rsi
+  00001927: pop r14
+  00001929: pop r15
+  0000192B: pop rbp
+  0000192C: ret
+[YAMA] __do_global_dtors @RVA=0x001930 boyut=0x43 | bc=115B key=0xB38093E9BE6CDD25 | stubRVA=0x055310 retimm=4294967295 (trampoline)
+  00001930: push rbp
+  00001931: alu1 (sz8)
+  00001935: lea rbp, [mem]
+  0000193A: mov rax, [mem] (sz8)
+  00001941: mov rax, [mem] (sz8)
+  00001944: alu6 (sz8)
+  00001947: jcc4 0x196d
+  00001949: jcc4 0x196d
+  00001950: call rax (ncalli reg)
+  00001952: mov rax, [mem] (sz8)
+  00001959: lea rcx, [mem]
+  0000195D: mov [mem], rcx (sz8)
+  00001964: mov rax, [mem] (sz8)
+  00001968: alu6 (sz8)
+  0000196B: jcc5 0x1950
+  0000196D: alu0 (sz8)
+  00001971: pop rbp
+  00001972: ret
+[YAMA] __do_global_ctors @RVA=0x001980 boyut=0x61 | bc=188B key=0x24D69B395F5F9A7D | stubRVA=0x055450 retimm=4294967295 (trampoline)
+  00001980: push rbp
+  00001981: push rsi
+  00001982: push rdi
+  00001983: alu1 (sz8)
+  00001987: lea rbp, [mem]
+  0000198C: mov rsi, [mem] (sz8)
+  00001993: mov rax, [mem] (sz4)
+  00001995: alu5 (sz4)
+  00001998: jcc5 0x19ad
+  0000199A: mov rax, imm=0xffffffff
+  0000199F: mov rax, imm=0xffffffff
+  000019A0: lea rcx, [mem]
+  000019A3: alu0 (sz4)
+  000019A6: alu5 (sz8)
+  000019AB: jcc5 0x19a0
+  000019AD: alu6 (sz4)
+  000019AF: jcc4 0x19ce
+  000019B1: mov rdi, rax (sz4)
+  000019B3: alu0 (sz8)
+  000019B7: alu0 (sz8)
+  000019C0: call [mem] (ncalli sz4)
+  000019C4: mov rax, rdi (sz4)
+  000019C6: alu0 (sz8)
+  000019CA: alu6 (sz4)
+  000019CC: jcc5 0x19c0
+  000019CE: lea rcx, [mem]
+  000019D5: alu0 (sz8)
+  000019D9: pop rdi
+  000019DA: pop rsi
+  000019DB: pop rbp
+  000019DC: jmp disari -> jmpext 0x17b0 (kuyruk)
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __main @RVA=0x0019F0 boyut=0x47 | bc=112B key=0x5D1BD8A94E9AFF71 | stubRVA=0x055590 retimm=4294967295 (trampoline)
+  000019F0: push rbp
+  000019F1: push rsi
+  000019F2: push rdi
+  000019F3: alu1 (sz8)
+  000019F7: lea rbp, [mem]
+  000019FC: alu5 (sz1)
+  00001A03: jcc4 0x1a0d
+  00001A05: alu0 (sz8)
+  00001A09: pop rdi
+  00001A0A: pop rsi
+  00001A0B: pop rbp
+  00001A0C: ret
+  00001A0D: mov [mem], imm8=0x1
+  00001A14: mov rsi, [mem] (sz8)
+  00001A1B: mov rax, [mem] (sz4)
+  00001A1D: alu5 (sz4)
+  00001A20: jcc5 disari -> jccext 0x1a3d
+  00001A22: mov rax, imm=0xffffffff
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __mingw_SEH_error_handler @RVA=0x001A80 boyut=0x4C | bc=197B key=0x5C504C39AED53397 | stubRVA=0x0556D0 retimm=4294967295 (trampoline)
+  00001A80: push rbp
+  00001A81: push rsi
+  00001A82: push rdi
+  00001A83: alu1 (sz8)
+  00001A87: lea rbp, [mem]
+  00001A8C: mov rsi, imm=0x1
+  00001A91: alu6 (sz1)
+  00001A95: jcc5 0x1aba
+  00001A97: mov rax, [mem] (sz4)
+  00001A99: mov rdi, rcx (sz8)
+  00001A9C: mov [mem], rcx (sz8)
+  00001AA0: mov [mem], r8 (sz8)
+  00001AA4: lea rdx, [mem]
+  00001AA8: mov rcx, rax (sz4)
+  00001AAA: call 0x292c0 (ncall)
+  00001AAF: alu6 (sz4)
+  00001AB1: jcc4 0x1aba
+  00001AB3: alu5 (sz4)
+  00001AB6: jcc5 0x1ac4
+  00001AB8: xor-rr KAPI-dekompoze (sz4)
+  00001ABA: mov rax, rsi (sz4)
+  00001ABC: alu0 (sz8)
+  00001AC0: pop rdi
+  00001AC1: pop rsi
+  00001AC2: pop rbp
+  00001AC3: ret
+  00001AC4: mov rcx, [mem] (sz4)
+  00001AC6: call 0x291d0 (ncall)
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] _pei386_runtime_relocator @RVA=0x001C00 boyut=0x1F3 | bc=834B key=0xAF86D5B96DE6C063 | stubRVA=0x055810 retimm=4294967295 (yerinde)
+  00001C00: push rbp
+  00001C01: push r15
+  00001C03: push r14
+  00001C05: push r13
+  00001C07: push r12
+  00001C09: push rsi
+  00001C0A: push rdi
+  00001C0B: push rbx
+  00001C0C: alu1 (sz8)
+  00001C10: lea rbp, [mem]
+  00001C15: alu5 (sz1)
+  00001C1C: jcc5 0x1d90
+  00001C22: mov [mem], imm8=0x1
+  00001C29: alu1 (sz8)
+  00001C2D: call 0x28d70 (ncall)
+  00001C32: alu0 (sz8)
+  00001C36: cwde/cdqe
+  00001C38: lea rax, [mem]
+  00001C3C: lea rax, [mem]
+  00001C44: and-imm KAPI-dekompoze (sz8)
+  00001C48: call 0x30c0 (ncall)
+  00001C4D: alu1 (sz8)
+  00001C50: mov rax, rsp (sz8)
+  00001C53: mov [mem], rax (sz8)
+  00001C5A: mov [mem], imm32=0x0
+  00001C64: mov rdi, [mem] (sz8)
+  00001C6B: mov rax, rdi (sz8)
+  00001C6E: alu1 (sz8)
+  00001C75: alu5 (sz8)
+  00001C79: jcc14 0x1d90
+  00001C7F: mov rbx, [mem] (sz8)
+  00001C86: mov rax, rdi (sz8)
+  00001C89: alu1 (sz8)
+  00001C8C: alu5 (sz8)
+  00001C90: jcc12 0x1cbe
+  00001C92: mov rbx, [mem] (sz8)
+  00001C99: alu5 (sz4)
+  00001C9C: jcc5 0x1ccd
+  00001C9E: mov rbx, [mem] (sz8)
+  00001CA5: alu5 (sz4)
+  00001CA9: jcc5 0x1ccd
+  00001CAB: mov rax, [mem] (sz8)
+  00001CB2: lea rbx, [mem]
+  00001CB6: alu5 (sz4)
+  00001CBA: cmov5 rax
+  00001CBE: alu5 (sz4)
+  00001CC1: jcc5 0x1ccd
+  00001CC3: alu5 (sz4)
+  00001CC7: jcc4 0x1da1
+  00001CCD: alu5 (sz8)
+  00001CD4: jcc3 0x1d1e
+  00001CD6: mov r14, [mem] (sz8)
+  00001CDD: lea rsi, [mem]
+  00001CE1: lea rsi, [mem]
+  00001CEB: lea rsi, [mem]
+  00001CF0: mov rax, [mem] (sz4)
+  00001CF2: mov rcx, [mem] (sz4)
+  00001CF5: alu0 (sz4)
+  00001CF9: alu0 (sz8)
+  00001CFC: mov [mem], rax (sz4)
+  00001CFF: alu1 (sz8)
+  00001D03: mov r8, imm=0x4
+  00001D09: mov rdx, rsi (sz8)
+  00001D0C: call 0x1f00 (ncall)
+  00001D11: alu0 (sz8)
+  00001D15: alu0 (sz8)
+  00001D19: alu5 (sz8)
+  00001D1C: jcc2 0x1cf0
+  00001D1E: mov rax, [mem] (sz4)
+  00001D24: alu6 (sz4)
+  00001D26: jcc14 0x1d90
+  00001D28: mov rdi, imm=0x10
+  00001D2D: mov rdx, [mem] (sz8)
+  00001D34: xor-rr KAPI-dekompoze (sz4)
+  00001D36: lea rsi, [mem]
+  00001D3A: mov r14, [mem] (sz8)
+  00001D41: jmp 0x1d60
+  00001D43: jmp 0x1d60
+  00001D4D: jmp 0x1d60
+  00001D50: alu0 (sz8)
+  00001D54: movsx64<-32 rax
+  00001D57: alu0 (sz8)
+  00001D5B: alu5 (sz8)
+  00001D5E: jcc13 0x1d90
+  00001D60: mov r8, [mem] (sz4)
+  00001D65: alu6 (sz4)
+  00001D68: jcc4 0x1d50
+  00001D6A: mov rcx, [mem] (sz8)
+  00001D6F: mov rdx, [mem] (sz8)
+  00001D73: alu1 (sz8)
+  00001D77: mov r9, rsi (sz8)
+  00001D7A: call r14 (ncalli reg)
+  00001D7D: alu0 (sz8)
+  00001D81: mov rdx, [mem] (sz8)
+  00001D88: mov rax, [mem] (sz4)
+  00001D8E: jmp 0x1d50
+  00001D90: lea rsp, [mem]
+  00001D94: pop rbx
+  00001D95: pop rdi
+  00001D96: pop rsi
+  00001D97: pop r12
+  00001D99: pop r13
+  00001D9B: pop r14
+  00001D9D: pop r15
+  00001D9F: pop rbp
+  00001DA0: ret
+  00001DA1: mov rdx, [mem] (sz4)
+  00001DA4: alu5 (sz4)
+  00001DA7: jcc5 disari -> jccext 0x1eea
+  00001DAD: alu0 (sz8)
+  00001DB1: alu5 (sz8)
+  00001DB8: jcc3 0x1d1e
+  00001DBE: mov r14, [mem] (sz8)
+  00001DC5: lea r15, [mem]
+  00001DCC: lea r12, [mem]
+  00001DD3: lea rsi, [mem]
+  00001DD7: movabs r13, 0xffffffff00000000
+  00001DE1: jmp disari -> jmpext 0x1e18 (kuyruk)
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] printf @RVA=0x002120 boyut=0x58 | bc=192B key=0x8BD680D9F4776CC1 | stubRVA=0x055950 retimm=4294967295 (trampoline)
+  00002120: push rbp
+  00002121: push rsi
+  00002122: push rdi
+  00002123: alu1 (sz8)
+  00002127: lea rbp, [mem]
+  0000212C: mov rsi, rcx (sz8)
+  0000212F: mov [mem], rdx (sz8)
+  00002133: mov [mem], r8 (sz8)
+  00002137: mov [mem], r9 (sz8)
+  0000213B: lea rax, [mem]
+  0000213F: mov [mem], rax (sz8)
+  00002143: call 0x28fe0 (ncall)
+  00002148: mov rdi, [mem] (sz8)
+  0000214B: mov rcx, imm=0x1
+  00002150: call 0x29080 (ncall)
+  00002155: mov rcx, [mem] (sz8)
+  00002159: mov [mem], rcx (sz8)
+  0000215E: mov rcx, rdi (sz8)
+  00002161: mov rdx, rax (sz8)
+  00002164: mov r8, rsi (sz8)
+  00002167: xor-rr KAPI-dekompoze (sz4)
+  0000216A: call 0x29230 (ncall)
+  0000216F: call 0x29230 (ncall)
+  00002170: alu0 (sz8)
+  00002174: pop rdi
+  00002175: pop rsi
+  00002176: pop rbp
+  00002177: ret
+[YAMA] strlen @RVA=0x002190 boyut=0x1D | bc=50B key=0xC41BBE4947A9C453 | stubRVA=0x055A90 retimm=4294967295 (trampoline)
+  00002190: push rbp
+  00002191: mov rbp, rsp (sz8)
+  00002194: mov rax, imm=0xffffffff
+  0000219B: mov rax, imm=0xffffffff
+  000021A0: alu5 (sz1)
+  000021A5: lea rax, [mem]
+  000021A9: jcc5 0x21a0
+  000021AB: pop rbp
+  000021AC: ret
+[YAMA] bcmp @RVA=0x0021B0 boyut=0x2F | bc=134B key=0x8B0AF469829E03E7 | stubRVA=0x055BD0 retimm=4294967295 (trampoline)
+  000021B0: push rbp
+  000021B1: mov rbp, rsp (sz8)
+  000021B4: alu6 (sz8)
+  000021B7: jcc4 0x21d4
+  000021B9: xor-rr KAPI-dekompoze (sz4)
+  000021BB: xor-rr KAPI-dekompoze (sz4)
+  000021C0: movzx32<-8 [mem]
+  000021C5: alu5 (sz1)
+  000021C9: jcc5 0x21d8
+  000021CB: alu0 (sz8)
+  000021CF: alu5 (sz8)
+  000021D2: jcc5 0x21c0
+  000021D4: xor-rr KAPI-dekompoze (sz4)
+  000021D6: pop rbp
+  000021D7: ret
+  000021D8: mov rax, imm=0x1
+  000021DD: pop rbp
+  000021DE: ret
+[YAMA] memcmp @RVA=0x0021E0 boyut=0x2C | bc=129B key=0x3571C599C8403D13 | stubRVA=0x055D10 retimm=4294967295 (trampoline)
+  000021E0: push rbp
+  000021E1: mov rbp, rsp (sz8)
+  000021E4: alu6 (sz8)
+  000021E7: jcc4 0x2208
+  000021E9: xor-rr KAPI-dekompoze (sz4)
+  000021EC: xor-rr KAPI-dekompoze (sz4)
+  000021F0: movzx32<-8 [mem]
+  000021F5: movzx32<-8 [mem]
+  000021FA: alu1 (sz4)
+  000021FD: jcc5 0x220a
+  000021FF: alu0 (sz8)
+  00002203: alu5 (sz8)
+  00002206: jcc5 0x21f0
+  00002208: xor-rr KAPI-dekompoze (sz4)
+  0000220A: pop rbp
+  0000220B: ret
+[YAMA] __negxf2 @RVA=0x002380 boyut=0x1B | bc=68B key=0x4F978539E694F685 | stubRVA=0x055E50 retimm=4294967295 (trampoline)
+  00002380: push rbp
+  00002381: mov rbp, rsp (sz8)
+  00002384: mov rax, rcx (sz8)
+  00002387: mov rcx, imm=0x8000
+  0000238C: alu4 (sz4)
+  0000238F: mov rdx, [mem] (sz8)
+  00002392: mov [mem], rdx (sz8)
+  00002395: mov [mem], rcx (sz2)
+  00002399: pop rbp
+  0000239A: ret
+[YAMA] clzsi2_generic @RVA=0x002410 boyut=0x65 | bc=244B key=0x4ECBF8C986AD1A35 | stubRVA=0x055F90 retimm=4294967295 (trampoline)
+  00002410: push rbp
+  00002411: mov rbp, rsp (sz8)
+  00002414: xor-rr KAPI-dekompoze (sz4)
+  00002416: mov rdx, rcx (sz4)
+  00002418: shift 16
+  0000241B: setcc4 rax
+  0000241E: cmov4 rcx
+  00002421: shift 4
+  00002424: lea rcx, [mem]
+  00002427: mov r8, rdx (sz4)
+  0000242A: shift 8
+  0000242E: or-imm KAPI-dekompoze (sz4)
+  00002431: alu6 (sz4)
+  00002434: cmov4 rcx
+  00002437: cmov4 rdx
+  0000243B: mov rcx, r8 (sz4)
+  0000243E: shift 4
+  00002441: lea rdx, [mem]
+  00002444: alu6 (sz4)
+  00002446: cmov4 rax
+  00002449: cmov4 r8
+  0000244D: mov r8, rcx (sz4)
+  00002450: shift 2
+  00002454: lea rax, [mem]
+  00002457: alu6 (sz4)
+  0000245A: cmov4 rdx
+  0000245D: cmov4 rcx
+  00002461: xor-rr KAPI-dekompoze (sz4)
+  00002463: mov rdx, r8 (sz4)
+  00002466: shift 1
+  00002468: cmov4 r8
+  0000246C: setcc5 rcx
+  0000246F: alu1 (sz4)
+  00002471: alu1 (sz4)
+  00002473: pop rbp
+  00002474: ret
+[YAMA] __ffsti2 @RVA=0x002480 boyut=0xDB | bc=420B key=0x8711363926C53DE5 | stubRVA=0x0560D0 retimm=4294967295 (trampoline)
+  00002480: push rbp
+  00002481: mov rbp, rsp (sz8)
+  00002484: mov rax, [mem] (sz8)
+  00002487: mov rcx, [mem] (sz8)
+  0000248B: mov rdx, rax (sz8)
+  0000248E: or-rr KAPI-dekompoze (sz8)
+  00002491: jcc4 0x2557
+  00002497: alu6 (sz8)
+  0000249A: mov rdx, imm=0x41
+  0000249F: mov r8, imm=0x1
+  000024A5: cmov4 rdx
+  000024A9: mov rdx, rcx (sz8)
+  000024AC: cmov4 rax
+  000024B0: cmov4 rcx
+  000024B4: lea rcx, [mem]
+  000024B8: mov r9, rdx (sz8)
+  000024BB: shld r9, rax
+  000024C0: mov r10, rdx (sz8)
+  000024C3: shift 32
+  000024C7: alu6 (sz4)
+  000024C9: cmov5 r8
+  000024CD: cmov5 rdx
+  000024D1: cmov5 rax
+  000024D5: mov rax, r10 (sz8)
+  000024D8: shld rax, r9
+  000024DD: lea rdx, [mem]
+  000024E1: mov r8, r10 (sz8)
+  000024E4: shift 16
+  000024E8: alu6 (sz2)
+  000024EC: cmov5 rcx
+  000024F0: cmov5 r10
+  000024F4: cmov5 r9
+  000024F8: lea r9, [mem]
+  000024FC: mov r10, r8 (sz8)
+  000024FF: shld r10, rax
+  00002504: mov rcx, r8 (sz4)
+  00002507: shift 8
+  0000250A: alu6 (sz1)
+  0000250C: cmov5 rdx
+  00002510: cmov5 r8
+  00002514: cmov5 rax
+  00002518: lea rdx, [mem]
+  0000251C: shld rcx, r10
+  00002521: alu6 (sz1)
+  00002525: cmov5 r9
+  00002529: cmov5 r10
+  0000252D: lea rax, [mem]
+  00002530: mov r8, rcx (sz8)
+  00002533: shift 2
+  00002537: alu6 (sz1)
+  0000253A: cmov5 rcx
+  0000253E: mov rcx, r8 (sz4)
+  00002541: not rcx
+  00002543: cmov5 rdx
+  00002546: and-imm KAPI-dekompoze (sz4)
+  00002549: alu0 (sz4)
+  0000254B: bt0 r8
+  0000254F: alu8 (sz4)
+  00002552: alu0 (sz4)
+  00002555: pop rbp
+  00002556: ret
+  00002557: xor-rr KAPI-dekompoze (sz4)
+  00002559: pop rbp
+  0000255A: ret
+[YAMA] __ffsdi2 @RVA=0x002560 boyut=0x99 | bc=353B key=0xF79BB11965763BF3 | stubRVA=0x056210 retimm=4294967295 (trampoline)
+  00002560: push rbp
+  00002561: mov rbp, rsp (sz8)
+  00002564: alu6 (sz8)
+  00002567: jcc4 0x25f5
+  0000256D: mov rdx, rcx (sz8)
+  00002570: shift 32
+  00002574: xor-rr KAPI-dekompoze (sz4)
+  00002576: alu6 (sz4)
+  00002578: setcc4 rax
+  0000257B: cmov5 rcx
+  0000257F: shift 5
+  00002582: lea rcx, [mem]
+  00002586: or-imm KAPI-dekompoze (sz8)
+  0000258A: mov r8, rdx (sz8)
+  0000258D: shift 16
+  00002591: alu6 (sz2)
+  00002594: cmov5 rcx
+  00002598: cmov5 rdx
+  0000259C: lea rcx, [mem]
+  0000259F: mov rdx, r8 (sz8)
+  000025A2: shift 8
+  000025A6: alu6 (sz1)
+  000025A9: cmov5 rax
+  000025AD: cmov5 r8
+  000025B1: mov r8, rcx (sz4)
+  000025B4: or-imm KAPI-dekompoze (sz4)
+  000025B8: mov r9, rdx (sz8)
+  000025BB: shift 4
+  000025BF: alu6 (sz1)
+  000025C2: cmov5 rdx
+  000025C6: cmov5 rcx
+  000025CA: lea rax, [mem]
+  000025CE: mov rcx, r9 (sz8)
+  000025D1: shift 2
+  000025D5: alu6 (sz1)
+  000025D9: cmov5 r8
+  000025DD: cmov5 r9
+  000025E1: mov rdx, rcx (sz4)
+  000025E3: not rdx
+  000025E5: and-imm KAPI-dekompoze (sz4)
+  000025E8: alu0 (sz4)
+  000025EA: bt0 rcx
+  000025ED: alu8 (sz4)
+  000025F0: alu0 (sz4)
+  000025F3: pop rbp
+  000025F4: ret
+  000025F5: xor-rr KAPI-dekompoze (sz4)
+  000025F7: pop rbp
+  000025F8: ret
+[YAMA] __ffssi2 @RVA=0x002600 boyut=0x74 | bc=311B key=0xDA47BFB947FC1C29 | stubRVA=0x056350 retimm=4294967295 (trampoline)
+  00002600: push rbp
+  00002601: mov rbp, rsp (sz8)
+  00002604: alu6 (sz4)
+  00002606: jcc4 0x2670
+  00002608: mov rax, rcx (sz4)
+  0000260A: shift 16
+  0000260D: xor-rr KAPI-dekompoze (sz4)
+  0000260F: alu6 (sz2)
+  00002612: setcc4 rdx
+  00002615: cmov5 rcx
+  00002618: shift 4
+  0000261B: lea rcx, [mem]
+  0000261E: or-imm KAPI-dekompoze (sz4)
+  00002621: mov r8, rax (sz4)
+  00002624: shift 8
+  00002628: alu6 (sz1)
+  0000262A: cmov5 rcx
+  0000262D: cmov5 rax
+  00002631: lea rcx, [mem]
+  00002634: mov r9, r8 (sz4)
+  00002637: shift 4
+  0000263B: alu6 (sz1)
+  0000263F: cmov5 rdx
+  00002642: cmov5 r8
+  00002646: lea rax, [mem]
+  00002649: mov rdx, r9 (sz4)
+  0000264C: shift 2
+  0000264F: alu6 (sz1)
+  00002653: cmov5 rcx
+  00002656: cmov5 r9
+  0000265A: mov rcx, rdx (sz4)
+  0000265C: not rcx
+  0000265E: and-imm KAPI-dekompoze (sz4)
+  00002661: mov r8, rdx (sz4)
+  00002664: or-imm KAPI-dekompoze (sz4)
+  00002668: bt0 rdx
+  0000266B: alu8 (sz4)
+  0000266E: pop rbp
+  0000266F: ret
+  00002670: xor-rr KAPI-dekompoze (sz4)
+  00002672: pop rbp
+  00002673: ret
+[YAMA] __ctzti2 @RVA=0x002680 boyut=0xDB | bc=394B key=0xF60498395DAA672B | stubRVA=0x056490 retimm=4294967295 (trampoline)
+  00002680: push rbp
+  00002681: mov rbp, rsp (sz8)
+  00002684: mov rax, [mem] (sz8)
+  00002687: mov rcx, [mem] (sz8)
+  0000268B: mov rdx, rax (sz8)
+  0000268E: or-rr KAPI-dekompoze (sz8)
+  00002691: jcc4 0x2754
+  00002697: alu6 (sz8)
+  0000269A: mov rdx, imm=0x41
+  0000269F: mov r8, imm=0x1
+  000026A5: cmov4 rdx
+  000026A9: mov rdx, rcx (sz8)
+  000026AC: cmov4 rax
+  000026B0: cmov4 rcx
+  000026B4: lea rcx, [mem]
+  000026B8: mov r9, rdx (sz8)
+  000026BB: shld r9, rax
+  000026C0: mov r10, rdx (sz8)
+  000026C3: shift 32
+  000026C7: alu6 (sz4)
+  000026C9: cmov5 r8
+  000026CD: cmov5 rdx
+  000026D1: cmov5 rax
+  000026D5: mov rax, r10 (sz8)
+  000026D8: shld rax, r9
+  000026DD: lea rdx, [mem]
+  000026E1: mov r8, r10 (sz8)
+  000026E4: shift 16
+  000026E8: alu6 (sz2)
+  000026EC: cmov5 rcx
+  000026F0: cmov5 r10
+  000026F4: cmov5 r9
+  000026F8: lea r9, [mem]
+  000026FC: mov r10, r8 (sz8)
+  000026FF: shld r10, rax
+  00002704: mov rcx, r8 (sz4)
+  00002707: shift 8
+  0000270A: alu6 (sz1)
+  0000270C: cmov5 rdx
+  00002710: cmov5 r8
+  00002714: cmov5 rax
+  00002718: lea rdx, [mem]
+  0000271C: shld rcx, r10
+  00002721: alu6 (sz1)
+  00002725: cmov5 r9
+  00002729: cmov5 r10
+  0000272D: lea rax, [mem]
+  00002730: mov r8, rcx (sz8)
+  00002733: shift 2
+  00002737: alu6 (sz1)
+  0000273A: cmov5 rcx
+  0000273E: mov rcx, r8 (sz4)
+  00002741: not rcx
+  00002743: cmov5 rdx
+  00002746: and-imm KAPI-dekompoze (sz4)
+  00002749: alu0 (sz4)
+  0000274B: bt0 r8
+  0000274F: alu8 (sz4)
+  00002752: pop rbp
+  00002753: ret
+  00002754: mov rax, imm=0x80
+  00002759: pop rbp
+  0000275A: ret
+[YAMA] __ctzdi2 @RVA=0x002760 boyut=0x99 | bc=327B key=0x668F13199C5B6539 | stubRVA=0x0565D0 retimm=4294967295 (trampoline)
+  00002760: push rbp
+  00002761: mov rbp, rsp (sz8)
+  00002764: alu6 (sz8)
+  00002767: jcc4 0x27f2
+  0000276D: mov rdx, rcx (sz8)
+  00002770: shift 32
+  00002774: xor-rr KAPI-dekompoze (sz4)
+  00002776: alu6 (sz4)
+  00002778: setcc4 rax
+  0000277B: cmov5 rcx
+  0000277F: shift 5
+  00002782: lea rcx, [mem]
+  00002786: or-imm KAPI-dekompoze (sz8)
+  0000278A: mov r8, rdx (sz8)
+  0000278D: shift 16
+  00002791: alu6 (sz2)
+  00002794: cmov5 rcx
+  00002798: cmov5 rdx
+  0000279C: lea rcx, [mem]
+  0000279F: mov rdx, r8 (sz8)
+  000027A2: shift 8
+  000027A6: alu6 (sz1)
+  000027A9: cmov5 rax
+  000027AD: cmov5 r8
+  000027B1: mov r8, rcx (sz4)
+  000027B4: or-imm KAPI-dekompoze (sz4)
+  000027B8: mov r9, rdx (sz8)
+  000027BB: shift 4
+  000027BF: alu6 (sz1)
+  000027C2: cmov5 rdx
+  000027C6: cmov5 rcx
+  000027CA: lea rax, [mem]
+  000027CE: mov rcx, r9 (sz8)
+  000027D1: shift 2
+  000027D5: alu6 (sz1)
+  000027D9: cmov5 r8
+  000027DD: cmov5 r9
+  000027E1: mov rdx, rcx (sz4)
+  000027E3: not rdx
+  000027E5: and-imm KAPI-dekompoze (sz4)
+  000027E8: alu0 (sz4)
+  000027EA: bt0 rcx
+  000027ED: alu8 (sz4)
+  000027F0: pop rbp
+  000027F1: ret
+  000027F2: mov rax, imm=0x40
+  000027F7: pop rbp
+  000027F8: ret
+[YAMA] __ctzsi2 @RVA=0x002800 boyut=0x72 | bc=274B key=0x493B21B9E4DFC333 | stubRVA=0x056710 retimm=4294967295 (trampoline)
+  00002800: push rbp
+  00002801: mov rbp, rsp (sz8)
+  00002804: alu6 (sz4)
+  00002806: jcc4 0x286b
+  00002808: mov rax, rcx (sz4)
+  0000280A: shift 16
+  0000280D: xor-rr KAPI-dekompoze (sz4)
+  0000280F: alu6 (sz2)
+  00002812: setcc4 rdx
+  00002815: cmov5 rcx
+  00002818: shift 4
+  0000281B: lea rcx, [mem]
+  0000281E: or-imm KAPI-dekompoze (sz4)
+  00002821: mov r8, rax (sz4)
+  00002824: shift 8
+  00002828: alu6 (sz1)
+  0000282A: cmov5 rcx
+  0000282D: cmov5 rax
+  00002831: lea rcx, [mem]
+  00002834: mov r9, r8 (sz4)
+  00002837: shift 4
+  0000283B: alu6 (sz1)
+  0000283F: cmov5 rdx
+  00002842: cmov5 r8
+  00002846: lea rax, [mem]
+  00002849: mov rdx, r9 (sz4)
+  0000284C: shift 2
+  0000284F: alu6 (sz1)
+  00002853: cmov5 rcx
+  00002856: cmov5 r9
+  0000285A: mov rcx, rdx (sz4)
+  0000285C: not rcx
+  0000285E: and-imm KAPI-dekompoze (sz4)
+  00002861: alu0 (sz4)
+  00002863: bt0 rdx
+  00002866: alu8 (sz4)
+  00002869: pop rbp
+  0000286A: ret
+  0000286B: mov rax, imm=0x20
+  00002870: pop rbp
+  00002871: ret
+[YAMA] __clzti2 @RVA=0x002880 boyut=0xF9 | bc=506B key=0x64F7FA39AC45669B | stubRVA=0x056850 retimm=4294967295 (trampoline)
+  00002880: push rbp
+  00002881: mov rbp, rsp (sz8)
+  00002884: mov rax, [mem] (sz8)
+  00002888: xor-rr KAPI-dekompoze (sz4)
+  0000288A: alu6 (sz8)
+  0000288D: mov r8, imm=0x80
+  00002893: mov r9, imm=0x40
+  00002899: cmov4 r8
+  0000289D: mov rcx, [mem] (sz8)
+  000028A0: cmov5 rax
+  000028A4: cmov4 rax
+  000028A8: mov rax, rdx (sz8)
+  000028AB: shld rax, rcx
+  000028B0: mov r8, rdx (sz8)
+  000028B3: shift 32
+  000028B7: lea r10, [mem]
+  000028BB: mov r11, rax (sz8)
+  000028BE: or-rr KAPI-dekompoze (sz8)
+  000028C1: cmov4 r9
+  000028C5: cmov4 rcx
+  000028C9: cmov4 rdx
+  000028CD: mov rcx, r8 (sz8)
+  000028D0: shld rcx, rax
+  000028D5: mov rdx, r8 (sz8)
+  000028D8: shift 16
+  000028DC: lea r9, [mem]
+  000028E0: mov r11, rcx (sz8)
+  000028E3: or-rr KAPI-dekompoze (sz8)
+  000028E6: cmov4 r10
+  000028EA: cmov4 rax
+  000028EE: cmov4 r8
+  000028F2: mov rax, rdx (sz8)
+  000028F5: shld rax, rcx
+  000028FA: mov r8, rdx (sz8)
+  000028FD: shift 8
+  00002901: lea r10, [mem]
+  00002905: mov r11, rax (sz8)
+  00002908: or-rr KAPI-dekompoze (sz8)
+  0000290B: cmov4 r9
+  0000290F: cmov4 rcx
+  00002913: cmov4 rdx
+  00002917: mov rcx, r8 (sz8)
+  0000291A: shld rcx, rax
+  0000291F: mov rdx, r8 (sz8)
+  00002922: shift 4
+  00002926: lea r9, [mem]
+  0000292A: mov r11, rcx (sz8)
+  0000292D: or-rr KAPI-dekompoze (sz8)
+  00002930: cmov4 r10
+  00002934: cmov4 rax
+  00002938: cmov4 r8
+  0000293C: mov r8, rdx (sz8)
+  0000293F: shld r8, rcx
+  00002944: mov r10, rdx (sz8)
+  00002947: shift 2
+  0000294B: lea rax, [mem]
+  0000294F: mov r11, r8 (sz8)
+  00002952: or-rr KAPI-dekompoze (sz8)
+  00002955: cmov4 rcx
+  00002959: cmov4 rdx
+  0000295D: cmov4 r9
+  00002961: mov rcx, r8 (sz8)
+  00002964: shift 1
+  00002967: xor-rr KAPI-dekompoze (sz4)
+  00002969: or-rr KAPI-dekompoze (sz8)
+  0000296C: cmov4 r8
+  00002970: setcc5 rdx
+  00002973: alu1 (sz4)
+  00002975: alu1 (sz4)
+  00002977: pop rbp
+  00002978: ret
+[YAMA] __clzdi2 @RVA=0x002980 boyut=0x84 | bc=280B key=0x9C71AB39C4837E99 | stubRVA=0x056990 retimm=4294967295 (trampoline)
+  00002980: push rbp
+  00002981: mov rbp, rsp (sz8)
+  00002984: xor-rr KAPI-dekompoze (sz4)
+  00002986: mov rdx, rcx (sz8)
+  00002989: shift 32
+  0000298D: setcc4 rax
+  00002990: cmov4 rcx
+  00002994: shift 5
+  00002997: lea rcx, [mem]
+  0000299B: mov r8, rdx (sz8)
+  0000299E: shift 16
+  000029A2: or-imm KAPI-dekompoze (sz8)
+  000029A6: alu6 (sz8)
+  000029A9: cmov4 rcx
+  000029AD: cmov4 rdx
+  000029B1: mov rcx, r8 (sz8)
+  000029B4: shift 8
+  000029B8: lea rdx, [mem]
+  000029BB: alu6 (sz8)
+  000029BE: cmov4 rax
+  000029C2: cmov4 r8
+  000029C6: mov rax, rcx (sz8)
+  000029C9: shift 4
+  000029CD: alu6 (sz8)
+  000029D0: cmov4 rcx
+  000029D4: lea rcx, [mem]
+  000029D7: cmov4 rdx
+  000029DA: mov rdx, rax (sz8)
+  000029DD: shift 2
+  000029E1: alu6 (sz8)
+  000029E4: cmov4 rax
+  000029E8: lea rax, [mem]
+  000029EB: cmov4 rcx
+  000029EE: xor-rr KAPI-dekompoze (sz4)
+  000029F0: mov r8, rdx (sz8)
+  000029F3: shift 1
+  000029F6: cmov4 rdx
+  000029FA: setcc5 rcx
+  000029FD: alu1 (sz4)
+  000029FF: alu1 (sz4)
+  00002A02: pop rbp
+  00002A03: ret
+[YAMA] memcpyFast @RVA=0x002F10 boyut=0x60 | bc=202B key=0xB10693C96932FA6B | stubRVA=0x056AD0 retimm=4294967295 (trampoline)
+  00002F10: push rbp
+  00002F11: push rsi
+  00002F12: mov rbp, rsp (sz8)
+  00002F15: mov rax, rcx (sz8)
+  00002F18: alu5 (sz8)
+  00002F1C: jcc7 0x2f4b
+  00002F1E: alu5 (sz8)
+  00002F22: jcc7 disari -> jccext 0x2f7d
+  00002F24: alu6 (sz8)
+  00002F27: jcc4 0x2f48
+  00002F29: movzx32<-8 [mem]
+  00002F2C: mov [mem], rcx (sz1)
+  00002F2E: mov rcx, r8 (sz8)
+  00002F31: shift 1
+  00002F34: movzx32<-8 [mem]
+  00002F39: mov [mem], r9 (sz1)
+  00002F3D: movzx32<-8 [mem]
+  00002F43: mov [mem], rcx (sz1)
+  00002F48: pop rsi
+  00002F49: pop rbp
+  00002F4A: ret
+  00002F4B: alu5 (sz8)
+  00002F4F: jcc7 disari -> jccext 0x2faf
+  00002F51: mov rcx, r8 (sz4)
+  00002F54: shift 1
+  00002F56: and-imm KAPI-dekompoze (sz4)
+  00002F59: lea r9, [mem]
+  00002F5D: alu1 (sz8)
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] zig_probe_stack @RVA=0x003080 boyut=0x40 | bc=96B key=0x20C58239FA3BB661 | stubRVA=0x056C10 retimm=4294967295 (trampoline)
+  00003080: push rcx
+  00003081: mov rcx, rax (sz8)
+  00003084: alu5 (sz8)
+  0000308B: jcc2 0x30a9
+  0000308D: alu1 (sz8)
+  00003094: alu3 (sz4)
+  00003099: alu1 (sz8)
+  000030A0: alu5 (sz8)
+  000030A7: jcc7 0x308d
+  000030A9: alu1 (sz8)
+  000030AC: alu3 (sz4)
+  000030B1: alu0 (sz8)
+  000030B4: pop rcx
+  000030B5: ret
+[YAMA] ___chkstk_ms @RVA=0x0030C0 boyut=0x30 | bc=95B key=0xAEA3EE79D4F5C1D1 | stubRVA=0x056D50 retimm=4294967295 (trampoline)
+  000030C0: push rcx
+  000030C1: push rax
+  000030C2: alu5 (sz8)
+  000030C8: lea rcx, [mem]
+  000030CD: jcc2 0x30e7
+  000030CF: alu1 (sz8)
+  000030D6: alu6 (sz8)
+  000030D9: alu1 (sz8)
+  000030DF: alu5 (sz8)
+  000030E5: jcc7 0x30cf
+  000030E7: alu1 (sz8)
+  000030EA: alu6 (sz8)
+  000030ED: pop rax
+  000030EE: pop rcx
+  000030EF: ret
+[YAMA] __tanh @RVA=0x007DF0 boyut=0x20 | bc=49B key=0x8A4FCA92263CFC3 | stubRVA=0x056E90 retimm=4294967295 (trampoline)
+  00007DF0: push rbp
+  00007DF1: alu1 (sz8)
+  00007DF5: lea rbp, [mem]
+  00007DFA: call 0x26680 (ncall)
+  00007DFF: call 0x8000 (ncall)
+  00007E04: call 0x259d0 (ncall)
+  00007E09: call 0x259d0 (ncall)
+  00007E0A: alu0 (sz8)
+  00007E0E: pop rbp
+  00007E0F: ret
+[YAMA] tan_f80 @RVA=0x007E10 boyut=0xF6 | bc=478B key=0xCF9432C9989EA6BF | stubRVA=0x056FD0 retimm=4294967295 (trampoline)
+  00007E10: push rbp
+  00007E11: push rsi
+  00007E12: alu1 (sz8)
+  00007E19: lea rbp, [mem]
+  00007E21: mov rax, rcx (sz8)
+  00007E24: fpu-fpu
+  00007E26: fpu-fpu
+  00007E28: fpu-fpu
+  00007E2B: movzx32<-16 [mem]
+  00007E2F: and-imm KAPI-dekompoze (sz4)
+  00007E35: alu5 (sz4)
+  00007E3B: jcc5 0x7e4b
+  00007E3D: fpu-fpu
+  00007E3F: fpu-fpu
+  00007E41: alu0 (sz8)
+  00007E48: pop rsi
+  00007E49: pop rbp
+  00007E4A: ret
+  00007E4B: fpu-fpu
+  00007E4D: fabs
+  00007E4F: fpu-fpu
+  00007E55: fpu-st63
+  00007E57: jcc6 0x7e94
+  00007E59: movzx32<-16 rcx
+  00007E5C: alu5 (sz4)
+  00007E62: jcc7 0x7edf
+  00007E64: fpu-fpu
+  00007E66: fpu-fpu
+  00007E68: fpu-fpu
+  00007E6A: fpu-fpu
+  00007E70: fpu-fpu
+  00007E72: fpu-fpu
+  00007E78: alu6 (sz2)
+  00007E7B: fcmov st,st(1) cc4
+  00007E7D: fpu-fpu
+  00007E7F: fpu-fpu
+  00007E82: lea rcx, [mem]
+  00007E86: mov [mem], rcx (sz8)
+  00007E8A: lea rcx, [mem]
+  00007E8E: mov [mem], rcx (sz8)
+  00007E92: jmp 0x7e3f
+  00007E94: fpu-fpu
+  00007E96: fpu-fpu
+  00007E98: fpu-fpu
+  00007E9B: lea rcx, [mem]
+  00007E9F: lea rdx, [mem]
+  00007EA3: mov rsi, rax (sz8)
+  00007EA6: call 0x82b0 (ncall)
+  00007EAB: fpu-fpu
+  00007EAE: fpu-fpu
+  00007EB1: and-imm KAPI-dekompoze (sz4)
+  00007EB4: fpu-fpu
+  00007EB7: fpu-fpu
+  00007EBA: lea rcx, [mem]
+  00007EBE: mov rdx, rbp (sz8)
+  00007EC1: lea r8, [mem]
+  00007EC5: mov r9, rax (sz4)
+  00007EC8: call 0x9bc0 (ncall)
+  00007ECD: fpu-fpu
+  00007ED0: fpu-fpu
+  00007ED2: mov rax, rsi (sz8)
+  00007ED5: alu0 (sz8)
+  00007EDC: pop rsi
+  00007EDD: pop rbp
+  00007EDE: ret
+  00007EDF: fpu-fpu
+  00007EE5: fpu-st34
+  00007EE7: fpu-st63
+  00007EE9: jcc2 disari -> jccext 0x7f08
+  00007EEB: fpu-fpu
+  00007EED: fchs
+  00007EEF: fpu-st63
+  00007EF1: setcc7 rcx
+  00007EF4: fpu-st34
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __tanx @RVA=0x009EC0 boyut=0x2F | bc=111B key=0x84EDFC7929550AE1 | stubRVA=0x057110 retimm=4294967295 (trampoline)
+  00009EC0: push rbp
+  00009EC1: push rsi
+  00009EC2: alu1 (sz8)
+  00009EC6: lea rbp, [mem]
+  00009ECB: mov rsi, rcx (sz8)
+  00009ECE: fpu-fpu
+  00009ED0: fpu-fpu
+  00009ED3: lea rcx, [mem]
+  00009ED7: lea rdx, [mem]
+  00009EDB: call 0x7e10 (ncall)
+  00009EE0: fpu-fpu
+  00009EE3: fpu-fpu
+  00009EE5: mov rax, rsi (sz8)
+  00009EE8: alu0 (sz8)
+  00009EEC: pop rsi
+  00009EED: pop rbp
+  00009EEE: ret
+[YAMA] __sqrtx @RVA=0x00CA60 boyut=0x2F | bc=111B key=0xB90AC61929550AE1 | stubRVA=0x057250 retimm=4294967295 (trampoline)
+  0000CA60: push rbp
+  0000CA61: push rsi
+  0000CA62: alu1 (sz8)
+  0000CA66: lea rbp, [mem]
+  0000CA6B: mov rsi, rcx (sz8)
+  0000CA6E: fpu-fpu
+  0000CA70: fpu-fpu
+  0000CA73: lea rcx, [mem]
+  0000CA77: lea rdx, [mem]
+  0000CA7B: call 0xc400 (ncall)
+  0000CA80: fpu-fpu
+  0000CA83: fpu-fpu
+  0000CA85: mov rax, rsi (sz8)
+  0000CA88: alu0 (sz8)
+  0000CA8C: pop rsi
+  0000CA8D: pop rbp
+  0000CA8E: ret
+[YAMA] sincosl @RVA=0x00CDF0 boyut=0x36 | bc=135B key=0x5EAC4CA9A7E3F879 | stubRVA=0x057390 retimm=4294967295 (trampoline)
+  0000CDF0: push rbp
+  0000CDF1: push rsi
+  0000CDF2: push rdi
+  0000CDF3: alu1 (sz8)
+  0000CDF7: lea rbp, [mem]
+  0000CDFC: mov rsi, r8 (sz8)
+  0000CDFF: mov rdi, rdx (sz8)
+  0000CE02: fpu-fpu
+  0000CE04: fpu-fpu
+  0000CE07: lea rcx, [mem]
+  0000CE0B: lea rdx, [mem]
+  0000CE0F: call 0xce30 (ncall)
+  0000CE14: fpu-fpu
+  0000CE17: fpu-fpu
+  0000CE19: fpu-fpu
+  0000CE1C: fpu-fpu
+  0000CE1E: alu0 (sz8)
+  0000CE22: pop rdi
+  0000CE23: pop rsi
+  0000CE24: pop rbp
+  0000CE25: ret
+[YAMA] sincosx @RVA=0x00D890 boyut=0x38 | bc=138B key=0x6C19454917B5D62B | stubRVA=0x0574D0 retimm=4294967295 (trampoline)
+  0000D890: push rbp
+  0000D891: push rsi
+  0000D892: push rdi
+  0000D893: alu1 (sz8)
+  0000D897: lea rbp, [mem]
+  0000D89C: mov rsi, r8 (sz8)
+  0000D89F: mov rdi, rdx (sz8)
+  0000D8A2: fpu-fpu
+  0000D8A4: fpu-fpu
+  0000D8A7: lea rcx, [mem]
+  0000D8AB: lea rdx, [mem]
+  0000D8AF: call 0xce30 (ncall)
+  0000D8B4: fpu-fpu
+  0000D8B7: fpu-fpu
+  0000D8BA: fpu-st34
+  0000D8BC: fpu-fpu
+  0000D8BE: fpu-fpu
+  0000D8C0: alu0 (sz8)
+  0000D8C4: pop rdi
+  0000D8C5: pop rsi
+  0000D8C6: pop rbp
+  0000D8C7: ret
+[YAMA] __sinh @RVA=0x00E610 boyut=0x20 | bc=49B key=0x59041AC92263CFC3 | stubRVA=0x057610 retimm=4294967295 (trampoline)
+  0000E610: push rbp
+  0000E611: alu1 (sz8)
+  0000E615: lea rbp, [mem]
+  0000E61A: call 0x26680 (ncall)
+  0000E61F: call 0xe8d0 (ncall)
+  0000E624: call 0x259d0 (ncall)
+  0000E629: call 0x259d0 (ncall)
+  0000E62A: alu0 (sz8)
+  0000E62E: pop rbp
+  0000E62F: ret
+[YAMA] __sinx @RVA=0x00EDA0 boyut=0x2F | bc=111B key=0xDC8C655929550AE1 | stubRVA=0x057750 retimm=4294967295 (trampoline)
+  0000EDA0: push rbp
+  0000EDA1: push rsi
+  0000EDA2: alu1 (sz8)
+  0000EDA6: lea rbp, [mem]
+  0000EDAB: mov rsi, rcx (sz8)
+  0000EDAE: fpu-fpu
+  0000EDB0: fpu-fpu
+  0000EDB3: lea rcx, [mem]
+  0000EDB7: lea rdx, [mem]
+  0000EDBB: call 0xe630 (ncall)
+  0000EDC0: fpu-fpu
+  0000EDC3: fpu-fpu
+  0000EDC5: mov rax, rsi (sz8)
+  0000EDC8: alu0 (sz8)
+  0000EDCC: pop rsi
+  0000EDCD: pop rbp
+  0000EDCE: ret
+[YAMA] fmod_f80 @RVA=0x013180 boyut=0xE0 | bc=537B key=0xD1F033392FBE042B | stubRVA=0x057890 retimm=4294967295 (trampoline)
+  00013180: push rbp
+  00013181: push rsi
+  00013182: push rdi
+  00013183: alu1 (sz8)
+  0001318A: lea rbp, [mem]
+  00013192: mov rax, rcx (sz8)
+  00013195: fpu-fpu
+  00013197: fpu-fpu
+  00013199: fpu-fpu
+  0001319C: fpu-fpu
+  0001319F: fpu-fpu
+  000131A1: fpu-fpu
+  000131A4: fldz
+  000131A6: fpu-st34
+  000131A8: fpu-st63
+  000131AA: jcc5 0x131ae
+  000131AC: jcc11 0x131d0
+  000131AE: mov rdx, [mem] (sz4)
+  000131B1: mov r9, rdx (sz4)
+  000131B4: and-imm KAPI-dekompoze (sz4)
+  000131BB: fpu-st63
+  000131BD: setcc10 rcx
+  000131C0: alu5 (sz4)
+  000131C7: setcc4 r8
+  000131CB: or-rr KAPI-dekompoze (sz1)
+  000131CE: jcc4 0x131e3
+  000131D0: fpu-fpu
+  000131D2: fpu-st56
+  000131D4: fpu-fpu
+  000131D6: fpu-fpu
+  000131D8: alu0 (sz8)
+  000131DF: pop rdi
+  000131E0: pop rsi
+  000131E1: pop rbp
+  000131E2: ret
+  000131E3: movzx32<-16 [mem]
+  000131E8: fpu-fpu
+  000131EA: fpu-fpu
+  000131ED: movzx32<-16 [mem]
+  000131F1: mov r8, [mem] (sz8)
+  000131F5: and-imm KAPI-dekompoze (sz4)
+  000131FB: fpu-fpu
+  000131FE: movzx32<-16 [mem]
+  00013202: mov r10, [mem] (sz8)
+  00013206: and-imm KAPI-dekompoze (sz4)
+  0001320C: alu5 (sz8)
+  0001320F: mov rdi, rsi (sz8)
+  00013212: alu8 (sz8)
+  00013215: jcc3 0x13238
+  00013217: and-imm KAPI-dekompoze (sz4)
+  0001321E: alu6 (sz4)
+  00013221: jcc4 0x1324b
+  00013223: alu6 (sz4)
+  00013226: jcc4 disari -> jccext 0x13299
+  00013228: xor-rr KAPI-dekompoze (sz4)
+  0001322A: alu5 (sz4)
+  0001322D: jcc15 disari -> jccext 0x13301
+  00013233: jmp disari -> jmpext 0x132e0 (kuyruk)
+  00013238: xor-rr KAPI-dekompoze (sz8)
+  0001323B: xor-rr KAPI-dekompoze (sz8)
+  0001323E: or-rr KAPI-dekompoze (sz8)
+  00013241: fpu-fpu
+  00013243: fpu-st34
+  00013245: fcmov st,st(1) cc4
+  00013247: fpu-fpu
+  00013249: jmp 0x131d6
+  0001324B: shld rcx, r8
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __fmodx @RVA=0x013920 boyut=0x39 | bc=141B key=0x38F018D98787B3DF | stubRVA=0x0579D0 retimm=4294967295 (trampoline)
+  00013920: push rbp
+  00013921: push rsi
+  00013922: alu1 (sz8)
+  00013926: lea rbp, [mem]
+  0001392B: mov rsi, rcx (sz8)
+  0001392E: fpu-fpu
+  00013930: fpu-fpu
+  00013933: fpu-fpu
+  00013936: fpu-fpu
+  00013939: lea rcx, [mem]
+  0001393D: lea rdx, [mem]
+  00013941: lea r8, [mem]
+  00013945: call 0x13180 (ncall)
+  0001394A: fpu-fpu
+  0001394D: fpu-fpu
+  0001394F: mov rax, rsi (sz8)
+  00013952: alu0 (sz8)
+  00013956: pop rsi
+  00013957: pop rbp
+  00013958: ret
+[YAMA] __ceilx @RVA=0x015740 boyut=0x7D | bc=229B key=0x80220CF95793C5B7 | stubRVA=0x057B10 retimm=4294967295 (trampoline)
+  00015740: push rbp
+  00015741: alu1 (sz8)
+  00015745: lea rbp, [mem]
+  0001574A: mov rax, rcx (sz8)
+  0001574D: fpu-fpu
+  0001574F: fpu-fpu
+  00015751: fpu-fpu
+  00015754: movzx32<-16 [mem]
+  00015758: mov rcx, rdx (sz4)
+  0001575A: and-imm KAPI-dekompoze (sz4)
+  00015760: alu5 (sz8)
+  00015767: setcc3 r8
+  0001576B: fldz
+  0001576D: fpu-st63
+  0001576F: setcc11 r9
+  00015773: setcc4 r10
+  00015777: and-rr KAPI-dekompoze (sz1)
+  0001577A: or-rr KAPI-dekompoze (sz1)
+  0001577D: jcc4 0x15789
+  0001577F: fpu-fpu
+  00015781: fpu-fpu
+  00015783: alu0 (sz8)
+  00015787: pop rbp
+  00015788: ret
+  00015789: movsx64<-16 rdx
+  0001578D: alu6 (sz8)
+  00015790: setcc9 rdx
+  00015793: fpu-fpu
+  00015799: fpu-fpu
+  0001579B: fpu-fpu
+  0001579D: fpu-fpu
+  000157A3: fpu-fpu
+  000157A5: fpu-fpu
+  000157A7: fpu-st55
+  000157A9: alu6 (sz1)
+  000157AB: fpu-st34
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __floorx @RVA=0x015C20 boyut=0x7D | bc=229B key=0xCE934BD95793C5B7 | stubRVA=0x057C50 retimm=4294967295 (trampoline)
+  00015C20: push rbp
+  00015C21: alu1 (sz8)
+  00015C25: lea rbp, [mem]
+  00015C2A: mov rax, rcx (sz8)
+  00015C2D: fpu-fpu
+  00015C2F: fpu-fpu
+  00015C31: fpu-fpu
+  00015C34: movzx32<-16 [mem]
+  00015C38: mov rcx, rdx (sz4)
+  00015C3A: and-imm KAPI-dekompoze (sz4)
+  00015C40: alu5 (sz8)
+  00015C47: setcc3 r8
+  00015C4B: fldz
+  00015C4D: fpu-st63
+  00015C4F: setcc11 r9
+  00015C53: setcc4 r10
+  00015C57: and-rr KAPI-dekompoze (sz1)
+  00015C5A: or-rr KAPI-dekompoze (sz1)
+  00015C5D: jcc4 0x15c69
+  00015C5F: fpu-fpu
+  00015C61: fpu-fpu
+  00015C63: alu0 (sz8)
+  00015C67: pop rbp
+  00015C68: ret
+  00015C69: movsx64<-16 rdx
+  00015C6D: alu6 (sz8)
+  00015C70: setcc9 rdx
+  00015C73: fpu-fpu
+  00015C79: fpu-fpu
+  00015C7B: fpu-fpu
+  00015C7D: fpu-fpu
+  00015C83: fpu-fpu
+  00015C85: fpu-fpu
+  00015C87: fpu-st55
+  00015C89: alu6 (sz1)
+  00015C8B: fpu-st34
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __exph @RVA=0x0168B0 boyut=0x20 | bc=49B key=0x677C0B692263CFC3 | stubRVA=0x057D90 retimm=4294967295 (trampoline)
+  000168B0: push rbp
+  000168B1: alu1 (sz8)
+  000168B5: lea rbp, [mem]
+  000168BA: call 0x26680 (ncall)
+  000168BF: call 0x168d0 (ncall)
+  000168C4: call 0x259d0 (ncall)
+  000168C9: call 0x259d0 (ncall)
+  000168CA: alu0 (sz8)
+  000168CE: pop rbp
+  000168CF: ret
+[YAMA] __cosh @RVA=0x0173B0 boyut=0x20 | bc=49B key=0xC9B6A6692263CFC3 | stubRVA=0x057ED0 retimm=4294967295 (trampoline)
+  000173B0: push rbp
+  000173B1: alu1 (sz8)
+  000173B5: lea rbp, [mem]
+  000173BA: call 0x26680 (ncall)
+  000173BF: call 0x17660 (ncall)
+  000173C4: call 0x259d0 (ncall)
+  000173C9: call 0x259d0 (ncall)
+  000173CA: alu0 (sz8)
+  000173CE: pop rbp
+  000173CF: ret
+[YAMA] __cosx @RVA=0x017AD0 boyut=0x2F | bc=111B key=0x14F9B38929550AE1 | stubRVA=0x058010 retimm=4294967295 (trampoline)
+  00017AD0: push rbp
+  00017AD1: push rsi
+  00017AD2: alu1 (sz8)
+  00017AD6: lea rbp, [mem]
+  00017ADB: mov rsi, rcx (sz8)
+  00017ADE: fpu-fpu
+  00017AE0: fpu-fpu
+  00017AE3: lea rcx, [mem]
+  00017AE7: lea rdx, [mem]
+  00017AEB: call 0x173d0 (ncall)
+  00017AF0: fpu-fpu
+  00017AF3: fpu-fpu
+  00017AF5: mov rax, rsi (sz8)
+  00017AF8: alu0 (sz8)
+  00017AFC: pop rsi
+  00017AFD: pop rbp
+  00017AFE: ret
+[YAMA] __powixf2 @RVA=0x01BBA0 boyut=0x6B | bc=208B key=0x8078D35948D6B5D1 | stubRVA=0x058150 retimm=4294967295 (trampoline)
+  0001BBA0: push rbp
+  0001BBA1: mov rbp, rsp (sz8)
+  0001BBA4: fpu-fpu
+  0001BBA6: alu6 (sz1)
+  0001BBAA: fld1
+  0001BBAC: fpu-fpu
+  0001BBAE: fcmov st,st(1) cc4
+  0001BBB0: mov rax, rcx (sz8)
+  0001BBB3: lea rcx, [mem]
+  0001BBB7: alu5 (sz4)
+  0001BBBA: jcc3 0x1bbc2
+  0001BBBC: fpu-fpu
+  0001BBBE: fldz
+  0001BBC0: jmp 0x1bbf8
+  0001BBC2: mov rcx, r8 (sz4)
+  0001BBC5: fpu-st34
+  0001BBC7: fpu-st34
+  0001BBD0: fpu-fpu
+  0001BBD2: mov rdx, rcx (sz4)
+  0001BBD4: shift 31
+  0001BBD7: alu0 (sz4)
+  0001BBD9: shift 1
+  0001BBDB: fpu-st34
+  0001BBDD: fpu-fpu
+  0001BBDF: alu6 (sz1)
+  0001BBE2: fpu-fpu
+  0001BBE4: fpu-st34
+  0001BBE6: fcmov st,st(1) cc4
+  0001BBE8: fpu-fpu
+  0001BBEA: lea r9, [mem]
+  0001BBEE: mov rcx, rdx (sz4)
+  0001BBF0: alu5 (sz4)
+  0001BBF4: fpu-st34
+  0001BBF6: jcc7 0x1bbd0
+  0001BBF8: fpu-fpu
+  0001BBFA: alu6 (sz4)
+  0001BBFD: jcc8 0x1bc05
+  0001BBFF: fpu-fpu
+  0001BC01: fpu-fpu
+  0001BC03: pop rbp
+  0001BC04: ret
+  0001BC05: fpu-st59
+  0001BC07: fpu-fpu
+  0001BC09: pop rbp
+  0001BC0A: ret
+[YAMA] __divxf3 @RVA=0x01C5C0 boyut=0x570 | bc=2817B key=0x7228F37926C82F93 | stubRVA=0x058290 retimm=4294967295 (yerinde)
+  0001C5C0: push rbp
+  0001C5C1: push r15
+  0001C5C3: push r14
+  0001C5C5: push r13
+  0001C5C7: push r12
+  0001C5C9: push rsi
+  0001C5CA: push rdi
+  0001C5CB: push rbx
+  0001C5CC: alu1 (sz8)
+  0001C5D3: lea rbp, [mem]
+  0001C5DB: mov rax, rcx (sz8)
+  0001C5DE: fpu-fpu
+  0001C5E0: fpu-fpu
+  0001C5E2: fpu-fpu
+  0001C5E5: mov rsi, [mem] (sz4)
+  0001C5E8: mov rdi, [mem] (sz8)
+  0001C5EC: fpu-fpu
+  0001C5EF: fpu-fpu
+  0001C5F1: fpu-fpu
+  0001C5F4: mov rbx, [mem] (sz4)
+  0001C5F7: mov r9, [mem] (sz8)
+  0001C5FB: mov r12, rsi (sz4)
+  0001C5FE: and-imm KAPI-dekompoze (sz4)
+  0001C605: mov r10, rbx (sz4)
+  0001C608: and-imm KAPI-dekompoze (sz4)
+  0001C60F: mov r11, rbx (sz8)
+  0001C612: xor-rr KAPI-dekompoze (sz8)
+  0001C615: and-imm KAPI-dekompoze (sz8)
+  0001C61C: xor-rr KAPI-dekompoze (sz4)
+  0001C61E: lea rcx, [mem]
+  0001C626: alu5 (sz4)
+  0001C62C: jcc2 0x1c92b
+  0001C632: lea rcx, [mem]
+  0001C639: alu5 (sz4)
+  0001C63F: jcc2 0x1c92b
+  0001C645: fpu-fpu
+  0001C647: fpu-fpu
+  0001C649: mov [mem], r11 (sz8)
+  0001C650: mov [mem], rax (sz8)
+  0001C654: xor-rr KAPI-dekompoze (sz4)
+  0001C656: xor-rr KAPI-dekompoze (sz4)
+  0001C659: mov [mem], rdx (sz8)
+  0001C65D: movzx32<-16 rdx
+  0001C661: alu1 (sz4)
+  0001C664: movabs rcx, 0x7504f333f9de6484
+  0001C66E: alu1 (sz8)
+  0001C671: mov rax, rcx (sz8)
+  0001C674: mul r9
+  0001C677: mov rax, rcx (sz8)
+  0001C67A: imul rax, r15
+  0001C67E: alu0 (sz8)
+  0001C681: neg rax
+  0001C684: mul rcx
+  0001C687: mov rcx, rax (sz8)
+  0001C68A: shrd rcx, rdx
+  0001C68F: alu0 (sz4)
+  0001C692: mov [mem], r12 (sz8)
+  0001C696: mov r8, rcx (sz8)
+  0001C699: imul r8, r15
+  0001C69D: mov rax, rcx (sz8)
+  0001C6A0: mul r9
+  0001C6A3: alu0 (sz8)
+  0001C6A6: neg rdx
+  0001C6A9: mov rax, rcx (sz8)
+  0001C6AC: mul rdx
+  0001C6AF: mov rcx, rax (sz8)
+  0001C6B2: shrd rcx, rdx
+  0001C6B7: mov r8, rcx (sz8)
+  0001C6BA: mov rax, rcx (sz8)
+  0001C6BD: mul r9
+  0001C6C0: imul r8, r15
+  0001C6C4: alu0 (sz8)
+  0001C6C7: neg rdx
+  0001C6CA: mov rax, rcx (sz8)
+  0001C6CD: mul rdx
+  0001C6D0: mov rcx, rax (sz8)
+  0001C6D3: shrd rcx, rdx
+  0001C6D8: mov r8, rcx (sz8)
+  0001C6DB: imul r8, r15
+  0001C6DF: mov rax, rcx (sz8)
+  0001C6E2: mul r9
+  0001C6E5: alu0 (sz8)
+  0001C6E8: neg rdx
+  0001C6EB: mov rax, rcx (sz8)
+  0001C6EE: mul rdx
+  0001C6F1: mov rcx, rax (sz8)
+  0001C6F4: shrd rcx, rdx
+  0001C6F9: imul r15, rcx
+  0001C6FD: mov rax, rcx (sz8)
+  0001C700: mul r9
+  0001C703: alu0 (sz8)
+  0001C706: neg rdx
+  0001C709: mov rax, rcx (sz8)
+  0001C70C: mul rdx
+  0001C70F: shld rdx, rax
+  0001C714: alu0 (sz8)
+  0001C718: mov rax, r9 (sz8)
+  0001C71B: shift 32
+  0001C71F: mov [mem], r9 (sz8)
+  0001C723: mov r8, r9 (sz4)
+  0001C726: mov rcx, rdx (sz4)
+  0001C728: shift 32
+  0001C72C: mov r9, rdx (sz8)
+  0001C72F: imul r9, rax
+  0001C733: mov r10, rdx (sz8)
+  0001C736: imul r10, r8
+  0001C73A: imul rax, rcx
+  0001C73E: imul r8, rcx
+  0001C742: xor-rr KAPI-dekompoze (sz4)
+  0001C744: alu0 (sz8)
+  0001C747: setcc2 dh
+  0001C74B: shld rsi, rax
+  0001C750: shift 32
+  0001C754: alu0 (sz8)
+  0001C757: alu7 (sz8)
+  0001C75A: xor-rr KAPI-dekompoze (sz4)
+  0001C75D: neg rax
+  0001C760: alu8 (sz8)
+  0001C763: mov rsi, r14 (sz4)
+  0001C766: shift 32
+  0001C76A: mov r8, r14 (sz8)
+  0001C76D: imul r8, rdx
+  0001C771: mov r9, rsi (sz8)
+  0001C774: imul r9, rdx
+  0001C778: imul r14, rcx
+  0001C77C: imul rsi, rcx
+  0001C780: xor-rr KAPI-dekompoze (sz4)
+  0001C783: alu0 (sz8)
+  0001C786: setcc2 r15
+  0001C78A: shld r15, r14
+  0001C78F: shift 32
+  0001C793: alu0 (sz8)
+  0001C796: mov r9, rax (sz4)
+  0001C799: mov r12, rax (sz8)
+  0001C79C: shift 32
+  0001C7A0: mov rax, r12 (sz8)
+  0001C7A3: imul rax, rdx
+  0001C7A7: imul rdx, r9
+  0001C7AB: imul r12, rcx
+  0001C7AF: imul r9, rcx
+  0001C7B3: xor-rr KAPI-dekompoze (sz4)
+  0001C7B6: alu0 (sz8)
+  0001C7B9: setcc2 r8
+  0001C7BD: shld r8, r12
+  0001C7C2: shift 32
+  0001C7C6: xor-rr KAPI-dekompoze (sz4)
+  0001C7C8: alu0 (sz8)
+  0001C7CB: setcc2 rcx
+  0001C7CE: alu0 (sz8)
+  0001C7D1: alu7 (sz8)
+  0001C7D5: alu0 (sz8)
+  0001C7D8: alu7 (sz8)
+  0001C7DC: alu0 (sz8)
+  0001C7DF: alu7 (sz8)
+  0001C7E3: alu7 (sz8)
+  0001C7E6: alu0 (sz8)
+  0001C7EA: alu7 (sz8)
+  0001C7EE: mov rdx, rdi (sz8)
+  0001C7F1: shift 62
+  0001C7F5: lea rdx, [mem]
+  0001C7F8: movzx32<-16 rdx
+  0001C7FB: shift 2
+  0001C7FF: mov r12, rcx (sz4)
+  0001C802: shift 32
+  0001C806: mov r10, rax (sz4)
+  0001C809: mov r13, rax (sz8)
+  0001C80C: shift 32
+  0001C810: mov r15, rcx (sz8)
+  0001C813: imul r15, rsi
+  0001C817: mov r8, r12 (sz8)
+  0001C81A: imul r8, rsi
+  0001C81E: mov r9, r13 (sz8)
+  0001C821: imul r9, rsi
+  0001C825: imul rsi, r10
+  0001C829: mov rax, rdi (sz8)
+  0001C82C: shift 32
+  0001C830: mov r14, rax (sz8)
+  0001C833: mov rdx, r12 (sz8)
+  0001C836: imul rdx, rax
+  0001C83A: mov rbx, r13 (sz8)
+  0001C83D: imul rbx, rax
+  0001C841: imul rax, r10
+  0001C845: imul r14, rcx
+  0001C849: mov r10, rdi (sz4)
+  0001C84C: imul rcx, r10
+  0001C850: imul r12, r10
+  0001C854: imul r13, r10
+  0001C858: xor-rr KAPI-dekompoze (sz4)
+  0001C85A: alu0 (sz8)
+  0001C85D: setcc2 bh
+  0001C861: xor-rr KAPI-dekompoze (sz4)
+  0001C864: alu0 (sz8)
+  0001C867: setcc2 r10
+  0001C86B: xor-rr KAPI-dekompoze (sz4)
+  0001C86E: alu0 (sz8)
+  0001C871: setcc2 r11
+  0001C875: alu0 (sz8)
+  0001C878: alu7 (sz8)
+  0001C87C: shld rdi, r13
+  0001C881: mov rdx, r15 (sz8)
+  0001C884: shift 32
+  0001C888: shift 32
+  0001C88C: xor-rr KAPI-dekompoze (sz4)
+  0001C88E: alu0 (sz8)
+  0001C891: setcc2 dh
+  0001C895: alu0 (sz8)
+  0001C898: alu7 (sz8)
+  0001C89B: alu0 (sz8)
+  0001C89E: alu7 (sz8)
+  0001C8A1: alu7 (sz8)
+  0001C8A5: xor-rr KAPI-dekompoze (sz4)
+  0001C8A7: alu0 (sz8)
+  0001C8AA: setcc2 rdx
+  0001C8AD: shld r11, rcx
+  0001C8B2: shift 32
+  0001C8B6: alu0 (sz8)
+  0001C8B9: alu7 (sz8)
+  0001C8BD: alu0 (sz8)
+  0001C8C0: alu7 (sz8)
+  0001C8C3: alu7 (sz8)
+  0001C8C7: jcc5 0x1c97e
+  0001C8CD: mov r8, [mem] (sz8)
+  0001C8D1: alu0 (sz4)
+  0001C8D5: alu5 (sz4)
+  0001C8DC: mov rax, [mem] (sz8)
+  0001C8E0: mov r9, [mem] (sz8)
+  0001C8E4: jcc15 0x1c99c
+  0001C8EA: mov rcx, r11 (sz8)
+  0001C8ED: imul rcx, r9
+  0001C8F1: neg rcx
+  0001C8F4: lea rdx, [mem]
+  0001C8FB: alu5 (sz4)
+  0001C902: jcc15 0x1c9fc
+  0001C908: alu6 (sz4)
+  0001C90A: jcc4 0x1caac
+  0001C910: mov rcx, [mem] (sz8)
+  0001C917: mov [mem], rcx (sz2)
+  0001C91B: mov [mem], imm64=0x0
+  0001C923: fpu-fpu
+  0001C926: jmp 0x1ca3a
+  0001C92B: mov r14, imm=0x7fff
+  0001C931: movabs rdx, 0x8000000000000000
+  0001C93B: fpu-st34
+  0001C93D: fpu-fpu
+  0001C940: movzx32<-16 [mem]
+  0001C945: mov rcx, [mem] (sz8)
+  0001C949: and-imm KAPI-dekompoze (sz4)
+  0001C950: fpu-fpu
+  0001C953: alu5 (sz8)
+  0001C956: mov r8, imm=0x7fff
+  0001C95C: alu8 (sz8)
+  0001C95F: jcc3 0x1c9c1
+  0001C961: movabs rcx, 0x4000000000000000
+  0001C96B: or-rr KAPI-dekompoze (sz8)
+  0001C96E: mov [mem], rdi (sz8)
+  0001C972: mov [mem], rsi (sz2)
+  0001C976: fpu-fpu
+  0001C979: jmp 0x1ca3a
+  0001C97E: shrd r11, rsi
+  0001C983: mov r8, [mem] (sz8)
+  0001C987: alu5 (sz4)
+  0001C98E: mov rax, [mem] (sz8)
+  0001C992: mov r9, [mem] (sz8)
+  0001C996: jcc14 0x1c8ea
+  0001C99C: movabs rcx, 0x8000000000000000
+  0001C9A6: mov [mem], rcx (sz8)
+  0001C9AA: mov rcx, imm=0x7fff
+  0001C9AF: mov rdx, [mem] (sz8)
+  0001C9B6: or-rr KAPI-dekompoze (sz4)
+  0001C9B8: mov [mem], rdx (sz2)
+  0001C9BC: fpu-fpu
+  0001C9BF: jmp 0x1ca3a
+  0001C9C1: mov rsi, r12 (sz8)
+  0001C9C4: movzx32<-16 [mem]
+  0001C9C9: mov r12, [mem] (sz8)
+  0001C9CD: and-imm KAPI-dekompoze (sz4)
+  0001C9D4: alu5 (sz8)
+  0001C9D7: mov r8, imm=0x7fff
+  0001C9DD: alu8 (sz8)
+  0001C9E0: jcc3 0x1ca50
+  0001C9E2: movabs rcx, 0x4000000000000000
+  0001C9EC: or-rr KAPI-dekompoze (sz8)
+  0001C9EF: mov [mem], r9 (sz8)
+  0001C9F3: mov [mem], rbx (sz2)
+  0001C9F7: fpu-fpu
+  0001C9FA: jmp 0x1ca3a
+  0001C9FC: mov r8, [mem] (sz8)
+  0001CA00: shrd r9, r8
+  0001CA05: movzx32<-16 r8
+  0001CA09: shift 1
+  0001CA0C: alu3 (sz8)
+  0001CA13: alu5 (sz8)
+  0001CA16: alu8 (sz8)
+  0001CA1A: alu7 (sz8)
+  0001CA1E: alu7 (sz8)
+  0001CA22: movabs rcx, 0x8000000000000000
+  0001CA2C: or-rr KAPI-dekompoze (sz8)
+  0001CA2F: mov [mem], rcx (sz8)
+  0001CA33: mov [mem], rdx (sz2)
+  0001CA37: fpu-fpu
+  0001CA3A: fpu-fpu
+  0001CA3C: alu0 (sz8)
+  0001CA43: pop rbx
+  0001CA44: pop rdi
+  0001CA45: pop rsi
+  0001CA46: pop r12
+  0001CA48: pop r13
+  0001CA4A: pop r14
+  0001CA4C: pop r15
+  0001CA4E: pop rbp
+  0001CA4F: ret
+  0001CA50: mov [mem], r9 (sz8)
+  0001CA54: mov r8, rcx (sz8)
+  0001CA57: xor-rr KAPI-dekompoze (sz8)
+  0001CA5A: mov r9, r13 (sz8)
+  0001CA5D: xor-rr KAPI-dekompoze (sz8)
+  0001CA60: or-rr KAPI-dekompoze (sz8)
+  0001CA63: jcc5 0x1ca89
+  0001CA65: xor-rr KAPI-dekompoze (sz8)
+  0001CA68: xor-rr KAPI-dekompoze (sz8)
+  0001CA6B: fpu-fpu
+  0001CA71: or-rr KAPI-dekompoze (sz8)
+  0001CA74: jcc4 0x1ca3a
+  0001CA76: fpu-fpu
+  0001CA78: mov [mem], rdx (sz8)
+  0001CA7C: or-rr KAPI-dekompoze (sz4)
+  0001CA7F: mov [mem], r11 (sz2)
+  0001CA84: fpu-fpu
+  0001CA87: jmp 0x1ca3a
+  0001CA89: mov r8, r12 (sz8)
+  0001CA8C: xor-rr KAPI-dekompoze (sz8)
+  0001CA8F: mov r9, r15 (sz8)
+  0001CA92: xor-rr KAPI-dekompoze (sz8)
+  0001CA95: or-rr KAPI-dekompoze (sz8)
+  0001CA98: jcc5 0x1cafe
+  0001CA9A: mov [mem], r11 (sz2)
+  0001CA9F: mov [mem], imm64=0x0
+  0001CAA7: fpu-fpu
+  0001CAAA: jmp 0x1ca3a
+  0001CAAC: mov rdx, [mem] (sz8)
+  0001CAB0: shrd r9, rdx
+  0001CAB5: movzx32<-16 rdx
+  0001CAB8: shift 1
+  0001CABA: alu5 (sz8)
+  0001CABD: alu8 (sz8)
+  0001CAC1: jcc3 0x1c910
+  0001CAC7: movabs rcx, 0x7fffffffffffffff
+  0001CAD1: alu5 (sz8)
+  0001CAD4: jcc5 0x1c910
+  0001CADA: movabs rcx, 0x8000000000000000
+  0001CAE4: mov [mem], rcx (sz8)
+  0001CAE8: mov rcx, [mem] (sz8)
+  0001CAEF: or-imm KAPI-dekompoze (sz4)
+  0001CAF2: mov [mem], rcx (sz2)
+  0001CAF6: fpu-fpu
+  0001CAF9: jmp 0x1ca3a
+  0001CAFE: mov r8, rcx (sz8)
+  0001CB01: or-rr KAPI-dekompoze (sz8)
+  0001CB04: jcc4 disari -> jccext 0x1cb4e
+  0001CB06: mov r8, r12 (sz8)
+  0001CB09: or-rr KAPI-dekompoze (sz8)
+  0001CB0C: jcc4 disari -> jccext 0x1cb72
+  0001CB0E: xor-rr KAPI-dekompoze (sz4)
+  0001CB11: alu5 (sz8)
+  0001CB14: alu8 (sz8)
+  0001CB18: jcc3 disari -> jccext 0x1cb86
+  0001CB1A: mov r8, imm=0x7f
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __subxf3 @RVA=0x01E930 boyut=0x3B | bc=144B key=0x401163E9F7599191 | stubRVA=0x0583D0 retimm=4294967295 (trampoline)
+  0001E930: push rbp
+  0001E931: push rsi
+  0001E932: alu1 (sz8)
+  0001E936: lea rbp, [mem]
+  0001E93B: mov rsi, rcx (sz8)
+  0001E93E: fpu-fpu
+  0001E940: fpu-fpu
+  0001E943: fchs
+  0001E945: fpu-fpu
+  0001E948: fpu-fpu
+  0001E94B: lea rcx, [mem]
+  0001E94F: lea rdx, [mem]
+  0001E953: lea r8, [mem]
+  0001E957: call 0x1e990 (ncall)
+  0001E95C: fpu-fpu
+  0001E95F: fpu-fpu
+  0001E961: mov rax, rsi (sz8)
+  0001E964: alu0 (sz8)
+  0001E968: pop rsi
+  0001E969: pop rbp
+  0001E96A: ret
+[YAMA] __addxf3 @RVA=0x01F330 boyut=0x39 | bc=141B key=0x6AD24DE98787B3DF | stubRVA=0x058510 retimm=4294967295 (trampoline)
+  0001F330: push rbp
+  0001F331: push rsi
+  0001F332: alu1 (sz8)
+  0001F336: lea rbp, [mem]
+  0001F33B: mov rsi, rcx (sz8)
+  0001F33E: fpu-fpu
+  0001F340: fpu-fpu
+  0001F343: fpu-fpu
+  0001F346: fpu-fpu
+  0001F349: lea rcx, [mem]
+  0001F34D: lea rdx, [mem]
+  0001F351: lea r8, [mem]
+  0001F355: call 0x1e990 (ncall)
+  0001F35A: fpu-fpu
+  0001F35D: fpu-fpu
+  0001F35F: mov rax, rsi (sz8)
+  0001F362: alu0 (sz8)
+  0001F366: pop rsi
+  0001F367: pop rbp
+  0001F368: ret
+[YAMA] __getf2 @RVA=0x01F4A0 boyut=0xC7 | bc=500B key=0xDA913C59CCA1AB35 | stubRVA=0x058650 retimm=4294967295 (trampoline)
+  0001F4A0: push rbp
+  0001F4A1: push rsi
+  0001F4A2: push rbx
+  0001F4A3: mov rbp, rsp (sz8)
+  0001F4A6: mov rax, [mem] (sz8)
+  0001F4A9: mov rcx, [mem] (sz8)
+  0001F4AD: mov r8, [mem] (sz8)
+  0001F4B1: movabs r9, 0x7fffffffffffffff
+  0001F4BB: mov r10, rcx (sz8)
+  0001F4BE: and-rr KAPI-dekompoze (sz8)
+  0001F4C1: and-rr KAPI-dekompoze (sz8)
+  0001F4C4: mov r11, rax (sz8)
+  0001F4C7: neg r11
+  0001F4CA: movabs r11, 0x7fff000000000000
+  0001F4D4: mov rsi, r11 (sz8)
+  0001F4D7: alu8 (sz8)
+  0001F4DA: mov rdx, [mem] (sz8)
+  0001F4DD: setcc2 rbx
+  0001F4E0: mov rsi, rdx (sz8)
+  0001F4E3: neg rsi
+  0001F4E6: alu8 (sz8)
+  0001F4E9: setcc2 r11
+  0001F4ED: or-rr KAPI-dekompoze (sz1)
+  0001F4F0: jcc4 0x1f4fb
+  0001F4F2: lea rcx, [mem]
+  0001F4F9: jmp 0x1f551
+  0001F4FB: mov r11, rdx (sz8)
+  0001F4FE: or-rr KAPI-dekompoze (sz8)
+  0001F501: or-rr KAPI-dekompoze (sz8)
+  0001F504: or-rr KAPI-dekompoze (sz8)
+  0001F507: jcc4 0x1f522
+  0001F509: alu6 (sz8)
+  0001F50C: jcc8 0x1f52b
+  0001F50E: alu5 (sz8)
+  0001F511: mov r9, rcx (sz8)
+  0001F514: alu8 (sz8)
+  0001F517: jcc13 0x1f536
+  0001F519: lea rcx, [mem]
+  0001F520: jmp 0x1f551
+  0001F522: lea rcx, [mem]
+  0001F529: jmp 0x1f551
+  0001F52B: alu5 (sz8)
+  0001F52E: mov r9, r8 (sz8)
+  0001F531: alu8 (sz8)
+  0001F534: jcc12 0x1f519
+  0001F536: xor-rr KAPI-dekompoze (sz8)
+  0001F539: xor-rr KAPI-dekompoze (sz8)
+  0001F53C: or-rr KAPI-dekompoze (sz8)
+  0001F53F: lea rax, [mem]
+  0001F546: lea rcx, [mem]
+  0001F54D: cmov4 rax
+  0001F551: movzx32<-8 [mem]
+  0001F555: and-imm KAPI-dekompoze (sz1)
+  0001F558: xor-rr KAPI-dekompoze (sz4)
+  0001F55A: alu5 (sz1)
+  0001F55D: alu8 (sz8)
+  0001F560: alu3 (sz8)
+  0001F563: pop rbx
+  0001F564: pop rsi
+  0001F565: pop rbp
+  0001F566: ret
+[YAMA] __cmptf2 @RVA=0x01F570 boyut=0xE4 | bc=538B key=0x67A41C295503F8BB | stubRVA=0x058790 retimm=4294967295 (trampoline)
+  0001F570: push rbp
+  0001F571: push rsi
+  0001F572: push rbx
+  0001F573: mov rbp, rsp (sz8)
+  0001F576: mov rax, [mem] (sz8)
+  0001F579: mov rcx, [mem] (sz8)
+  0001F57D: mov r8, [mem] (sz8)
+  0001F581: movabs r9, 0x7fffffffffffffff
+  0001F58B: mov r10, rcx (sz8)
+  0001F58E: and-rr KAPI-dekompoze (sz8)
+  0001F591: and-rr KAPI-dekompoze (sz8)
+  0001F594: mov r11, rax (sz8)
+  0001F597: neg r11
+  0001F59A: movabs r11, 0x7fff000000000000
+  0001F5A4: mov rsi, r11 (sz8)
+  0001F5A7: alu8 (sz8)
+  0001F5AA: mov rdx, [mem] (sz8)
+  0001F5AD: setcc2 rbx
+  0001F5B0: mov rsi, rdx (sz8)
+  0001F5B3: neg rsi
+  0001F5B6: alu8 (sz8)
+  0001F5B9: setcc2 r11
+  0001F5BD: or-rr KAPI-dekompoze (sz1)
+  0001F5C0: jcc4 0x1f5d6
+  0001F5C2: lea rcx, [mem]
+  0001F5C9: alu6 (sz1)
+  0001F5CD: mov rax, imm=0x1
+  0001F5D2: jcc4 0x1f61d
+  0001F5D4: jmp 0x1f61a
+  0001F5D6: mov r11, rdx (sz8)
+  0001F5D9: or-rr KAPI-dekompoze (sz8)
+  0001F5DC: or-rr KAPI-dekompoze (sz8)
+  0001F5DF: or-rr KAPI-dekompoze (sz8)
+  0001F5E2: jcc4 0x1f608
+  0001F5E4: alu6 (sz8)
+  0001F5E7: jcc8 0x1f621
+  0001F5E9: alu5 (sz8)
+  0001F5EC: mov r9, rcx (sz8)
+  0001F5EF: alu8 (sz8)
+  0001F5F2: jcc13 0x1f62c
+  0001F5F4: lea rcx, [mem]
+  0001F5FB: alu6 (sz1)
+  0001F5FF: mov rax, imm=0x1
+  0001F604: jcc4 0x1f61d
+  0001F606: jmp 0x1f61a
+  0001F608: lea rcx, [mem]
+  0001F60F: alu6 (sz1)
+  0001F613: mov rax, imm=0x1
+  0001F618: jcc4 0x1f61d
+  0001F61A: mov rax, [mem] (sz8)
+  0001F61D: pop rbx
+  0001F61E: pop rsi
+  0001F61F: pop rbp
+  0001F620: ret
+  0001F621: alu5 (sz8)
+  0001F624: mov r9, r8 (sz8)
+  0001F627: alu8 (sz8)
+  0001F62A: jcc12 0x1f5f4
+  0001F62C: xor-rr KAPI-dekompoze (sz8)
+  0001F62F: xor-rr KAPI-dekompoze (sz8)
+  0001F632: or-rr KAPI-dekompoze (sz8)
+  0001F635: lea rax, [mem]
+  0001F63C: lea rcx, [mem]
+  0001F643: cmov4 rax
+  0001F647: alu6 (sz1)
+  0001F64B: mov rax, imm=0x1
+  0001F650: jcc4 0x1f61d
+  0001F652: jmp 0x1f61a
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __unordxf2 @RVA=0x01F660 boyut=0x46 | bc=169B key=0xBBA632199B2E73BB | stubRVA=0x0588D0 retimm=4294967295 (trampoline)
+  0001F660: push rbp
+  0001F661: mov rbp, rsp (sz8)
+  0001F664: movzx32<-16 [mem]
+  0001F668: mov r8, [mem] (sz4)
+  0001F66C: and-imm KAPI-dekompoze (sz4)
+  0001F671: and-imm KAPI-dekompoze (sz4)
+  0001F678: movabs r9, 0x8000000000000000
+  0001F682: alu5 (sz8)
+  0001F685: mov rcx, imm=0x7fff
+  0001F68A: mov r10, imm=0x7fff
+  0001F690: alu8 (sz8)
+  0001F693: setcc2 rax
+  0001F696: alu5 (sz8)
+  0001F699: alu8 (sz8)
+  0001F69C: setcc2 rcx
+  0001F69F: or-rr KAPI-dekompoze (sz1)
+  0001F6A1: movzx32<-8 rcx
+  0001F6A4: pop rbp
+  0001F6A5: ret
+[YAMA] __gexf2 @RVA=0x01F6B0 boyut=0xDC | bc=532B key=0x2CFC396975603D55 | stubRVA=0x058A10 retimm=4294967295 (trampoline)
+  0001F6B0: push rbp
+  0001F6B1: push rsi
+  0001F6B2: push rdi
+  0001F6B3: push rbx
+  0001F6B4: mov rbp, rsp (sz8)
+  0001F6B7: mov r8, [mem] (sz8)
+  0001F6BA: movzx32<-16 [mem]
+  0001F6BF: mov rax, r9 (sz4)
+  0001F6C2: not rax
+  0001F6C4: alu6 (sz4)
+  0001F6C9: setcc4 r10
+  0001F6CD: mov rax, r8 (sz8)
+  0001F6D0: neg rax
+  0001F6D3: setcc1 r11
+  0001F6D7: mov rax, imm=0xffffffff
+  0001F6DE: alu6 (sz1)
+  0001F6E1: jcc5 0x1f735
+  0001F6E3: movabs rsi, 0x8000000000000000
+  0001F6ED: mov r10, [mem] (sz8)
+  0001F6F0: movzx32<-16 [mem]
+  0001F6F5: mov rdi, r11 (sz4)
+  0001F6F8: not rdi
+  0001F6FA: alu6 (sz4)
+  0001F700: setcc4 rbx
+  0001F703: alu5 (sz8)
+  0001F706: setcc5 dh
+  0001F70A: alu6 (sz1)
+  0001F70D: jcc5 0x1f735
+  0001F70F: mov rax, r11 (sz4)
+  0001F712: or-rr KAPI-dekompoze (sz4)
+  0001F715: and-imm KAPI-dekompoze (sz4)
+  0001F71A: or-rr KAPI-dekompoze (sz8)
+  0001F71D: or-rr KAPI-dekompoze (sz8)
+  0001F720: jcc4 0x1f733
+  0001F722: alu5 (sz2)
+  0001F726: setcc4 rax
+  0001F729: alu5 (sz8)
+  0001F72C: setcc4 rbx
+  0001F72F: alu6 (sz1)
+  0001F731: jcc4 0x1f73a
+  0001F733: xor-rr KAPI-dekompoze (sz4)
+  0001F735: pop rbx
+  0001F736: pop rdi
+  0001F737: pop rsi
+  0001F738: pop rbp
+  0001F739: ret
+  0001F73A: mov rax, r9 (sz4)
+  0001F73D: and-imm KAPI-dekompoze (sz4)
+  0001F742: mov rsi, r11 (sz4)
+  0001F745: and-imm KAPI-dekompoze (sz4)
+  0001F74B: alu5 (sz2)
+  0001F74E: jcc5 0x1f779
+  0001F750: mov rcx, [mem] (sz4)
+  0001F753: mov rdx, [mem] (sz4)
+  0001F756: movzx32<-16 rdx
+  0001F759: movzx32<-16 rcx
+  0001F75C: alu5 (sz8)
+  0001F75F: alu8 (sz8)
+  0001F762: setcc2 rcx
+  0001F765: alu6 (sz2)
+  0001F768: setcc5 rax
+  0001F76B: xor-rr KAPI-dekompoze (sz1)
+  0001F76D: movzx32<-8 rax
+  0001F770: neg rax
+  0001F773: or-imm KAPI-dekompoze (sz8)
+  0001F777: jmp 0x1f735
+  0001F779: xor-rr KAPI-dekompoze (sz4)
+  0001F77B: alu5 (sz2)
+  0001F77F: setcc13 rax
+  0001F782: lea rax, [mem]
+  0001F78A: jmp 0x1f735
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __cmpxf2 @RVA=0x01F790 boyut=0xDA | bc=532B key=0x9D86B44975603D55 | stubRVA=0x058B50 retimm=4294967295 (trampoline)
+  0001F790: push rbp
+  0001F791: push rsi
+  0001F792: push rdi
+  0001F793: push rbx
+  0001F794: mov rbp, rsp (sz8)
+  0001F797: mov r8, [mem] (sz8)
+  0001F79A: movzx32<-16 [mem]
+  0001F79F: mov rax, r9 (sz4)
+  0001F7A2: not rax
+  0001F7A4: alu6 (sz4)
+  0001F7A9: setcc4 r10
+  0001F7AD: mov rax, r8 (sz8)
+  0001F7B0: neg rax
+  0001F7B3: setcc1 r11
+  0001F7B7: mov rax, imm=0x1
+  0001F7BC: alu6 (sz1)
+  0001F7BF: jcc5 0x1f813
+  0001F7C1: movabs rsi, 0x8000000000000000
+  0001F7CB: mov r10, [mem] (sz8)
+  0001F7CE: movzx32<-16 [mem]
+  0001F7D3: mov rdi, r11 (sz4)
+  0001F7D6: not rdi
+  0001F7D8: alu6 (sz4)
+  0001F7DE: setcc4 rbx
+  0001F7E1: alu5 (sz8)
+  0001F7E4: setcc5 dh
+  0001F7E8: alu6 (sz1)
+  0001F7EB: jcc5 0x1f813
+  0001F7ED: mov rax, r11 (sz4)
+  0001F7F0: or-rr KAPI-dekompoze (sz4)
+  0001F7F3: and-imm KAPI-dekompoze (sz4)
+  0001F7F8: or-rr KAPI-dekompoze (sz8)
+  0001F7FB: or-rr KAPI-dekompoze (sz8)
+  0001F7FE: jcc4 0x1f811
+  0001F800: alu5 (sz2)
+  0001F804: setcc4 rax
+  0001F807: alu5 (sz8)
+  0001F80A: setcc4 rbx
+  0001F80D: alu6 (sz1)
+  0001F80F: jcc4 0x1f818
+  0001F811: xor-rr KAPI-dekompoze (sz4)
+  0001F813: pop rbx
+  0001F814: pop rdi
+  0001F815: pop rsi
+  0001F816: pop rbp
+  0001F817: ret
+  0001F818: mov rax, r9 (sz4)
+  0001F81B: and-imm KAPI-dekompoze (sz4)
+  0001F820: mov rsi, r11 (sz4)
+  0001F823: and-imm KAPI-dekompoze (sz4)
+  0001F829: alu5 (sz2)
+  0001F82C: jcc5 0x1f857
+  0001F82E: mov rcx, [mem] (sz4)
+  0001F831: mov rdx, [mem] (sz4)
+  0001F834: movzx32<-16 rdx
+  0001F837: movzx32<-16 rcx
+  0001F83A: alu5 (sz8)
+  0001F83D: alu8 (sz8)
+  0001F840: setcc2 rcx
+  0001F843: alu6 (sz2)
+  0001F846: setcc5 rax
+  0001F849: xor-rr KAPI-dekompoze (sz1)
+  0001F84B: movzx32<-8 rax
+  0001F84E: neg rax
+  0001F851: or-imm KAPI-dekompoze (sz8)
+  0001F855: jmp 0x1f813
+  0001F857: xor-rr KAPI-dekompoze (sz4)
+  0001F859: alu5 (sz2)
+  0001F85D: setcc13 rax
+  0001F860: lea rax, [mem]
+  0001F868: jmp 0x1f813
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __fixunstfdi @RVA=0x022CF0 boyut=0x78 | bc=259B key=0x6E85FBA9B5C66EB5 | stubRVA=0x058C90 retimm=4294967295 (trampoline)
+  00022CF0: push rbp
+  00022CF1: mov rbp, rsp (sz8)
+  00022CF4: mov r8, [mem] (sz8)
+  00022CF8: alu6 (sz8)
+  00022CFB: setcc8 rax
+  00022CFE: mov rdx, r8 (sz8)
+  00022D01: shift 48
+  00022D05: mov r9, rdx (sz4)
+  00022D08: and-imm KAPI-dekompoze (sz4)
+  00022D0F: alu5 (sz4)
+  00022D16: setcc2 r10
+  00022D1A: or-rr KAPI-dekompoze (sz1)
+  00022D1D: jcc4 0x22d23
+  00022D1F: xor-rr KAPI-dekompoze (sz4)
+  00022D21: pop rbp
+  00022D22: ret
+  00022D23: alu0 (sz4)
+  00022D2A: mov rax, imm=0xffffffff
+  00022D31: alu5 (sz4)
+  00022D35: jcc2 0x22d66
+  00022D37: mov r9, [mem] (sz8)
+  00022D3A: movabs rax, 0xffffffffffff
+  00022D44: and-rr KAPI-dekompoze (sz8)
+  00022D47: movabs rax, 0x1000000000000
+  00022D51: or-rr KAPI-dekompoze (sz8)
+  00022D54: mov rcx, imm=0x6f
+  00022D56: alu1 (sz1)
+  00022D58: shrd r9, rax
+  00022D5C: shift%cl
+  00022D5F: alu6 (sz1)
+  00022D62: cmov4 r9
+  00022D66: pop rbp
+  00022D67: ret
+[YAMA] __fixunstfsi @RVA=0x022D70 boyut=0x75 | bc=255B key=0x8A42D42920AE9C71 | stubRVA=0x058DD0 retimm=4294967295 (trampoline)
+  00022D70: push rbp
+  00022D71: mov rbp, rsp (sz8)
+  00022D74: mov r8, [mem] (sz8)
+  00022D78: alu6 (sz8)
+  00022D7B: setcc8 r10
+  00022D7F: mov rdx, r8 (sz8)
+  00022D82: shift 48
+  00022D86: mov r9, rdx (sz4)
+  00022D89: and-imm KAPI-dekompoze (sz4)
+  00022D90: alu5 (sz4)
+  00022D97: setcc2 r11
+  00022D9B: xor-rr KAPI-dekompoze (sz4)
+  00022D9D: or-rr KAPI-dekompoze (sz1)
+  00022DA0: jcc5 0x22de3
+  00022DA2: alu0 (sz4)
+  00022DA9: mov rax, imm=0xffffffff
+  00022DAE: alu5 (sz4)
+  00022DB2: jcc2 0x22de3
+  00022DB4: mov r9, [mem] (sz8)
+  00022DB7: movabs rax, 0xffffffffffff
+  00022DC1: and-rr KAPI-dekompoze (sz8)
+  00022DC4: movabs rax, 0x1000000000000
+  00022DCE: or-rr KAPI-dekompoze (sz8)
+  00022DD1: mov rcx, imm=0x6f
+  00022DD3: alu1 (sz1)
+  00022DD5: shrd r9, rax
+  00022DD9: shift%cl
+  00022DDC: alu6 (sz1)
+  00022DDF: cmov4 r9
+  00022DE3: pop rbp
+  00022DE4: ret
+[YAMA] __fixunsxfdi @RVA=0x0231B0 boyut=0x62 | bc=235B key=0xF60804693737811D | stubRVA=0x058F10 retimm=4294967295 (trampoline)
+  000231B0: push rbp
+  000231B1: mov rbp, rsp (sz8)
+  000231B4: movsx64<-16 [mem]
+  000231B9: alu6 (sz8)
+  000231BC: setcc8 rax
+  000231BF: mov rdx, r8 (sz4)
+  000231C2: and-imm KAPI-dekompoze (sz4)
+  000231C8: alu5 (sz4)
+  000231CE: setcc2 r9
+  000231D2: or-rr KAPI-dekompoze (sz1)
+  000231D5: jcc4 0x231db
+  000231D7: xor-rr KAPI-dekompoze (sz4)
+  000231D9: pop rbp
+  000231DA: ret
+  000231DB: mov rax, imm=0xffffffff
+  000231E2: alu5 (sz4)
+  000231E8: jcc7 0x23210
+  000231EA: mov r9, [mem] (sz8)
+  000231ED: movzx32<-16 r8
+  000231F1: mov rcx, imm=0x3e
+  000231F3: alu1 (sz1)
+  000231F5: xor-rr KAPI-dekompoze (sz4)
+  000231F8: mov rax, r9 (sz8)
+  000231FB: shrd rax, r8
+  000231FF: alu6 (sz1)
+  00023202: cmov5 r8
+  00023206: alu5 (sz4)
+  0002320C: cmov4 r9
+  00023210: pop rbp
+  00023211: ret
+[YAMA] __fixunsxfsi @RVA=0x023220 boyut=0x57 | bc=221B key=0x2E4D41D92D64212F | stubRVA=0x059050 retimm=4294967295 (trampoline)
+  00023220: push rbp
+  00023221: mov rbp, rsp (sz8)
+  00023224: movsx64<-16 [mem]
+  00023229: alu6 (sz8)
+  0002322C: setcc8 r9
+  00023230: mov r8, rdx (sz4)
+  00023233: and-imm KAPI-dekompoze (sz4)
+  0002323A: xor-rr KAPI-dekompoze (sz4)
+  0002323C: alu5 (sz4)
+  00023243: setcc2 r10
+  00023247: or-rr KAPI-dekompoze (sz1)
+  0002324A: jcc5 0x23275
+  0002324C: alu0 (sz4)
+  00023253: mov rax, imm=0xffffffff
+  00023258: alu5 (sz4)
+  0002325C: jcc2 0x23275
+  0002325E: movzx32<-16 rdx
+  00023261: mov rax, [mem] (sz8)
+  00023264: mov rcx, imm=0x3e
+  00023266: alu1 (sz1)
+  00023268: xor-rr KAPI-dekompoze (sz4)
+  0002326A: shrd rax, rdx
+  0002326E: alu6 (sz1)
+  00023271: cmov5 rdx
+  00023275: pop rbp
+  00023276: ret
+[YAMA] __fixtfdi @RVA=0x0244F0 boyut=0x88 | bc=277B key=0xA1EE93A954B1A0E7 | stubRVA=0x059190 retimm=4294967295 (trampoline)
+  000244F0: push rbp
+  000244F1: mov rbp, rsp (sz8)
+  000244F4: mov rdx, [mem] (sz8)
+  000244F8: mov rax, rdx (sz8)
+  000244FB: shift 48
+  000244FF: mov r8, rax (sz4)
+  00024502: and-imm KAPI-dekompoze (sz4)
+  00024509: alu5 (sz4)
+  00024510: jcc3 0x24516
+  00024512: xor-rr KAPI-dekompoze (sz4)
+  00024514: pop rbp
+  00024515: ret
+  00024516: alu0 (sz4)
+  0002451D: alu5 (sz4)
+  00024521: jcc7 0x2453a
+  00024523: movabs rcx, 0x7fffffffffffffff
+  0002452D: lea rax, [mem]
+  00024531: alu6 (sz8)
+  00024534: cmov9 rcx
+  00024538: pop rbp
+  00024539: ret
+  0002453A: mov r8, [mem] (sz8)
+  0002453D: movabs rcx, 0xffffffffffff
+  00024547: and-rr KAPI-dekompoze (sz8)
+  0002454A: movabs r9, 0x1000000000000
+  00024554: or-rr KAPI-dekompoze (sz8)
+  00024557: mov rcx, imm=0x6f
+  00024559: alu1 (sz1)
+  0002455B: shrd r8, r9
+  0002455F: shift%cl
+  00024562: alu6 (sz1)
+  00024565: cmov4 r8
+  00024569: mov rax, r9 (sz8)
+  0002456C: neg rax
+  0002456F: alu6 (sz8)
+  00024572: cmov9 r9
+  00024576: pop rbp
+  00024577: ret
+[YAMA] __fixtfsi @RVA=0x024580 boyut=0x7E | bc=283B key=0xA123073934555C4D | stubRVA=0x0592D0 retimm=4294967295 (trampoline)
+  00024580: push rbp
+  00024581: mov rbp, rsp (sz8)
+  00024584: mov rdx, [mem] (sz8)
+  00024588: mov r8, rdx (sz8)
+  0002458B: shift 48
+  0002458F: mov r9, r8 (sz4)
+  00024592: and-imm KAPI-dekompoze (sz4)
+  00024599: xor-rr KAPI-dekompoze (sz4)
+  0002459B: alu5 (sz4)
+  000245A2: jcc2 0x245fc
+  000245A4: alu0 (sz4)
+  000245AB: alu5 (sz4)
+  000245AF: jcc7 0x245c0
+  000245B1: xor-rr KAPI-dekompoze (sz4)
+  000245B3: alu6 (sz8)
+  000245B6: setcc8 rax
+  000245B9: alu0 (sz4)
+  000245BE: pop rbp
+  000245BF: ret
+  000245C0: mov rax, [mem] (sz8)
+  000245C3: movabs rcx, 0xffffffffffff
+  000245CD: and-rr KAPI-dekompoze (sz8)
+  000245D0: movabs r9, 0x1000000000000
+  000245DA: or-rr KAPI-dekompoze (sz8)
+  000245DD: mov rcx, imm=0x6f
+  000245DF: alu1 (sz1)
+  000245E2: shrd rax, r9
+  000245E6: shift%cl
+  000245E9: alu6 (sz1)
+  000245EC: cmov4 rax
+  000245F0: mov rax, r9 (sz4)
+  000245F3: neg rax
+  000245F5: alu6 (sz8)
+  000245F8: cmov9 r9
+  000245FC: pop rbp
+  000245FD: ret
+[YAMA] __fixxfdi @RVA=0x024B60 boyut=0x62 | bc=243B key=0x270DF719616725A5 | stubRVA=0x059410 retimm=4294967295 (trampoline)
+  00024B60: push rbp
+  00024B61: mov rbp, rsp (sz8)
+  00024B64: movsx64<-16 [mem]
+  00024B69: mov rax, rdx (sz4)
+  00024B6B: and-imm KAPI-dekompoze (sz4)
+  00024B70: alu5 (sz4)
+  00024B75: jcc3 0x24b7b
+  00024B77: xor-rr KAPI-dekompoze (sz4)
+  00024B79: pop rbp
+  00024B7A: ret
+  00024B7B: alu0 (sz4)
+  00024B80: alu5 (sz4)
+  00024B83: jcc7 0x24b9c
+  00024B85: movabs rcx, 0x7fffffffffffffff
+  00024B8F: lea rax, [mem]
+  00024B93: alu6 (sz8)
+  00024B96: cmov9 rcx
+  00024B9A: pop rbp
+  00024B9B: ret
+  00024B9C: mov r8, [mem] (sz8)
+  00024B9F: movzx32<-16 rdx
+  00024BA2: mov rcx, imm=0x3e
+  00024BA4: alu1 (sz1)
+  00024BA6: xor-rr KAPI-dekompoze (sz4)
+  00024BA8: shrd r8, rax
+  00024BAC: alu6 (sz1)
+  00024BAF: cmov5 rax
+  00024BB3: mov rax, r8 (sz8)
+  00024BB6: neg rax
+  00024BB9: alu6 (sz8)
+  00024BBC: cmov9 r8
+  00024BC0: pop rbp
+  00024BC1: ret
+[YAMA] __fixxfsi @RVA=0x024BD0 boyut=0x5F | bc=249B key=0x5F533489410AE10B | stubRVA=0x059550 retimm=4294967295 (trampoline)
+  00024BD0: push rbp
+  00024BD1: mov rbp, rsp (sz8)
+  00024BD4: movsx64<-16 [mem]
+  00024BD9: mov r8, rdx (sz4)
+  00024BDC: and-imm KAPI-dekompoze (sz4)
+  00024BE3: xor-rr KAPI-dekompoze (sz4)
+  00024BE5: alu5 (sz4)
+  00024BEC: jcc2 0x24c2d
+  00024BEE: alu0 (sz4)
+  00024BF5: alu5 (sz4)
+  00024BF9: jcc7 0x24c0a
+  00024BFB: xor-rr KAPI-dekompoze (sz4)
+  00024BFD: alu6 (sz8)
+  00024C00: setcc8 rax
+  00024C03: alu0 (sz4)
+  00024C08: pop rbp
+  00024C09: ret
+  00024C0A: mov r8, [mem] (sz8)
+  00024C0D: movzx32<-16 rdx
+  00024C10: mov rcx, imm=0x3e
+  00024C12: alu1 (sz1)
+  00024C14: xor-rr KAPI-dekompoze (sz4)
+  00024C16: shrd r8, rax
+  00024C1A: alu6 (sz1)
+  00024C1D: cmov5 rax
+  00024C21: mov rax, r8 (sz4)
+  00024C24: neg rax
+  00024C26: alu6 (sz8)
+  00024C29: cmov9 r8
+  00024C2D: pop rbp
+  00024C2E: ret
+[YAMA] __extendxftf2 @RVA=0x026710 boyut=0xA9 | bc=353B key=0xC7074BC965763BF3 | stubRVA=0x059690 retimm=34120 (trampoline)
+  00026710: push rbp
+  00026711: mov rbp, rsp (sz8)
+  00026714: mov rdx, [mem] (sz8)
+  00026717: movzx32<-16 [mem]
+  0002671B: mov r9, rax (sz4)
+  0002671E: and-imm KAPI-dekompoze (sz2)
+  00026726: xchg rax, ah
+  00026727: ret 0x8548
+  0002672A: shift[mem]%cl
+  0002672D: xchg rax, ah
+  0002672E: ret
+  0002672F: xor-rr KAPI-dekompoze (sz4)
+  00026732: mov rcx, imm=0x0
+  00026737: alu6 (sz1)
+  0002673A: jcc5 0x2679d
+  0002673C: movzx32<-16 r9
+  00026740: alu5 (sz4)
+  00026746: jcc5 0x26762
+  00026748: mov r8, rdx (sz8)
+  0002674B: shift 49
+  0002674F: shift 15
+  00026753: movabs rcx, 0x7fff000000000000
+  0002675D: or-rr KAPI-dekompoze (sz8)
+  00026760: jmp 0x2679d
+  00026762: alu6 (sz8)
+  00026765: jcc8 0x2677e
+  00026767: movabs rcx, 0x7fffffffffff8000
+  00026771: and-rr KAPI-dekompoze (sz8)
+  00026774: shift 15
+  00026778: shift 49
+  0002677C: jmp 0x2679a
+  0002677E: movabs r8, 0x7fffffffffff8000
+  00026788: and-rr KAPI-dekompoze (sz8)
+  0002678B: shift 15
+  0002678F: shift 49
+  00026793: shift 48
+  00026797: or-rr KAPI-dekompoze (sz8)
+  0002679A: mov r8, rdx (sz8)
+  0002679D: and-imm KAPI-dekompoze (sz4)
+  000267A2: shift 48
+  000267A6: or-rr KAPI-dekompoze (sz8)
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __mulosi4 @RVA=0x026DE0 boyut=0x1E | bc=78B key=0xA0F451995B50842F | stubRVA=0x0597D0 retimm=4294967295 (trampoline)
+  00026DE0: push rbp
+  00026DE1: mov rbp, rsp (sz8)
+  00026DE4: movsx64<-32 rcx
+  00026DE7: movsx64<-32 rdx
+  00026DEA: imul rcx, rax
+  00026DEE: movsx64<-32 rcx
+  00026DF1: xor-rr KAPI-dekompoze (sz4)
+  00026DF3: alu5 (sz8)
+  00026DF6: setcc5 rdx
+  00026DF9: mov [mem], rdx (sz4)
+  00026DFC: pop rbp
+  00026DFD: ret
+[YAMA] __mulodi4 @RVA=0x026EE0 boyut=0x34 | bc=87B key=0xD86E0299AAC61D49 | stubRVA=0x059910 retimm=4294967295 (trampoline)
+  00026EE0: push rbp
+  00026EE1: mov rbp, rsp (sz8)
+  00026EE4: mov [mem], imm32=0x0
+  00026EEB: mov rax, rcx (sz8)
+  00026EEE: imul rax, rdx
+  00026EF2: setcc0 r9
+  00026EF6: alu6 (sz8)
+  00026EF9: setcc8 rcx
+  00026EFC: neg rdx
+  00026EFF: setcc0 rdx
+  00026F02: alu6 (sz1)
+  00026F04: jcc5 0x26f0b
+  00026F06: alu6 (sz1)
+  00026F09: jcc4 0x26f12
+  00026F0B: mov [mem], imm32=0x1
+  00026F12: pop rbp
+  00026F13: ret
+[YAMA] udivmod__func_185 @RVA=0x027120 boyut=0x5E | bc=178B key=0xD53FD0D9EAA40CD3 | stubRVA=0x059A50 retimm=4294967295 (trampoline)
+  00027120: push rbp
+  00027121: push r15
+  00027123: push r14
+  00027125: push r13
+  00027127: push r12
+  00027129: push rsi
+  0002712A: push rdi
+  0002712B: push rbx
+  0002712C: mov rbp, rsp (sz8)
+  0002712F: mov rsi, rdx (sz8)
+  00027132: mov r11, rcx (sz8)
+  00027135: mov rbx, [mem] (sz8)
+  00027139: alu5 (sz8)
+  0002713C: mov rax, rdx (sz8)
+  0002713F: alu8 (sz8)
+  00027142: jcc3 0x27165
+  00027144: alu6 (sz8)
+  00027147: jcc4 0x27150
+  00027149: mov [mem], r11 (sz8)
+  0002714C: mov [mem], rsi (sz8)
+  00027150: xor-rr KAPI-dekompoze (sz4)
+  00027153: xor-rr KAPI-dekompoze (sz4)
+  00027155: mov rax, r10 (sz8)
+  00027158: pop rbx
+  00027159: pop rdi
+  0002715A: pop rsi
+  0002715B: pop r12
+  0002715D: pop r13
+  0002715F: pop r14
+  00027161: pop r15
+  00027163: pop rbp
+  00027164: ret
+  00027165: alu6 (sz8)
+  00027168: jcc4 disari -> jccext 0x27210
+  [1.0.0-FIX] bolge-siniri kesigi: govde RET ile bitmiyordu — yapay OP_RET eklendi (OOB akis-tasma kok-nedeni kapandi)
+[YAMA] __mulsi3 @RVA=0x027720 boyut=0x2A | bc=121B key=0x2219F6D99E10988B | stubRVA=0x059B90 retimm=4294967295 (trampoline)
+  00027720: push rbp
+  00027721: mov rbp, rsp (sz8)
+  00027724: xor-rr KAPI-dekompoze (sz4)
+  00027726: alu6 (sz4)
+  00027728: jcc4 0x27748
+  0002772A: jcc4 0x27748
+  00027730: mov r8, rcx (sz4)
+  00027733: and-imm KAPI-dekompoze (sz4)
+  00027737: neg r8
+  0002773A: and-rr KAPI-dekompoze (sz4)
+  0002773D: alu0 (sz4)
+  00027740: shift 1
+  00027742: alu0 (sz4)
+  00027744: alu6 (sz4)
+  00027746: jcc5 0x27730
+  00027748: pop rbp
+  00027749: ret
+[YAMA] __muldi3 @RVA=0x0277D0 boyut=0x78 | bc=194B key=0xE83DA0893F0355E3 | stubRVA=0x059CD0 retimm=4294967295 (trampoline)
+  000277D0: push rbp
+  000277D1: push rsi
+  000277D2: mov rbp, rsp (sz8)
+  000277D5: mov rax, rdx (sz8)
+  000277D8: shift 32
+  000277DC: movzx32<-16 rcx
+  000277E0: mov r9, rcx (sz4)
+  000277E3: imul rax, rcx
+  000277E6: shift 32
+  000277EA: movzx32<-16 rdx
+  000277EE: mov r11, r10 (sz4)
+  000277F1: imul r11, r8
+  000277F5: movzx32<-16 r11
+  000277F9: shift 16
+  000277FD: shift 16
+  00027801: imul r10, r9
+  00027805: alu0 (sz4)
+  00027808: movzx32<-16 r10
+  0002780C: shift 16
+  00027810: imul rcx, rdx
+  00027813: shift 16
+  00027816: imul r8, rdx
+  0002781A: alu0 (sz4)
+  0002781D: mov r11, r8 (sz4)
+  00027820: shift 16
+  00027824: or-rr KAPI-dekompoze (sz4)
+  00027827: shift 16
+  0002782B: imul rdx, r9
+  0002782F: alu0 (sz4)
+  00027832: alu0 (sz4)
+  00027835: shift 32
+  00027839: alu0 (sz4)
+  0002783B: shift 32
+  0002783F: or-rr KAPI-dekompoze (sz8)
+  00027842: alu0 (sz8)
+  00027845: pop rsi
+  00027846: pop rbp
+  00027847: ret
+[YAMA] __divmodsi4 @RVA=0x027A00 boyut=0x39 | bc=155B key=0x197D3B9915B13CD | stubRVA=0x059E10 retimm=4294967295 (trampoline)
+  00027A00: push rbp
+  00027A01: mov rbp, rsp (sz8)
+  00027A04: mov r9, rdx (sz4)
+  00027A07: mov r10, rdx (sz4)
+  00027A0A: xor-rr KAPI-dekompoze (sz4)
+  00027A0D: shift 31
+  00027A11: mov rax, rcx (sz4)
+  00027A13: neg rax
+  00027A15: cmov8 rcx
+  00027A18: mov r11, rdx (sz4)
+  00027A1B: neg r11
+  00027A1E: cmov8 rdx
+  00027A22: xor-rr KAPI-dekompoze (sz4)
+  00027A24: div r11
+  00027A27: xor-rr KAPI-dekompoze (sz4)
+  00027A2A: alu1 (sz4)
+  00027A2D: imul r9, rax
+  00027A31: alu1 (sz4)
+  00027A34: mov [mem], rcx (sz4)
+  00027A37: pop rbp
+  00027A38: ret
+[YAMA] __umoddi3 @RVA=0x027A40 boyut=0x1D | bc=60B key=0x8F763FF9BC6551FD | stubRVA=0x059F50 retimm=4294967295 (trampoline)
+  00027A40: push rbp
+  00027A41: alu1 (sz8)
+  00027A45: lea rbp, [mem]
+  00027A4A: lea r8, [mem]
+  00027A4E: call 0x27d80 (ncall)
+  00027A53: mov rax, [mem] (sz8)
+  00027A57: alu0 (sz8)
+  00027A5B: pop rbp
+  00027A5C: ret
+[YAMA] __moddi3 @RVA=0x027B40 boyut=0x3F | bc=123B key=0xC6EFF0F9E89C81AD | stubRVA=0x05A090 retimm=4294967295 (trampoline)
+  00027B40: push rbp
+  00027B41: push rsi
+  00027B42: alu1 (sz8)
+  00027B46: lea rbp, [mem]
+  00027B4B: mov rsi, rcx (sz8)
+  00027B4E: shift 63
+  00027B52: mov rax, rcx (sz8)
+  00027B55: neg rax
+  00027B58: cmov9 rax
+  00027B5C: mov rax, rdx (sz8)
+  00027B5F: neg rax
+  00027B62: cmov9 rax
+  00027B66: mov r8, rbp (sz8)
+  00027B69: call 0x27d80 (ncall)
+  00027B6E: mov rax, [mem] (sz8)
+  00027B72: xor-rr KAPI-dekompoze (sz8)
+  00027B75: alu1 (sz8)
+  00027B78: alu0 (sz8)
+  00027B7C: pop rsi
+  00027B7D: pop rbp
+  00027B7E: ret
+[YAMA] __modsi3 @RVA=0x027B80 boyut=0x39 | bc=148B key=0x54CE5D398C7163D5 | stubRVA=0x05A1D0 retimm=4294967295 (trampoline)
+  00027B80: push rbp
+  00027B81: mov rbp, rsp (sz8)
+  00027B84: mov r8, rdx (sz4)
+  00027B87: mov r9, rdx (sz4)
+  00027B8A: xor-rr KAPI-dekompoze (sz4)
+  00027B8D: shift 31
+  00027B91: mov rax, rcx (sz4)
+  00027B93: neg rax
+  00027B95: cmov8 rcx
+  00027B98: mov r10, rdx (sz4)
+  00027B9B: neg r10
+  00027B9E: cmov8 rdx
+  00027BA2: xor-rr KAPI-dekompoze (sz4)
+  00027BA4: div r10
+  00027BA7: xor-rr KAPI-dekompoze (sz4)
+  00027BAA: alu1 (sz4)
+  00027BAD: imul r9, r8
+  00027BB1: alu0 (sz4)
+  00027BB4: mov rax, r9 (sz4)
+  00027BB7: pop rbp
+  00027BB8: ret
+[YAMA] __divdi3 @RVA=0x027BD0 boyut=0x3E | bc=158B key=0xC6246489012CF17F | stubRVA=0x05A310 retimm=4294967295 (trampoline)
+  00027BD0: push rbp
+  00027BD1: push rsi
+  00027BD2: alu1 (sz8)
+  00027BD6: lea rbp, [mem]
+  00027BDB: mov rsi, rdx (sz8)
+  00027BDE: xor-rr KAPI-dekompoze (sz8)
+  00027BE1: shift 63
+  00027BE5: mov rax, rcx (sz8)
+  00027BE8: neg rax
+  00027BEB: cmov9 rax
+  00027BEF: mov rax, rdx (sz8)
+  00027BF2: neg rax
+  00027BF5: cmov9 rax
+  00027BF9: xor-rr KAPI-dekompoze (sz4)
+  00027BFC: call 0x27d80 (ncall)
+  00027C01: xor-rr KAPI-dekompoze (sz8)
+  00027C04: alu1 (sz8)
+  00027C07: alu0 (sz8)
+  00027C0B: pop rsi
+  00027C0C: pop rbp
+  00027C0D: ret
+[YAMA] __divsi3 @RVA=0x027CF0 boyut=0x28 | bc=131B key=0xC48D4BA912CC2635 | stubRVA=0x05A450 retimm=4294967295 (trampoline)
+  00027CF0: push rbp
+  00027CF1: mov rbp, rsp (sz8)
+  00027CF4: mov r8, rdx (sz4)
+  00027CF7: xor-rr KAPI-dekompoze (sz4)
+  00027CFA: shift 31
+  00027CFE: mov rax, rcx (sz4)
+  00027D00: neg rax
+  00027D02: cmov8 rcx
+  00027D05: mov rcx, rdx (sz4)
+  00027D07: neg rcx
+  00027D09: cmov8 rdx
+  00027D0C: xor-rr KAPI-dekompoze (sz4)
+  00027D0E: div rcx
+  00027D10: xor-rr KAPI-dekompoze (sz4)
+  00027D13: alu1 (sz4)
+  00027D16: pop rbp
+  00027D17: ret
+[YAMA] __divmoddi4 @RVA=0x027D20 boyut=0x53 | bc=194B key=0x6EF41CD93F0355E3 | stubRVA=0x05A590 retimm=4294967295 (trampoline)
+  00027D20: push rbp
+  00027D21: push r14
+  00027D23: push rsi
+  00027D24: push rdi
+  00027D25: push rbx
+  00027D26: alu1 (sz8)
+  00027D2A: lea rbp, [mem]
+  00027D2F: mov rsi, r8 (sz8)
+  00027D32: mov rdi, rdx (sz8)
+  00027D35: mov rbx, rcx (sz8)
+  00027D38: mov r14, rdx (sz8)
+  00027D3B: xor-rr KAPI-dekompoze (sz8)
+  00027D3E: shift 63
+  00027D42: neg rcx
+  00027D45: cmov8 rbx
+  00027D49: neg rdx
+  00027D4C: cmov8 rdi
+  00027D50: xor-rr KAPI-dekompoze (sz4)
+  00027D53: call 0x27d80 (ncall)
+  00027D58: xor-rr KAPI-dekompoze (sz8)
+  00027D5B: alu1 (sz8)
+  00027D5E: imul rdi, rax
+  00027D62: alu1 (sz8)
+  00027D65: mov [mem], rbx (sz8)
+  00027D68: alu0 (sz8)
+  00027D6C: pop rbx
+  00027D6D: pop rdi
+  00027D6E: pop rsi
+  00027D6F: pop r14
+  00027D71: pop rbp
+  00027D72: ret
+[YAMA] __ashlsi3 @RVA=0x028160 boyut=0x46 | bc=212B key=0xDAB94D19DDEE8815 | stubRVA=0x05A6D0 retimm=4294967295 (trampoline)
+  00028160: push rbp
+  00028161: mov rbp, rsp (sz8)
+  00028164: mov rax, rcx (sz4)
+  00028166: alu5 (sz4)
+  00028169: jcc14 0x28176
+  0002816B: and-imm KAPI-dekompoze (sz1)
+  0002816E: mov rcx, rdx (sz4)
+  00028170: shift%cl
+  00028172: xor-rr KAPI-dekompoze (sz4)
+  00028174: jmp 0x2819f
+  00028176: alu6 (sz4)
+  00028178: jcc4 0x281a4
+  0002817A: mov r8, rax (sz4)
+  0002817D: shift 16
+  00028181: mov r9, rax (sz4)
+  00028184: mov rcx, rdx (sz4)
+  00028186: shift%cl
+  00028189: shift%cl
+  0002818C: movzx32<-16 rax
+  0002818F: neg rdx
+  00028191: and-imm KAPI-dekompoze (sz1)
+  00028194: mov rcx, rdx (sz4)
+  00028196: shift%cl
+  00028198: or-rr KAPI-dekompoze (sz4)
+  0002819B: movzx32<-16 r9
+  0002819F: shift 16
+  000281A2: or-rr KAPI-dekompoze (sz4)
+  000281A4: pop rbp
+  000281A5: ret
+[YAMA] __lshrdi3 @RVA=0x0281B0 boyut=0x44 | bc=162B key=0x4C0F54699644C3C3 | stubRVA=0x05A810 retimm=4294967295 (trampoline)
+  000281B0: push rbp
+  000281B1: mov rbp, rsp (sz8)
+  000281B4: mov r8, rcx (sz8)
+  000281B7: shift 32
+  000281BB: alu5 (sz4)
+  000281BE: jcc14 0x281ca
+  000281C0: mov rcx, rdx (sz4)
+  000281C2: shift%cl
+  000281C5: xor-rr KAPI-dekompoze (sz4)
+  000281C8: jmp 0x281ec
+  000281CA: mov rax, rcx (sz8)
+  000281CD: alu6 (sz4)
+  000281CF: jcc4 0x281f2
+  000281D1: mov r9, r8 (sz4)
+  000281D4: mov rcx, rdx (sz4)
+  000281D6: shift%cl
+  000281D9: neg rcx
+  000281DB: shift%cl
+  000281DE: mov rcx, rdx (sz4)
+  000281E0: shift%cl
+  000281E2: or-rr KAPI-dekompoze (sz4)
+  000281E5: shift 32
+  000281E9: mov r8, rax (sz4)
+  000281EC: mov rax, r8 (sz4)
+  000281EF: or-rr KAPI-dekompoze (sz8)
+  000281F2: pop rbp
+  000281F3: ret
+[YAMA] __ashrdi3 @RVA=0x028200 boyut=0x48 | bc=146B key=0xBD655BB941E57AB3 | stubRVA=0x05A950 retimm=4294967295 (trampoline)
+  00028200: push rbp
+  00028201: mov rbp, rsp (sz8)
+  00028204: mov r8, rcx (sz8)
+  00028207: shift 32
+  0002820B: alu5 (sz4)
+  0002820E: jcc14 0x2821e
+  00028210: mov r9, r8 (sz4)
+  00028213: shift 31
+  00028217: mov rcx, rdx (sz4)
+  00028219: shift%cl
+  0002821C: jmp 0x2823c
+  0002821E: mov rax, rcx (sz8)
+  00028221: alu6 (sz4)
+  00028223: jcc4 0x28246
+  00028225: mov r9, r8 (sz4)
+  00028228: mov rcx, rdx (sz4)
+  0002822A: shift%cl
+  0002822D: neg rcx
+  0002822F: shift%cl
+  00028232: mov rcx, rdx (sz4)
+  00028234: shift%cl
+  00028236: or-rr KAPI-dekompoze (sz4)
+  00028239: mov r8, rax (sz4)
+  0002823C: shift 32
+  00028240: mov rax, r8 (sz4)
+  00028243: or-rr KAPI-dekompoze (sz8)
+  00028246: pop rbp
+  00028247: ret
+[YAMA] __ashldi3 @RVA=0x028250 boyut=0x3D | bc=154B key=0x2EBB63096C151F3B | stubRVA=0x05AA90 retimm=4294967295 (trampoline)
+  00028250: push rbp
+  00028251: mov rbp, rsp (sz8)
+  00028254: mov rax, rcx (sz8)
+  00028257: alu5 (sz4)
+  0002825A: jcc14 0x28265
+  0002825C: mov rcx, rdx (sz4)
+  0002825E: shift%cl
+  00028260: xor-rr KAPI-dekompoze (sz4)
+  00028263: jmp 0x28284
+  00028265: alu6 (sz4)
+  00028267: jcc4 0x2828b
+  00028269: mov r9, rax (sz8)
+  0002826C: shift 32
+  00028270: mov r8, rax (sz4)
+  00028273: mov rcx, rdx (sz4)
+  00028275: shift%cl
+  00028278: shift%cl
+  0002827B: neg rdx
+  0002827D: mov rcx, rdx (sz4)
+  0002827F: shift%cl
+  00028281: or-rr KAPI-dekompoze (sz4)
+  00028284: shift 32
+  00028288: or-rr KAPI-dekompoze (sz8)
+  0002828B: pop rbp
+  0002828C: ret
+[YAMA] __lshrsi3 @RVA=0x028380 boyut=0x4B | bc=220B key=0x109BE539081E2C9D | stubRVA=0x05ABD0 retimm=4294967295 (trampoline)
+  00028380: push rbp
+  00028381: mov rbp, rsp (sz8)
+  00028384: mov rax, rcx (sz4)
+  00028386: shift 16
+  00028389: alu5 (sz4)
+  0002838C: jcc14 0x2839d
+  0002838E: movzx32<-16 rcx
+  00028391: and-imm KAPI-dekompoze (sz1)
+  00028394: mov rcx, rdx (sz4)
+  00028396: shift%cl
+  00028398: xor-rr KAPI-dekompoze (sz4)
+  0002839B: jmp 0x283c3
+  0002839D: alu6 (sz4)
+  0002839F: jcc4 0x283c9
+  000283A1: movzx32<-16 rcx
+  000283A5: mov r8, r9 (sz4)
+  000283A8: mov rcx, rdx (sz4)
+  000283AA: shift%cl
+  000283AD: neg rcx
+  000283AF: and-imm KAPI-dekompoze (sz1)
+  000283B2: shift%cl
+  000283B5: movzx32<-16 rax
+  000283B8: mov rcx, rdx (sz4)
+  000283BA: shift%cl
+  000283BC: or-rr KAPI-dekompoze (sz4)
+  000283BF: shift 16
+  000283C3: movzx32<-16 rax
+  000283C6: or-rr KAPI-dekompoze (sz4)
+  000283C9: pop rbp
+  000283CA: ret
+[YAMA] __ashrsi3 @RVA=0x0283D0 boyut=0x4F | bc=204B key=0x81F1EC89B3BEE38D | stubRVA=0x05AD10 retimm=4294967295 (trampoline)
+  000283D0: push rbp
+  000283D1: mov rbp, rsp (sz8)
+  000283D4: mov rax, rcx (sz4)
+  000283D6: shift 16
+  000283D9: alu5 (sz4)
+  000283DC: jcc14 0x283f1
+  000283DE: movsx32<-16 rcx
+  000283E1: mov r8, rax (sz4)
+  000283E4: shift 15
+  000283E8: and-imm KAPI-dekompoze (sz1)
+  000283EB: mov rcx, rdx (sz4)
+  000283ED: shift%cl
+  000283EF: jmp 0x28413
+  000283F1: alu6 (sz4)
+  000283F3: jcc4 0x2841d
+  000283F5: movsx32<-16 rcx
+  000283F9: mov r8, r9 (sz4)
+  000283FC: mov rcx, rdx (sz4)
+  000283FE: shift%cl
+  00028401: neg rcx
+  00028403: and-imm KAPI-dekompoze (sz1)
+  00028406: shift%cl
+  00028409: movzx32<-16 rax
+  0002840C: mov rcx, rdx (sz4)
+  0002840E: shift%cl
+  00028410: or-rr KAPI-dekompoze (sz4)
+  00028413: shift 16
+  00028417: movzx32<-16 rax
+  0002841A: or-rr KAPI-dekompoze (sz4)
+  0002841D: pop rbp
+  0002841E: ret
+[YAMA] __ucmpti2 @RVA=0x028440 boyut=0x32 | bc=105B key=0xBA3729F949B14F7B | stubRVA=0x05AE50 retimm=4294967295 (trampoline)
+  00028440: push rbp
+  00028441: mov rbp, rsp (sz8)
+  00028444: mov rax, [mem] (sz8)
+  00028447: mov rcx, [mem] (sz8)
+  0002844B: mov r8, [mem] (sz8)
+  0002844E: mov rdx, [mem] (sz8)
+  00028452: alu5 (sz8)
+  00028455: mov r9, rdx (sz8)
+  00028458: alu8 (sz8)
+  0002845B: setcc2 r9
+  0002845F: alu5 (sz8)
+  00028462: alu8 (sz8)
+  00028465: alu8 (sz1)
+  00028469: movsx32<-8 r9
+  0002846D: alu0 (sz4)
+  00028470: pop rbp
+  00028471: ret
+[YAMA] __cmpti2 @RVA=0x0284C0 boyut=0x33 | bc=105B key=0xD5F4027949B14F7B | stubRVA=0x05AF90 retimm=4294967295 (trampoline)
+  000284C0: push rbp
+  000284C1: mov rbp, rsp (sz8)
+  000284C4: mov rax, [mem] (sz8)
+  000284C7: mov rcx, [mem] (sz8)
+  000284CB: mov r8, [mem] (sz8)
+  000284CE: mov rdx, [mem] (sz8)
+  000284D2: alu5 (sz8)
+  000284D5: mov r9, rcx (sz8)
+  000284D8: alu8 (sz8)
+  000284DB: setcc12 r9
+  000284DF: alu5 (sz8)
+  000284E2: alu8 (sz8)
+  000284E5: setcc12 rax
+  000284E8: alu1 (sz1)
+  000284EB: movsx32<-8 rax
+  000284EE: alu0 (sz4)
+  000284F1: pop rbp
+  000284F2: ret
+[YAMA] __bitreversesi2 @RVA=0x028570 boyut=0x42 | bc=222B key=0x9C17AC2952AA15BF | stubRVA=0x05B0D0 retimm=4294967295 (trampoline)
+  00028570: push rbp
+  00028571: mov rbp, rsp (sz8)
+  00028574: bswap rcx
+  00028576: mov rax, rcx (sz4)
+  00028578: and-imm KAPI-dekompoze (sz4)
+  0002857D: shift 4
+  00028580: shift 4
+  00028583: and-imm KAPI-dekompoze (sz4)
+  00028589: or-rr KAPI-dekompoze (sz4)
+  0002858B: mov rax, rcx (sz4)
+  0002858D: and-imm KAPI-dekompoze (sz4)
+  00028592: shift 2
+  00028595: and-imm KAPI-dekompoze (sz4)
+  0002859B: lea rax, [mem]
+  0002859E: mov rcx, rax (sz4)
+  000285A0: and-imm KAPI-dekompoze (sz4)
+  000285A6: shift 1
+  000285A8: and-imm KAPI-dekompoze (sz4)
+  000285AD: lea rax, [mem]
+  000285B0: pop rbp
+  000285B1: ret
+[YAMA] __bitreversedi2 @RVA=0x028670 boyut=0x5C | bc=216B key=0xD3915D2973065A59 | stubRVA=0x05B210 retimm=4294967295 (trampoline)
+  00028670: push rbp
+  00028671: mov rbp, rsp (sz8)
+  00028674: bswap rcx
+  00028677: mov rax, rcx (sz8)
+  0002867A: shift 4
+  0002867E: movabs rdx, 0xf0f0f0f0f0f0f0f
+  00028688: and-rr KAPI-dekompoze (sz8)
+  0002868B: and-rr KAPI-dekompoze (sz8)
+  0002868E: shift 4
+  00028692: or-rr KAPI-dekompoze (sz8)
+  00028695: movabs rax, 0x3333333333333333
+  0002869F: mov rdx, rcx (sz8)
+  000286A2: and-rr KAPI-dekompoze (sz8)
+  000286A5: shift 2
+  000286A9: and-rr KAPI-dekompoze (sz8)
+  000286AC: lea rax, [mem]
+  000286B0: movabs rcx, 0x5555555555555555
+  000286BA: mov rdx, rax (sz8)
+  000286BD: and-rr KAPI-dekompoze (sz8)
+  000286C0: shift 1
+  000286C3: and-rr KAPI-dekompoze (sz8)
+  000286C6: lea rax, [mem]
+  000286CA: pop rbp
+  000286CB: ret
+[YAMA] __popcountsi2 @RVA=0x0286D0 boyut=0x38 | bc=159B key=0x285EFF892672E611 | stubRVA=0x05B350 retimm=4294967295 (trampoline)
+  000286D0: push rbp
+  000286D1: mov rbp, rsp (sz8)
+  000286D4: mov rax, rcx (sz4)
+  000286D6: shift 1
+  000286D8: and-imm KAPI-dekompoze (sz4)
+  000286DD: alu1 (sz4)
+  000286DF: mov rax, rcx (sz4)
+  000286E1: and-imm KAPI-dekompoze (sz4)
+  000286E6: shift 2
+  000286E9: and-imm KAPI-dekompoze (sz4)
+  000286EF: alu0 (sz4)
+  000286F1: mov rax, rcx (sz4)
+  000286F3: shift 4
+  000286F6: alu0 (sz4)
+  000286F8: and-imm KAPI-dekompoze (sz4)
+  000286FD: imul rax, rax, 0x1010101
+  00028703: shift 24
+  00028706: pop rbp
+  00028707: ret
+[YAMA] __popcountti2 @RVA=0x028710 boyut=0x99 | bc=317B key=0xB63D6BC9279FD78F | stubRVA=0x05B490 retimm=4294967295 (trampoline)
+  00028710: push rbp
+  00028711: mov rbp, rsp (sz8)
+  00028714: mov rdx, [mem] (sz8)
+  00028717: mov r9, [mem] (sz8)
+  0002871B: mov rax, r9 (sz8)
+  0002871E: shift 1
+  00028721: movabs r8, 0x5555555555555555
+  0002872B: and-rr KAPI-dekompoze (sz8)
+  0002872E: alu1 (sz8)
+  00028731: movabs rax, 0x3333333333333333
+  0002873B: mov rcx, r9 (sz8)
+  0002873E: and-rr KAPI-dekompoze (sz8)
+  00028741: shift 2
+  00028745: and-rr KAPI-dekompoze (sz8)
+  00028748: alu0 (sz8)
+  0002874B: mov rcx, r9 (sz8)
+  0002874E: shift 4
+  00028752: alu0 (sz8)
+  00028755: movabs r9, 0xf0f0f0f0f0f0f0f
+  0002875F: and-rr KAPI-dekompoze (sz8)
+  00028762: movabs r10, 0x101010101010101
+  0002876C: imul rcx, r10
+  00028770: shift 56
+  00028774: mov r11, rdx (sz8)
+  00028777: shift 1
+  0002877A: and-rr KAPI-dekompoze (sz8)
+  0002877D: alu1 (sz8)
+  00028780: mov r8, rdx (sz8)
+  00028783: and-rr KAPI-dekompoze (sz8)
+  00028786: shift 2
+  0002878A: and-rr KAPI-dekompoze (sz8)
+  0002878D: alu0 (sz8)
+  00028790: mov rax, rdx (sz8)
+  00028793: shift 4
+  00028797: alu0 (sz8)
+  0002879A: and-rr KAPI-dekompoze (sz8)
+  0002879D: imul rax, r10
+  000287A1: shift 56
+  000287A5: alu0 (sz4)
+  000287A7: pop rbp
+  000287A8: ret
+[YAMA] __popcountdi2 @RVA=0x0287B0 boyut=0x5F | bc=171B key=0x98E97A69E5BA5CDD | stubRVA=0x05B5D0 retimm=4294967295 (trampoline)
+  000287B0: push rbp
+  000287B1: mov rbp, rsp (sz8)
+  000287B4: mov rax, rcx (sz8)
+  000287B7: shift 1
+  000287BA: movabs rdx, 0x5555555555555555
+  000287C4: and-rr KAPI-dekompoze (sz8)
+  000287C7: alu1 (sz8)
+  000287CA: movabs rax, 0x3333333333333333
+  000287D4: mov rdx, rcx (sz8)
+  000287D7: and-rr KAPI-dekompoze (sz8)
+  000287DA: shift 2
+  000287DE: and-rr KAPI-dekompoze (sz8)
+  000287E1: alu0 (sz8)
+  000287E4: mov rcx, rax (sz8)
+  000287E7: shift 4
+  000287EB: alu0 (sz8)
+  000287EE: movabs rdx, 0xf0f0f0f0f0f0f0f
+  000287F8: and-rr KAPI-dekompoze (sz8)
+  000287FB: movabs rax, 0x101010101010101
+  00028805: imul rax, rdx
+  00028809: shift 56
+  0002880D: pop rbp
+  0002880E: ret
+[YAMA] __paritysi2 @RVA=0x028810 boyut=0x2B | bc=179B key=0xEDB71CC90FEA0165 | stubRVA=0x05B710 retimm=4294967295 (trampoline)
+  00028810: push rbp
+  00028811: mov rbp, rsp (sz8)
+  00028814: mov rax, rcx (sz4)
+  00028816: shift 16
+  00028819: xor-rr KAPI-dekompoze (sz4)
+  0002881B: mov rcx, rax (sz4)
+  0002881D: shift 8
+  00028820: xor-rr KAPI-dekompoze (sz4)
+  00028822: mov rdx, rcx (sz4)
+  00028824: shift 4
+  00028827: xor-rr KAPI-dekompoze (sz4)
+  00028829: and-imm KAPI-dekompoze (sz4)
+  0002882C: mov rcx, imm=0x6996
+  00028831: xor-rr KAPI-dekompoze (sz4)
+  00028833: bt0 rcx
+  00028836: setcc2 rax
+  00028839: pop rbp
+  0002883A: ret
+[YAMA] __parityti2 @RVA=0x028840 boyut=0x49 | bc=288B key=0x981DEDF9EEB32321 | stubRVA=0x05B850 retimm=4294967295 (trampoline)
+  00028840: push rbp
+  00028841: mov rbp, rsp (sz8)
+  00028844: mov rax, [mem] (sz8)
+  00028848: mov rcx, [mem] (sz8)
+  0002884B: xor-rr KAPI-dekompoze (sz8)
+  0002884E: mov rdx, rax (sz8)
+  00028851: shift 32
+  00028855: xor-rr KAPI-dekompoze (sz4)
+  00028857: shld rax, rcx
+  0002885C: xor-rr KAPI-dekompoze (sz8)
+  0002885F: shld rdx, rax
+  00028864: xor-rr KAPI-dekompoze (sz8)
+  00028867: mov rax, rdx (sz8)
+  0002886A: shift 8
+  0002886E: xor-rr KAPI-dekompoze (sz4)
+  00028870: mov rcx, rax (sz4)
+  00028872: shift 4
+  00028875: xor-rr KAPI-dekompoze (sz4)
+  00028877: and-imm KAPI-dekompoze (sz4)
+  0002887A: mov rdx, imm=0x6996
+  0002887F: xor-rr KAPI-dekompoze (sz4)
+  00028881: bt0 rdx
+  00028884: setcc2 rax
+  00028887: pop rbp
+  00028888: ret
+[YAMA] __paritydi2 @RVA=0x028890 boyut=0x3A | bc=213B key=0x973F54903347CA7 | stubRVA=0x05B990 retimm=4294967295 (trampoline)
+  00028890: push rbp
+  00028891: mov rbp, rsp (sz8)
+  00028894: mov rax, rcx (sz8)
+  00028897: shift 32
+  0002889B: xor-rr KAPI-dekompoze (sz8)
+  0002889E: mov rcx, rax (sz8)
+  000288A1: shift 16
+  000288A5: xor-rr KAPI-dekompoze (sz8)
+  000288A8: mov rax, rcx (sz8)
+  000288AB: shift 8
+  000288AF: xor-rr KAPI-dekompoze (sz4)
+  000288B1: mov rcx, rax (sz4)
+  000288B3: shift 4
+  000288B6: xor-rr KAPI-dekompoze (sz4)
+  000288B8: and-imm KAPI-dekompoze (sz4)
+  000288BB: mov rdx, imm=0x6996
+  000288C0: xor-rr KAPI-dekompoze (sz4)
+  000288C2: bt0 rdx
+  000288C5: setcc2 rax
+  000288C8: pop rbp
+  000288C9: ret
+[YAMA] ___w64_mingwthr_add_key_dtor @RVA=0x0288D0 boyut=0x77 | bc=225B key=0x97526189C27BF373 | stubRVA=0x05BAD0 retimm=4294967295 (trampoline)
+  000288D0: push rbp
+  000288D1: push rsi
+  000288D2: push rdi
+  000288D3: push rbx
+  000288D4: alu1 (sz8)
+  000288D8: lea rbp, [mem]
+  000288DD: xor-rr KAPI-dekompoze (sz4)
+  000288DF: alu5 (sz4)
+  000288E6: jcc4 0x2893c
+  000288E8: mov rdi, rdx (sz8)
+  000288EB: mov rbx, rcx (sz4)
+  000288ED: mov rcx, imm=0x1
+  000288F2: mov rdx, imm=0x18
+  000288F7: call 0x29250 (ncall)
+  000288FC: alu6 (sz8)
+  000288FF: jcc4 0x28937
+  00028901: mov [mem], rbx (sz4)
+  00028903: mov [mem], rdi (sz8)
+  00028907: lea rdi, [mem]
+  0002890E: mov rcx, rdi (sz8)
+  00028911: mov rbx, rax (sz8)
+  00028914: call [mem] (ncalli sz4)
+  0002891A: mov rax, [mem] (sz8)
+  00028921: mov [mem], rax (sz8)
+  00028925: mov [mem], rbx (sz8)
+  0002892C: mov rcx, rdi (sz8)
+  0002892F: call [mem] (ncalli sz4)
+  00028935: jmp 0x2893c
+  00028937: mov rsi, imm=0xffffffff
+  0002893C: mov rax, rsi (sz4)
+  0002893E: alu0 (sz8)
+  00028942: pop rbx
+  00028943: pop rdi
+  00028944: pop rsi
+  00028945: pop rbp
+  00028946: ret
+[YAMA] ___w64_mingwthr_remove_key_dtor @RVA=0x028950 boyut=0x88 | bc=291B key=0xB30F3A095E8500D5 | stubRVA=0x05BC10 retimm=4294967295 (trampoline)
+  00028950: push rbp
+  00028951: push rsi
+  00028952: alu1 (sz8)
+  00028956: lea rbp, [mem]
+  0002895B: alu5 (sz4)
+  00028962: jcc4 0x289cf
+  00028964: mov rsi, rcx (sz4)
+  00028966: lea rcx, [mem]
+  0002896D: call [mem] (ncalli sz4)
+  00028973: mov rcx, [mem] (sz8)
+  0002897A: alu6 (sz8)
+  0002897D: jcc4 0x289c2
+  0002897F: mov rax, [mem] (sz4)
+  00028981: alu5 (sz4)
+  00028983: jcc5 0x28989
+  00028985: xor-rr KAPI-dekompoze (sz4)
+  00028987: jmp 0x289a7
+  00028989: mov rdx, rcx (sz8)
+  0002898C: mov rdx, rcx (sz8)
+  00028990: mov rcx, [mem] (sz8)
+  00028994: alu6 (sz8)
+  00028997: jcc4 0x289c2
+  00028999: mov r8, [mem] (sz4)
+  0002899C: mov rax, rdx (sz8)
+  0002899F: mov rdx, rcx (sz8)
+  000289A2: alu5 (sz4)
+  000289A5: jcc5 0x28990
+  000289A7: mov rdx, [mem] (sz8)
+  000289AB: alu6 (sz8)
+  000289AE: jcc4 0x289b6
+  000289B0: mov [mem], rdx (sz8)
+  000289B4: jmp 0x289bd
+  000289B6: mov [mem], rdx (sz8)
+  000289BD: call 0x29280 (ncall)
+  000289C2: lea rcx, [mem]
+  000289C9: call [mem] (ncalli sz4)
+  000289CF: xor-rr KAPI-dekompoze (sz4)
+  000289D1: alu0 (sz8)
+  000289D5: pop rsi
+  000289D6: pop rbp
+  000289D7: ret
+[YAMA] fprintf @RVA=0x028B90 boyut=0x4A | bc=169B key=0xAFE108499B2E73BB | stubRVA=0x05BD50 retimm=4294967295 (trampoline)
+  00028B90: push rbp
+  00028B91: push rsi
+  00028B92: push rdi
+  00028B93: alu1 (sz8)
+  00028B97: lea rbp, [mem]
+  00028B9C: mov rsi, rdx (sz8)
+  00028B9F: mov rdi, rcx (sz8)
+  00028BA2: mov [mem], r8 (sz8)
+  00028BA6: mov [mem], r9 (sz8)
+  00028BAA: lea rax, [mem]
+  00028BAE: mov [mem], rax (sz8)
+  00028BB2: call 0x28fe0 (ncall)
+  00028BB7: mov rcx, [mem] (sz8)
+  00028BBA: mov rax, [mem] (sz8)
+  00028BBE: mov [mem], rax (sz8)
+  00028BC3: mov rdx, rdi (sz8)
+  00028BC6: mov r8, rsi (sz8)
+  00028BC9: xor-rr KAPI-dekompoze (sz4)
+  00028BCC: call 0x29230 (ncall)
+  00028BD1: call 0x29230 (ncall)
+  00028BD2: alu0 (sz8)
+  00028BD6: pop rdi
+  00028BD7: pop rsi
+  00028BD8: pop rbp
+  00028BD9: ret
+[YAMA] _FindPESection @RVA=0x028C10 boyut=0x50 | bc=181B key=0xCB9DE0C95A75EA87 | stubRVA=0x05BE90 retimm=4294967295 (trampoline)
+  00028C10: push rbp
+  00028C11: mov rbp, rsp (sz8)
+  00028C14: movsx64<-32 [mem]
+  00028C18: movzx32<-16 [mem]
+  00028C1E: alu6 (sz4)
+  00028C21: jcc4 0x28c5c
+  00028C23: alu0 (sz8)
+  00028C26: movzx32<-16 [mem]
+  00028C2A: alu0 (sz8)
+  00028C2D: alu0 (sz8)
+  00028C31: jmp 0x28c4a
+  00028C33: jmp 0x28c4a
+  00028C3D: jmp 0x28c4a
+  00028C40: alu0 (sz8)
+  00028C44: alu0 (sz4)
+  00028C48: jcc4 0x28c5c
+  00028C4A: mov rcx, [mem] (sz4)
+  00028C4D: alu5 (sz8)
+  00028C50: jcc2 0x28c40
+  00028C52: alu0 (sz4)
+  00028C55: alu5 (sz8)
+  00028C58: jcc3 0x28c40
+  00028C5A: pop rbp
+  00028C5B: ret
+  00028C5C: xor-rr KAPI-dekompoze (sz4)
+  00028C5E: pop rbp
+  00028C5F: ret
+[YAMA] _FindPESectionByName @RVA=0x028C60 boyut=0x8C | bc=320B key=0x3CF3E8199771B541 | stubRVA=0x05BFD0 retimm=4294967295 (trampoline)
+  00028C60: push rbp
+  00028C61: push rsi
+  00028C62: push rdi
+  00028C63: push rbx
+  00028C64: alu1 (sz8)
+  00028C68: lea rbp, [mem]
+  00028C6D: mov rsi, rcx (sz8)
+  00028C70: call 0x2190 (ncall)
+  00028C75: xor-rr KAPI-dekompoze (sz4)
+  00028C77: alu5 (sz8)
+  00028C7B: jcc7 0x28ce0
+  00028C7D: mov rax, [mem] (sz8)
+  00028C84: movzx32<-16 [mem]
+  00028C87: alu5 (sz4)
+  00028C8D: jcc5 0x28ce0
+  00028C8F: movsx64<-32 [mem]
+  00028C93: alu5 (sz4)
+  00028C9A: jcc5 0x28cde
+  00028C9C: alu0 (sz8)
+  00028C9F: alu5 (sz2)
+  00028CA7: movzx32<-16 [mem]
+  00028CAB: alu6 (sz4)
+  00028CAD: jcc4 0x28cde
+  00028CAF: movzx32<-16 [mem]
+  00028CB3: lea rdi, [mem]
+  00028CB7: alu0 (sz8)
+  00028CBB: alu0 (sz8)
+  00028CC0: mov r8, imm=0x8
+  00028CC6: mov rcx, rdi (sz8)
+  00028CC9: mov rdx, rsi (sz8)
+  00028CCC: call 0x292d0 (ncall)
+  00028CD1: alu6 (sz4)
+  00028CD3: jcc4 0x28ce0
+  00028CD5: alu0 (sz8)
+  00028CD9: alu0 (sz4)
+  00028CDC: jcc5 0x28cc0
+  00028CDE: xor-rr KAPI-dekompoze (sz4)
+  00028CE0: mov rax, rdi (sz8)
+  00028CE3: alu0 (sz8)
+  00028CE7: pop rbx
+  00028CE8: pop rdi
+  00028CE9: pop rsi
+  00028CEA: pop rbp
+  00028CEB: ret
+[YAMA] __mingw_GetSectionForAddress @RVA=0x028CF0 boyut=0x71 | bc=249B key=0x3C285BA9410AE10B | stubRVA=0x05C110 retimm=4294967295 (trampoline)
+  00028CF0: push rbp
+  00028CF1: mov rbp, rsp (sz8)
+  00028CF4: mov rax, [mem] (sz8)
+  00028CFB: alu5 (sz2)
+  00028D02: movsx64<-32 [mem]
+  00028D06: alu5 (sz4)
+  00028D0D: jcc5 0x28d5d
+  00028D0F: alu0 (sz8)
+  00028D12: alu5 (sz2)
+  00028D1A: movzx32<-16 [mem]
+  00028D1E: alu6 (sz4)
+  00028D20: jcc4 0x28d5d
+  00028D22: alu1 (sz8)
+  00028D29: movzx32<-16 [mem]
+  00028D2E: alu0 (sz8)
+  00028D31: alu0 (sz8)
+  00028D35: jmp 0x28d49
+  00028D37: jmp 0x28d49
+  00028D40: alu0 (sz8)
+  00028D44: alu0 (sz4)
+  00028D47: jcc4 0x28d5d
+  00028D49: mov r8, [mem] (sz4)
+  00028D4D: alu5 (sz8)
+  00028D50: jcc2 0x28d40
+  00028D52: alu0 (sz4)
+  00028D56: alu5 (sz8)
+  00028D59: jcc3 0x28d40
+  00028D5B: pop rbp
+  00028D5C: ret
+  00028D5D: xor-rr KAPI-dekompoze (sz4)
+  00028D5F: pop rbp
+  00028D60: ret
+[YAMA] __mingw_GetSectionCount @RVA=0x028D70 boyut=0x31 | bc=122B key=0x57E53429C3568D1B | stubRVA=0x05C250 retimm=4294967295 (trampoline)
+  00028D70: push rbp
+  00028D71: mov rbp, rsp (sz8)
+  00028D74: mov rcx, [mem] (sz8)
+  00028D7B: xor-rr KAPI-dekompoze (sz4)
+  00028D7D: alu5 (sz2)
+  00028D84: movsx64<-32 [mem]
+  00028D88: alu5 (sz4)
+  00028D8F: jcc5 0x28d9f
+  00028D91: alu5 (sz2)
+  00028D9A: movzx32<-16 [mem]
+  00028D9F: pop rbp
+  00028DA0: ret
+[YAMA] _FindPESectionExec @RVA=0x028DB0 boyut=0x5E | bc=236B key=0xE5C3A0695C7D75AD | stubRVA=0x05C390 retimm=4294967295 (trampoline)
+  00028DB0: push rbp
+  00028DB1: mov rbp, rsp (sz8)
+  00028DB4: mov rax, [mem] (sz8)
+  00028DBB: alu5 (sz2)
+  00028DC2: movsx64<-32 [mem]
+  00028DC6: alu5 (sz4)
+  00028DCD: jcc5 0x28e0a
+  00028DCF: alu0 (sz8)
+  00028DD2: alu5 (sz2)
+  00028DDA: movzx32<-16 [mem]
+  00028DDE: alu6 (sz4)
+  00028DE0: jcc4 0x28e0a
+  00028DE2: movzx32<-16 [mem]
+  00028DE7: alu0 (sz8)
+  00028DEA: alu0 (sz8)
+  00028DEE: jmp 0x28df9
+  00028DF0: alu0 (sz8)
+  00028DF4: alu0 (sz4)
+  00028DF7: jcc4 0x28e0a
+  00028DF9: alu6 (sz1)
+  00028DFD: jcc4 0x28df0
+  00028DFF: alu6 (sz8)
+  00028E02: jcc4 0x28e0c
+  00028E04: alu0 (sz8)
+  00028E08: jmp 0x28df0
+  00028E0A: xor-rr KAPI-dekompoze (sz4)
+  00028E0C: pop rbp
+  00028E0D: ret
+[YAMA] _GetPEImageBase @RVA=0x028E10 boyut=0x2C | bc=109B key=0x3A9142C9DEC921BF | stubRVA=0x05C4D0 retimm=4294967295 (trampoline)
+  00028E10: push rbp
+  00028E11: mov rbp, rsp (sz8)
+  00028E14: mov rax, [mem] (sz8)
+  00028E1B: alu5 (sz2)
+  00028E22: movsx64<-32 [mem]
+  00028E26: alu5 (sz4)
+  00028E2D: jcc5 0x28e38
+  00028E2F: alu5 (sz2)
+  00028E38: xor-rr KAPI-dekompoze (sz4)
+  00028E3A: pop rbp
+  00028E3B: ret
+[YAMA] _IsNonwritableInCurrentImage @RVA=0x028E40 boyut=0x8C | bc=330B key=0xE4F813F90C2D42EB | stubRVA=0x05C610 retimm=4294967295 (trampoline)
+  00028E40: push rbp
+  00028E41: mov rbp, rsp (sz8)
+  00028E44: mov rdx, [mem] (sz8)
+  00028E4B: xor-rr KAPI-dekompoze (sz4)
+  00028E4D: alu5 (sz2)
+  00028E54: movsx64<-32 [mem]
+  00028E58: alu5 (sz4)
+  00028E60: jcc5 0x28ec6
+  00028E62: alu0 (sz8)
+  00028E65: alu5 (sz2)
+  00028E6D: movzx32<-16 [mem]
+  00028E72: alu6 (sz8)
+  00028E75: jcc4 0x28ec6
+  00028E77: alu1 (sz8)
+  00028E7E: movzx32<-16 [mem]
+  00028E82: alu0 (sz8)
+  00028E85: alu0 (sz8)
+  00028E89: shift 3
+  00028E8D: lea r8, [mem]
+  00028E91: xor-rr KAPI-dekompoze (sz4)
+  00028E93: jmp 0x28ea9
+  00028E95: jmp 0x28ea9
+  00028E9F: jmp 0x28ea9
+  00028EA0: alu0 (sz8)
+  00028EA4: alu5 (sz4)
+  00028EA7: jcc4 0x28ec8
+  00028EA9: mov r9, [mem] (sz4)
+  00028EAE: alu5 (sz8)
+  00028EB1: jcc2 0x28ea0
+  00028EB3: alu0 (sz4)
+  00028EB8: alu5 (sz8)
+  00028EBB: jcc3 0x28ea0
+  00028EBD: mov rax, [mem] (sz4)
+  00028EC1: not rax
+  00028EC3: shift 31
+  00028EC6: pop rbp
+  00028EC7: ret
+  00028EC8: xor-rr KAPI-dekompoze (sz4)
+  00028ECA: pop rbp
+  00028ECB: ret
+[YAMA] vfprintf @RVA=0x028FA0 boyut=0x3B | bc=123B key=0x713F6759E89C81AD | stubRVA=0x05C750 retimm=4294967295 (trampoline)
+  00028FA0: push rbp
+  00028FA1: push rsi
+  00028FA2: push rdi
+  00028FA3: push rbx
+  00028FA4: alu1 (sz8)
+  00028FA8: lea rbp, [mem]
+  00028FAD: mov rsi, r8 (sz8)
+  00028FB0: mov rdi, rdx (sz8)
+  00028FB3: mov rbx, rcx (sz8)
+  00028FB6: call 0x28fe0 (ncall)
+  00028FBB: mov rcx, [mem] (sz8)
+  00028FBE: mov [mem], rsi (sz8)
+  00028FC3: mov rdx, rbx (sz8)
+  00028FC6: mov r8, rdi (sz8)
+  00028FC9: xor-rr KAPI-dekompoze (sz4)
+  00028FCC: call 0x29230 (ncall)
+  00028FD1: call 0x29230 (ncall)
+  00028FD2: alu0 (sz8)
+  00028FD6: pop rbx
+  00028FD7: pop rdi
+  00028FD8: pop rsi
+  00028FD9: pop rbp
+  00028FDA: ret
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[XRT] runtime katmani: flags=0xA10 | self=0x20674995 (72613B) | text=0x49E8EA09 (0x282D6, reloc-atla 96B) | file=0x93D6D65B (atla: cksum+208, .vmp0 222208..353792) | pack=0x0
+[XRT] xrt_entry=0x0004B3A0 cfg=0x0004EBB0 | her korumali giris BIR KEZ kontrol eder (state kilidi); hata: ExitProcess
+[KAYIT] Z:\tmp\my-project\download\XProtect_1.2.2\source\a21_1.exe (353792 bayt)
+[OZET] tipler: V=427 M=0 U=0 | vmn=1 | antidebug=ACIK | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=ACIK | mutasyon-gucu=2 | runtime=ACIK(self=0,text=0,file=0) | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0

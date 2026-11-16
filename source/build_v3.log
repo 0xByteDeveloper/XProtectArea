@@ -1,0 +1,16 @@
+== [0/2] LZMA C nesneleri ==
+== [1/2] XProtectUI.exe (x64) ==
+build_ui.sh: line 30:  1896 Killed                  $ZIG c++ -O2 -std=c++17 -target x86_64-windows-gnu -DUNICODE -D_UNICODE -I. $SRCS lzma_enc_x64.o lzma_find_x64.o -o XProtectUI.exe -lcomctl32 -lcomdlg32 -lshell32 -lgdi32 -luser32 -fno-sanitize=undefined
+== [W] CRT x64 on-isitma ==
+== [W] CRT x86 on-isitma ==
+== [B] build_ui ==
+== [0/2] LZMA C nesneleri ==
+== [1/2] XProtectUI.exe (x64) ==
+Terminated
+build_ui rc=143
+== [M] muttest ==
+muttest rc=137
+== V3-BUILD-TAMAM ==
+-rwxr-xr-x 1 z z 1409026 Nov 15 04:51 /tmp/my-project/download/XProtect_1.2.2/source/XProtectUI.exe
+-rwxr-xr-x 1 z z 1528320 Nov 15 00:04 /tmp/my-project/download/XProtect_1.2.2/source/XProtectUI32.exe
+-rwxr-xr-x 1 z z  751800 Nov 15 04:52 /tmp/my-project/download/XProtect_1.2.2/source/muttest3

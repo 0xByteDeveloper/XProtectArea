@@ -1,0 +1,60 @@
+[PE] Z:\tmp\my-project\scripts\wm_sdk64.exe | Machine=0x8664 | PE32+(x64) | ImageBase=0x140000000 | GirisRVA=0x1840
+  sec .text    RVA=0x001000 VSz=0x028306 Raw=0x000400 Chars=0x60000020
+  sec .rdata   RVA=0x02A000 VSz=0x00B774 Raw=0x028800 Chars=0x40000040
+  sec .buildid RVA=0x036000 VSz=0x00005D Raw=0x034000 Chars=0x40000040
+  sec .data    RVA=0x037000 VSz=0x001158 Raw=0x034200 Chars=0xC0000040
+  sec .pdata   RVA=0x039000 VSz=0x0018E4 Raw=0x034400 Chars=0x40000040
+  sec .tls     RVA=0x03B000 VSz=0x000010 Raw=0x035E00 Chars=0xC0000040
+  sec .reloc   RVA=0x03C000 VSz=0x000060 Raw=0x036000 Chars=0x42000040
+[KESIF] export=0 coff-fonksiyon=0
+[KESIF] +PDB/MAP=573 (pdb/map yaninda/hata-ayiklama dizininde)
+[FONKSIYON] 569 aday (.text)
+[SDK] isaret bulundu: SDK_U_0x0000102E boyut=0x00000011 tip=U
+[MANUEL] SDK_U_0x0000102E @RVA=0x00102E boyut=0x11 tip=U
+[SDK-API] fnid=1 @0x00001074 span=15B
+[SDK-API] fnid=2 @0x00001094 span=15B
+[SDK-API] fnid=3 @0x000010B4 span=15B
+[SDK-API] fnid=4 @0x000010D4 span=15B
+[SDK-API] fnid=5 @0x000010F4 span=15B
+[SDK-API] fnid=6 @0x00001114 span=15B
+[SDK-API] fnid=7 @0x00001134 span=15B
+[SDK-API] fnid=8 @0x00001154 span=15B
+[SDK-API] fnid=9 @0x00001174 span=15B
+[SDK-API] fnid=10 @0x00001194 span=15B
+[SDK-API] fnid=11 @0x000011B4 span=15B
+[SDK-API] fnid=12 @0x000011D4 span=15B
+[SDK-API] fnid=13 @0x000011F4 span=15B
+[SDK-API] fnid=14 @0x00001214 span=15B
+[SDK-API] fnid=15 @0x00001234 span=15B
+[SDK-API] fnid=17 @0x00001254 span=15B
+[SDK-API] fnid=19 @0x00001274 span=15B
+[SDK-API] fnid=18 @0x00001294 span=15B
+[SDK-API] fnid=20 @0x000012B4 span=15B
+[SDK-API] fnid=16 @0x000012D4 span=15B
+[SDK-API] fnid=21 @0x000012F4 span=15B
+[SDK-API] fnid=22 @0x00001314 span=15B
+[SDK-API] fnid=23 @0x00001334 span=15B
+[SDK-API] fnid=24 @0x00001354 span=15B
+[SDK-API] fnid=25 @0x00001374 span=15B
+[SDK-API] fnid=26 @0x00001394 span=15B
+[SDK-API] fnid=27 @0x000013B4 span=15B
+[SDK-API] fnid=28 @0x000013D4 span=15B
+[SDK-API] fnid=29 @0x000013F4 span=15B
+[SDK-API] fnid=35 @0x00001414 span=15B
+[SDK-API] fnid=36 @0x00001434 span=15B
+[SDK-API] fnid=37 @0x00001454 span=15B
+[SDK-API] 32 isaret / 32 API lisans dispatch'ine yamandi (fnid 1..37; LSD imaj taramasi)
+[LIFT] 1/1 secili fonksiyon | V=1 M=0 U=0 (U-mutdus=0)
+[WM] watermark alanı: .vmp0+0x7C00 (290B) | sürüm imzası: 10 kopya | kullanıcı: 0 kopya (0 watermark)
+[SECTION] .vmp0 RVA=0x03D000 boyut=0x007D22 | VM blob 31380B | vm_entry RVA=0x0447B0
+[YAMA] SDK_U_0x0000102E @RVA=0x00102E boyut=0x11 | bc=65B key=0x83CA678776C318D3 | stubRVA=0x044AE0 retimm=4294967295 (trampoline)
+  0000102E: mov rax, [mem] (sz4)
+  00001031: alu0 (sz4)
+  00001034: mov [mem], rax (sz4)
+  00001037: alu4 (sz4)
+  0000103B: alu0 (sz4)
+  [BOLGE] govde ret yok — yapay OP_RET + stub region sonuna atlar
+[RELOC] reloc girdisi silindi: 0, yeni boyut=96
+[KAYIT] Z:\tmp\my-project\download\XProtect_1.2.2\source\a21k1.exe (253952 bayt)
+[OZET] tipler: V=1 M=0 U=0 | vmn=1 | antidebug=kapali | resprot=kapali | checkvm=kapali | strenc=kapali | memprot=kapali | vmenc=ACIK | vmregs=ACIK | chkret=kapali | mutasyon-gucu=2 | runtime=kapali | iat=kapali | sdk=ACIK | pack=kapali | sectcrypt=- | stripfix=kapali | stripdbg=kapali
+rc=0
