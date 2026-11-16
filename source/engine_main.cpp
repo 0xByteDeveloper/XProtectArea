@@ -2678,6 +2678,67 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     text = pe.secbyname(".text");   // add_section realloc -> tazele
     rdata = pe.secbyname(".rdata");
 
+    /* cp278 DERS (kullanici E2E): disk-IAT silinmesi file-CRC hesabindan SONRA
+       calisiyordu -> cfg filecrc != disk-crc -> runtime ilk giriste err=3
+       ExitProcess ("acilmiyor"). cp9'da boyle bir gec-mutasyon yoktu. Blok
+       artik TUM disk mutasyonlariyla birlikte CRC'den ONCE calisir. */
+    // ============================================================
+    // 1.2.2-A19: IMPORT PROTECTION tamamlama (UO/VMP parite):
+    // cagri-yuvalari thunk'lara gitti (0.5.0) — SIMDI disk-IAT degerleri
+    // silinir (loader FirstThunk'u INT isimlerinden YENIDEN doldurur —
+    // guvenli); diskten IAT okuma/restore analizi olur, BoundImport +
+    // IAT data-dir girdileri de temizlenir. Import dizini (isimler)
+    // gecerli kalir — VMP de ayni (isimler gorunur, DEGERLER anlamsiz).
+    // ============================================================
+    if (opt.iat_prot) {
+        u32 peoff = pe.e_lfanew;
+        u32 magic = 0; memcpy(&magic, &pe.buf[peoff + 24], 2);
+        u32 ddir = peoff + 24 + ((magic == 0x20B) ? 112u : 96u);
+        u32 nimp = 0, nzero = 0;
+        {
+            u32 imp_rva = 0, imp_sz = 0;
+            memcpy(&imp_rva, &pe.buf[ddir + 8], 4);
+            memcpy(&imp_sz, &pe.buf[ddir + 12], 4);
+            if (imp_rva && imp_sz) {
+                bool oki = false;
+                u32 iraw = pe.rva2raw(imp_rva, &oki);
+                if (oki && (u64)iraw + imp_sz <= pe.buf.size()) {
+                    u32 di = 0;
+                    for (;;) {
+                        u32 oft = 0, ft = 0;
+                        memcpy(&oft, &pe.buf[iraw + di * 20 + 0], 4);
+                        memcpy(&ft,  &pe.buf[iraw + di * 20 + 16], 4);
+                        if (!oft && !ft) break;
+                        {
+                            bool okf = false;
+                            u32 fraw = pe.rva2raw(ft, &okf);
+                            if (okf) {
+                                u32 esz = pe.is64 ? 8 : 4, ti = 0;
+                                for (;;) {
+                                    u32 te = 0;
+                                    memcpy(&te, &pe.buf[fraw + (u64)ti * esz], esz < 4 ? 4 : 4);
+                                    if (pe.is64) { u64 t8; memcpy(&t8, &pe.buf[fraw + (u64)ti * 8], 8); if (!t8) break; }
+                                    else { if (!te) break; }
+                                    memset(&pe.buf[fraw + (u64)ti * esz], 0, esz);
+                                    nzero++; ti++;
+                                    if (ti > 0x8000) break;
+                                }
+                            }
+                        }
+                        nimp++;
+                        di++;
+                        if (di > 512) break;
+                    }
+                }
+            }
+            /* DD[12] IAT + DD[11] BoundImport temizligi */
+            memset(&pe.buf[ddir + 11 * 8], 0, 8);
+            memset(&pe.buf[ddir + 12 * 8], 0, 8);
+        }
+        snprintf(b, sizeof b, "[IAT] disk-IAT silindi: %u tanimlayici, %u yuva (loader INT'ten yeniden doldurur)", nimp, nzero);
+        L(b);
+    }
+
     if (rt_any || opt.pack || vf_area) {   /* 1.2.2-A16: VF da cfg yazar */
         // 0.6.0: pack-only derlemede bile cfg YAZILMALI (xrt_unpack cfg
         // okur; magic yoksa unpack hic calismaz -> .text sikisik kalir).
@@ -2806,62 +2867,6 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             L("[HATA] Nedenler yukarida [RED] satirlarinda.");
             return 3;
         }
-    }
-    // ============================================================
-    // 1.2.2-A19: IMPORT PROTECTION tamamlama (UO/VMP parite):
-    // cagri-yuvalari thunk'lara gitti (0.5.0) — SIMDI disk-IAT degerleri
-    // silinir (loader FirstThunk'u INT isimlerinden YENIDEN doldurur —
-    // guvenli); diskten IAT okuma/restore analizi olur, BoundImport +
-    // IAT data-dir girdileri de temizlenir. Import dizini (isimler)
-    // gecerli kalir — VMP de ayni (isimler gorunur, DEGERLER anlamsiz).
-    // ============================================================
-    if (opt.iat_prot) {
-        u32 peoff = pe.e_lfanew;
-        u32 magic = 0; memcpy(&magic, &pe.buf[peoff + 24], 2);
-        u32 ddir = peoff + 24 + ((magic == 0x20B) ? 112u : 96u);
-        u32 nimp = 0, nzero = 0;
-        {
-            u32 imp_rva = 0, imp_sz = 0;
-            memcpy(&imp_rva, &pe.buf[ddir + 8], 4);
-            memcpy(&imp_sz, &pe.buf[ddir + 12], 4);
-            if (imp_rva && imp_sz) {
-                bool oki = false;
-                u32 iraw = pe.rva2raw(imp_rva, &oki);
-                if (oki && (u64)iraw + imp_sz <= pe.buf.size()) {
-                    u32 di = 0;
-                    for (;;) {
-                        u32 oft = 0, ft = 0;
-                        memcpy(&oft, &pe.buf[iraw + di * 20 + 0], 4);
-                        memcpy(&ft,  &pe.buf[iraw + di * 20 + 16], 4);
-                        if (!oft && !ft) break;
-                        {
-                            bool okf = false;
-                            u32 fraw = pe.rva2raw(ft, &okf);
-                            if (okf) {
-                                u32 esz = pe.is64 ? 8 : 4, ti = 0;
-                                for (;;) {
-                                    u32 te = 0;
-                                    memcpy(&te, &pe.buf[fraw + (u64)ti * esz], esz < 4 ? 4 : 4);
-                                    if (pe.is64) { u64 t8; memcpy(&t8, &pe.buf[fraw + (u64)ti * 8], 8); if (!t8) break; }
-                                    else { if (!te) break; }
-                                    memset(&pe.buf[fraw + (u64)ti * esz], 0, esz);
-                                    nzero++; ti++;
-                                    if (ti > 0x8000) break;
-                                }
-                            }
-                        }
-                        nimp++;
-                        di++;
-                        if (di > 512) break;
-                    }
-                }
-            }
-            /* DD[12] IAT + DD[11] BoundImport temizligi */
-            memset(&pe.buf[ddir + 11 * 8], 0, 8);
-            memset(&pe.buf[ddir + 12 * 8], 0, 8);
-        }
-        snprintf(b, sizeof b, "[IAT] disk-IAT silindi: %u tanimlayici, %u yuva (loader INT'ten yeniden doldurur)", nimp, nzero);
-        L(b);
     }
 
     pe.fix_checksum();
