@@ -28,7 +28,8 @@ int main(int argc, char** argv) {
         else if (a == "--lic-url" && i + 1 < argc) opt.lic_url = argv[++i];  /* cp273 PORT E */
         else if (a == "--iat") opt.iat_prot = true;         /* cp277: import korumasi CLI (repro) */
         else if (a == "--iatloader") opt.iat_loader_exp = true; /* cp277: DENEYSEL loader-IAT */
-        else if (a == "--checkvm") opt.checkvm = true;      /* cp279: UI-checkvm esdegeri (E2E kanit) */
+        else if (a == "--checkvm") opt.checkvm = true;
+        else if (a == "--iatdisk") opt.iat_disk = true;   /* cp280: DENEYSEL disk-IAT silme (varsayilan KAPALI) */      /* cp279: UI-checkvm esdegeri (E2E kanit) */
         else if (a == "--antidebug") opt.antidebug = true;  /* cp279: UI-antidebug esdegeri */
         else if (a == "--rt") { opt.rt_selfcrc = opt.rt_textcrc = opt.rt_filecrc = opt.rt_exit = true; } /* cp278: UI-runtime esdegeri (repro) */
         else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */

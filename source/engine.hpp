@@ -376,6 +376,11 @@ struct Options {
                                // bos = varsayilan "butunluk kontrol kod = #5")
                                // — UO/VMP "Messages" sayfasi paritesi
     bool iat_prot   = false;   // 0.5.0 DENEYSEL: import (IAT) thunk korumasi
+    bool iat_disk   = false;   // cp280: disk-IAT silme (FT-sifir + DD[11]/DD[12] temizligi).
+                               // cp280 KANIT (kullanici E2E, metin2client): import-ON=acilmiyor,
+                               // import-OFF=calisiyor — gercek Windows bu gorunumde load'i kiriyor
+                               // (wine x86 kosamadigimiz icin bizde gorunmemisti). VMP-parite: VMP de
+                               // disk-IAT sifirlamaz. Varsayilan KAPALI; yalniz --iatdisk ile acilir.
     bool sdk_scan   = true;    // SDK isaretlerini tara (VMProtect davranisi)
     bool sdk_only   = false;   // yalniz SDK/manual bolgeleri koru
     // --- 0.6.0: paketleme + PE temizligi (VMProtect cp* bayraklari) ---

@@ -2690,7 +2690,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // IAT data-dir girdileri de temizlenir. Import dizini (isimler)
     // gecerli kalir — VMP de ayni (isimler gorunur, DEGERLER anlamsiz).
     // ============================================================
-    if (opt.iat_prot) {
+    if (opt.iat_prot && !opt.iat_disk) {
+        /* cp280: disk-IAT silme KAPALI (varsayilan) — kullanici E2E kaniti:
+           import-ON + bu blok = gercek-Windows'ta load kilidi. cp9-parite +
+           VMP-parite: diskteki IAT degerleri OLDUGU GIBI kalir; koruma
+           thunk-donusumunde (IAT-LOADER modu) ve runtime'da yasayacak. */
+        snprintf(b, sizeof b, "[IAT] disk-IAT silme KAPALI (cp280: gercek-Windows E2E load kilidi; disk-IAT orijinal kalir - VMP-parite)");
+        L(b);
+    }
+    if (opt.iat_prot && opt.iat_disk) {
         u32 peoff = pe.e_lfanew;
         u32 magic = 0; memcpy(&magic, &pe.buf[peoff + 24], 2);
         u32 ddir = peoff + 24 + ((magic == 0x20B) ? 112u : 96u);
