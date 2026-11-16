@@ -1,0 +1,264 @@
+=== RunPEForm.exe
+Loaded "RunPEForm.exe" — 24576 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 49152 bytes
+Unpacked file written to "out_RunPEForm.exe"
+=== RunPEForm_vmp.exe
+Loaded "RunPEForm_vmp.exe" — 120832 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 147456 bytes
+Unpacked file written to "out_RunPEForm_vmp.exe"
+=== Test32_vmp.exe
+Loaded "Test32_vmp.exe" — 291840 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 319488 bytes
+Unpacked file written to "out_Test32_vmp.exe"
+=== Test_vmp.exe
+Loaded "Test_vmp.exe" — 237568 bytes
+VMProtect v2.XX-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 266240 bytes
+Unpacked file written to "out_Test_vmp.exe"
+=== VMPHelper.exe
+Loaded "VMPHelper.exe" — 229376 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 258048 bytes
+Unpacked file written to "out_VMPHelper.exe"
+=== XProtectUI32.exe
+Loaded "XProtectUI32.exe" — 1579520 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 1626112 bytes
+Unpacked file written to "out_XProtectUI32.exe"
+=== metin2client.exe
+Loaded "metin2client.exe" — 5216256 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5513216 bytes
+Unpacked file written to "out_metin2client.exe"
+=== metin2client_vmp.exe
+Loaded "metin2client_vmp.exe" — 3972608 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_metin2client_vmp.exe"
+=== metin2client_vmp3.exe
+Loaded "metin2client_vmp3.exe" — 5307392 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5607424 bytes
+Unpacked file written to "out_metin2client_vmp3.exe"
+=== metin2client_vmp_CheckDebugger.exe
+Loaded "metin2client_vmp_CheckDebugger.exe" — 5265920 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5566464 bytes
+Unpacked file written to "out_metin2client_vmp_CheckDebugger.exe"
+=== metin2client_vmp_FileCrc.exe
+Loaded "metin2client_vmp_FileCrc.exe" — 5284352 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5582848 bytes
+Unpacked file written to "out_metin2client_vmp_FileCrc.exe"
+=== metin2client_vmp_LoaderCRC.exe
+Loaded "metin2client_vmp_LoaderCRC.exe" — 5249536 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5550080 bytes
+Unpacked file written to "out_metin2client_vmp_LoaderCRC.exe"
+=== metin2client_vmp_LoaderCRC_.exe
+Loaded "metin2client_vmp_LoaderCRC_.exe" — 5284352 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5582848 bytes
+Unpacked file written to "out_metin2client_vmp_LoaderCRC_.exe"
+=== metin2client_vmp_LoaderCRCveStripFixups.exe
+Loaded "metin2client_vmp_LoaderCRCveStripFixups.exe" — 5249536 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5550080 bytes
+Unpacked file written to "out_metin2client_vmp_LoaderCRCveStripFixups.exe"
+=== metin2client_vmp_StripFixups.exe
+Loaded "metin2client_vmp_StripFixups.exe" — 5235712 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5533696 bytes
+Unpacked file written to "out_metin2client_vmp_StripFixups.exe"
+=== metin2client_vmp_d7610_Ultra.exe
+Loaded "metin2client_vmp_d7610_Ultra.exe" — 5235712 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5533696 bytes
+Unpacked file written to "out_metin2client_vmp_d7610_Ultra.exe"
+=== metin2client_vmp_d7610_Ultra_loaderCRC.exe
+Loaded "metin2client_vmp_d7610_Ultra_loaderCRC.exe" — 5243392 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5541888 bytes
+Unpacked file written to "out_metin2client_vmp_d7610_Ultra_loaderCRC.exe"
+=== metin2client_vmp_importfalse.exe
+Loaded "metin2client_vmp_importfalse.exe" — 3972608 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_metin2client_vmp_importfalse.exe"
+=== metin2client_vmp_ultra_.exe
+Loaded "metin2client_vmp_ultra_.exe" — 5232640 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5529600 bytes
+Unpacked file written to "out_metin2client_vmp_ultra_.exe"
+=== metin2client_vmp_ultra_checkdebugger.exe
+Loaded "metin2client_vmp_ultra_checkdebugger.exe" — 5232640 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5529600 bytes
+Unpacked file written to "out_metin2client_vmp_ultra_checkdebugger.exe"
+=== metin2clientx_vmp.exe
+Loaded "metin2clientx_vmp.exe" — 3972608 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_metin2clientx_vmp.exe"
+=== out_RunPEForm.exe
+Loaded "out_RunPEForm.exe" — 49152 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 49152 bytes
+Unpacked file written to "out_out_RunPEForm.exe"
+=== out_RunPEForm_vmp.exe
+Loaded "out_RunPEForm_vmp.exe" — 147456 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 147456 bytes
+Unpacked file written to "out_out_RunPEForm_vmp.exe"
+=== out_Test32_vmp.exe
+Loaded "out_Test32_vmp.exe" — 319488 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 319488 bytes
+Unpacked file written to "out_out_Test32_vmp.exe"
+=== out_Test_vmp.exe
+Loaded "out_Test_vmp.exe" — 266240 bytes
+VMProtect v2.XX-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 266240 bytes
+Unpacked file written to "out_out_Test_vmp.exe"
+=== out_VMPHelper.exe
+Loaded "out_VMPHelper.exe" — 258048 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 258048 bytes
+Unpacked file written to "out_out_VMPHelper.exe"
+=== out_XProtectUI32.exe
+Loaded "out_XProtectUI32.exe" — 1626112 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 1626112 bytes
+Unpacked file written to "out_out_XProtectUI32.exe"
+=== out_metin2client.exe
+Loaded "out_metin2client.exe" — 5513216 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5513216 bytes
+Unpacked file written to "out_out_metin2client.exe"
+=== out_metin2client_vmp.exe
+Loaded "out_metin2client_vmp.exe" — 7155712 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_out_metin2client_vmp.exe"
+=== out_metin2client_vmp3.exe
+Loaded "out_metin2client_vmp3.exe" — 5607424 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5607424 bytes
+Unpacked file written to "out_out_metin2client_vmp3.exe"
+=== out_metin2client_vmp_CheckDebugger.exe
+Loaded "out_metin2client_vmp_CheckDebugger.exe" — 5566464 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5566464 bytes
+Unpacked file written to "out_out_metin2client_vmp_CheckDebugger.exe"
+=== out_metin2client_vmp_FileCrc.exe
+Loaded "out_metin2client_vmp_FileCrc.exe" — 5582848 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5582848 bytes
+Unpacked file written to "out_out_metin2client_vmp_FileCrc.exe"
+=== out_metin2client_vmp_LoaderCRC.exe
+Loaded "out_metin2client_vmp_LoaderCRC.exe" — 5550080 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5550080 bytes
+Unpacked file written to "out_out_metin2client_vmp_LoaderCRC.exe"
+=== out_metin2client_vmp_LoaderCRC_.exe
+Loaded "out_metin2client_vmp_LoaderCRC_.exe" — 5582848 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5582848 bytes
+Unpacked file written to "out_out_metin2client_vmp_LoaderCRC_.exe"
+=== out_metin2client_vmp_LoaderCRCveStripFixups.exe
+Loaded "out_metin2client_vmp_LoaderCRCveStripFixups.exe" — 5550080 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5550080 bytes
+Unpacked file written to "out_out_metin2client_vmp_LoaderCRCveStripFixups.exe"
+=== out_metin2client_vmp_StripFixups.exe
+Loaded "out_metin2client_vmp_StripFixups.exe" — 5533696 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5533696 bytes
+Unpacked file written to "out_out_metin2client_vmp_StripFixups.exe"
+=== out_metin2client_vmp_d7610_Ultra.exe
+Loaded "out_metin2client_vmp_d7610_Ultra.exe" — 5533696 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5533696 bytes
+Unpacked file written to "out_out_metin2client_vmp_d7610_Ultra.exe"
+=== out_metin2client_vmp_d7610_Ultra_loaderCRC.exe
+Loaded "out_metin2client_vmp_d7610_Ultra_loaderCRC.exe" — 5541888 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5541888 bytes
+Unpacked file written to "out_out_metin2client_vmp_d7610_Ultra_loaderCRC.exe"
+=== out_metin2client_vmp_importfalse.exe
+Loaded "out_metin2client_vmp_importfalse.exe" — 7155712 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_out_metin2client_vmp_importfalse.exe"
+=== out_metin2client_vmp_ultra_.exe
+Loaded "out_metin2client_vmp_ultra_.exe" — 5529600 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5529600 bytes
+Unpacked file written to "out_out_metin2client_vmp_ultra_.exe"
+=== out_metin2client_vmp_ultra_checkdebugger.exe
+Loaded "out_metin2client_vmp_ultra_checkdebugger.exe" — 5529600 bytes
+VMProtect v1.X-3.XX [Min protection]
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 5529600 bytes
+Unpacked file written to "out_out_metin2client_vmp_ultra_checkdebugger.exe"
+=== out_metin2clientx_vmp.exe
+Loaded "out_metin2clientx_vmp.exe" — 7155712 bytes
+VMProtect v1.X-3.XX
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 7155712 bytes
+Unpacked file written to "out_out_metin2clientx_vmp.exe"
+=== out_pdbscope.exe
+Loaded "out_pdbscope.exe" — 1839104 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 1839104 bytes
+Unpacked file written to "out_out_pdbscope.exe"
+=== pdbscope.exe
+Loaded "pdbscope.exe" — 2220544 bytes
+Warning: VMProtect signature not found. The file may still be packed
+  No virtual-only sections found; no LZMA blocks to decompress.
+Unpacked image size: 1839104 bytes
+Unpacked file written to "out_pdbscope.exe"

@@ -1,0 +1,49 @@
+rm -f /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/core.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/files.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/inifile.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/dotnetfile.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/dwarf.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/elffile.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/intel.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/il.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/lang.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/objc.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/macfile.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/objects.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/osutils.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/packer.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/pefile.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/processors.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/script.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/streams.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/runtime/crypto.cc.o
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+rm -f ../tmp/lin/core/64//core/precompiled.h.gch
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+rm -f ../bin/64//core.a
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/.sentinel)
+test -e /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/runtime/.sentinel || (mkdir -p /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/runtime && touch /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/runtime/.sentinel)
+g++ -c   -pipe -fvisibility=hidden -DNDEBUG -O3 -gdwarf-2 -Wall -W -fPIC  -DTIXML_USE_STL -DSPV_LIBRARY -DFFI_BUILDING -std=c++11 -fvisibility-inlines-hidden -fno-stack-protector -fno-builtin -Wno-reorder -Wno-switch -Wno-unused-parameter -Wno-unused-variable -Werror -I ./  -o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/core.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/core.cc
+g++ -c   -pipe -fvisibility=hidden -DNDEBUG -O3 -gdwarf-2 -Wall -W -fPIC  -DTIXML_USE_STL -DSPV_LIBRARY -DFFI_BUILDING -std=c++11 -fvisibility-inlines-hidden -fno-stack-protector -fno-builtin -Wno-reorder -Wno-switch -Wno-unused-parameter -Wno-unused-variable -Werror -I ./  -o /home/z/my-project/scripts/vmpsrc/pub1/vmp/tmp/lin/core/64/core/files.cc.o /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/files.cc
+In file included from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/files.cc:5:
+/home/z/my-project/scripts/vmpsrc/pub1/vmp/core/../runtime/common.h:23: error: ignoring ‘#pragma comment ’ [-Werror=unknown-pragmas]
+   23 |         #pragma comment(lib, "../bin/32/Release/VMProtectSDK32.lib")
+In file included from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/../runtime/crypto.h:4,
+                 from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/core.cc:1:
+/home/z/my-project/scripts/vmpsrc/pub1/vmp/core/../runtime/common.h:23: error: ignoring ‘#pragma comment ’ [-Werror=unknown-pragmas]
+   23 |         #pragma comment(lib, "../bin/32/Release/VMProtectSDK32.lib")
+In file included from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/files.cc:13:
+/home/z/my-project/scripts/vmpsrc/pub1/vmp/core/lang.h:33:10: fatal error: lang_enum.inc: No such file or directory
+   33 | #include "lang_enum.inc"
+      |          ^~~~~~~~~~~~~~~
+compilation terminated.
+cc1plus: all warnings being treated as errors
+make: *** [lin_core.mak:45: ../tmp/lin/core/64//core/../core/files.cc.o] Error 1
+make: *** Waiting for unfinished jobs....
+In file included from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/core.cc:9:
+/home/z/my-project/scripts/vmpsrc/pub1/vmp/core/script.h:16: error: ignoring ‘#pragma comment ’ [-Werror=unknown-pragmas]
+   16 | #pragma comment(lib, "../third-party/libffi/libffi32.lib")
+In file included from /home/z/my-project/scripts/vmpsrc/pub1/vmp/core/core.cc:13:
+/home/z/my-project/scripts/vmpsrc/pub1/vmp/core/lang.h:33:10: fatal error: lang_enum.inc: No such file or directory
+   33 | #include "lang_enum.inc"
+      |          ^~~~~~~~~~~~~~~
+compilation terminated.
+cc1plus: all warnings being treated as errors
+make: *** [lin_core.mak:45: ../tmp/lin/core/64//core/../core/core.cc.o] Error 1
