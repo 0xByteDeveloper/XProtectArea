@@ -1,0 +1,39 @@
+[KozDbg-c] KozDbg-c x64 hata ayiklayici (KozDbg v1.1.2 konsol portu, Engine::Api/legacy)
+[KozDbg-c] profil=350 kontroller=0x1 hedef=t_victim64.exe
+[KozDbg-c] olay=3 tid=212
+[KozDbg-c] surec olustu pid=208 ana modul=00007FF784D00000
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=7 tid=212
+[KozDbg-c] olay=6 tid=212
+[KozDbg-c] olay=7 tid=212
+[KozDbg-c] olay=1 tid=212
+[KozDbg-c] [KozDbg-c] sistem kesme noktasi
+[KozDbg-c] [KozDbg-c] PEB.BeingDebugged 1 -> 0
+[KozDbg-c] [KozDbg-c] PEB.NtGlobalFlag FLG_HEAP temizlendi
+[KozDbg-c] kernel32!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] ntdll!IsDebuggerPresent export bulunamadi (base=00006FF00F690000)
+[KozDbg-c] kernel32!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] kernelbase!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] profil=350 ARM: 0 int3 yerlestirildi, PEB=000000428208D000 | ntdll=00006FF00F690000 k32=00006FF00F620000 kb=00006FF00F330000
+[KozDbg-c] istisna iletildi code=0x80000003 tid=212 first=1 ip=00006FF00F6A11A4
+victim64 calisiyor, acc=18209157262997372528
+[KozDbg-c] olay=5 tid=212
+[KozDbg-c] hedef cikti, kod=0 (0x0) | ARM=acik profil=350
+[KozDbg-c]   PEB/IsDebuggerPresent      on   mudahale=1
+[KozDbg-c]   RemoteDebugger/Port/Flags  off  mudahale=0
+[KozDbg-c]   DebugObject                off  mudahale=0
+[KozDbg-c]   ThreadHide                 off  mudahale=0
+[KozDbg-c]   KernelDebugger             off  mudahale=0
+[KozDbg-c]   ModuleList                 off  mudahale=0
+[KozDbg-c]   InvalidHandle              off  mudahale=0
+[KozDbg-c]   TFDelivery                 off  mudahale=0
+[KozDbg-c]   InstrCallback              n/a  mudahale=0
+[KozDbg-c]   DRHide                     n/a  mudahale=0
+[KozDbg-c]   RemoteBreakin              n/a  mudahale=0
+[KozDbg-c]   TitanHide                  n/a  mudahale=0
+[KozDbg-c]   DecoderHW                  n/a  mudahale=0
+[KozDbg-c] toplam mudahale=1

@@ -1,0 +1,19 @@
+[KozDbg-c] KozDbg-c x64 hata ayiklayici (KozDbg v1.1.2 konsol portu, Engine::Api/legacy)
+[KozDbg-c] profil=off kontroller=0x1FFF hedef=t_victim64.exe
+[KozDbg-c] surec olustu pid=208 ana modul=00007FF72D7F0000
+[KozDbg-c] [KozDbg-c] sistem kesme noktasi
+[KozDbg-c] hedef cikti, kod=117 (0x75) | ARM=kapali profil=-1
+[KozDbg-c]   PEB/IsDebuggerPresent      on   mudahale=0
+[KozDbg-c]   RemoteDebugger/Port/Flags  on   mudahale=0
+[KozDbg-c]   DebugObject                on   mudahale=0
+[KozDbg-c]   ThreadHide                 on   mudahale=0
+[KozDbg-c]   KernelDebugger             on   mudahale=0
+[KozDbg-c]   ModuleList                 on   mudahale=0
+[KozDbg-c]   InvalidHandle              on   mudahale=0
+[KozDbg-c]   TFDelivery                 on   mudahale=0
+[KozDbg-c]   InstrCallback              n/a  mudahale=0
+[KozDbg-c]   DRHide                     n/a  mudahale=0
+[KozDbg-c]   RemoteBreakin              n/a  mudahale=0
+[KozDbg-c]   TitanHide                  n/a  mudahale=0
+[KozDbg-c]   DecoderHW                  n/a  mudahale=0
+[KozDbg-c] toplam mudahale=0

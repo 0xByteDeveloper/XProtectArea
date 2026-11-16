@@ -1,0 +1,26 @@
+[KozDbg-c] KozDbg-c x64 hata ayiklayici (KozDbg v1.1.2 konsol portu, Engine::Api/legacy)
+[KozDbg-c] profil=350 kontroller=0x1 hedef=t_victim64.exe
+[KozDbg-c] surec olustu pid=212 ana modul=00007FF656F60000
+[KozDbg-c] [KozDbg-c] sistem kesme noktasi
+[KozDbg-c] [KozDbg-c] PEB.BeingDebugged 1 -> 0
+[KozDbg-c] [KozDbg-c] PEB.NtGlobalFlag FLG_HEAP temizlendi
+[KozDbg-c] kernel32!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] ntdll!IsDebuggerPresent export bulunamadi (base=00006F69E3F70000)
+[KozDbg-c] kernel32!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] kernelbase!IsDebuggerPresent RET cozulemedi
+[KozDbg-c] profil=350 ARM: 0 int3 yerlestirildi, PEB=000000CCFE31D000 | ntdll=00006F69E3F70000 k32=00006F69E3F00000 kb=00006F69E3C10000
+[KozDbg-c] hedef cikti, kod=0 (0x0) | ARM=acik profil=350
+[KozDbg-c]   PEB/IsDebuggerPresent      on   mudahale=1
+[KozDbg-c]   RemoteDebugger/Port/Flags  off  mudahale=0
+[KozDbg-c]   DebugObject                off  mudahale=0
+[KozDbg-c]   ThreadHide                 off  mudahale=0
+[KozDbg-c]   KernelDebugger             off  mudahale=0
+[KozDbg-c]   ModuleList                 off  mudahale=0
+[KozDbg-c]   InvalidHandle              off  mudahale=0
+[KozDbg-c]   TFDelivery                 off  mudahale=0
+[KozDbg-c]   InstrCallback              n/a  mudahale=0
+[KozDbg-c]   DRHide                     n/a  mudahale=0
+[KozDbg-c]   RemoteBreakin              n/a  mudahale=0
+[KozDbg-c]   TitanHide                  n/a  mudahale=0
+[KozDbg-c]   DecoderHW                  n/a  mudahale=0
+[KozDbg-c] toplam mudahale=1
