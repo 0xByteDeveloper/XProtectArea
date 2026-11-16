@@ -47,8 +47,8 @@ typedef long long i64;   /* 1.2.2-A20: NTSTATUS isaret-genisletme (A8 dersi) */
 #define XCFG_OFF_PACKRVA 0x40   // 0.6.0: XPK1 paket bilgi blok RVA (.vmp1)
 #define XCFG_OFF_UNWRVA  0x44   // 0.8.0: dinamik unwind tablo RVA (.vmp0 icinde)
 #define XCFG_OFF_STRENC 0x60   /* u32: strenc tablo RVA (A18; 0 = yok) */
-#define XCFG_OFF_IATRVA 0x64   /* u32: IAT slot-hash tablosu RVA (A15; 0 = yok) */
-#define XCFG_OFF_IATN   0x68   /* u32: slot kayit sayisi (A15) */
+#define XCFG_OFF_IATRVA 0x70   /* cp277: 0x64->0x70 — VF blogu cfg+0x68'de (A16) cakisma */
+#define XCFG_OFF_IATN   0x74   /* u32: slot kayit sayisi (A15; opt-in loader modu) */
 #define XCFG_OFF_UNWCNT  0x48   // 0.8.0: dinamik unwind kayit sayisi
 // 0.8.0 SectionCryptor alanlari (xr_cipher.h ile ayni): flag 0x4C, anahtar 0x50/0x58
 #define XCFG_SIZE        0x60

@@ -26,6 +26,8 @@ int main(int argc, char** argv) {
         else if (a == "--lic-pc" && i + 1 < argc) opt.lic_prodcode = argv[++i];
         else if (a == "--lic-wm" && i + 1 < argc) opt.lic_watermark = argv[++i];
         else if (a == "--lic-url" && i + 1 < argc) opt.lic_url = argv[++i];  /* cp273 PORT E */
+        else if (a == "--iat") opt.iat_prot = true;         /* cp277: import korumasi CLI (repro) */
+        else if (a == "--iatloader") opt.iat_loader_exp = true; /* cp277: DENEYSEL loader-IAT */
         else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */
         else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
         else if (a == "--dwarf") opt.dwarf = true;   /* cp275: DWARF kesfi acik */

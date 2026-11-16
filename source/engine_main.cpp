@@ -1112,7 +1112,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                 }
             }
         }
-        iat_loader = !opt.pack && !is_dot && !tls_cb;
+        /* cp277 KARAR: TAM LOADER IAT (A15) OPT-IN oldu — varsayilan KAPALI.
+       Kanit: MSVC-tipi exe'de EP-kapisi slot-doldurmasi calismiyor
+       (mini3 wine E2E: execute 0x0 — slotlar 0 kaldi). cp9 (1.2.2)
+       paritesi = eski thunk modu; lic_iat wine-rc=42 ile kanitli.
+       Loader modu deneysel: opt.iat_loader_exp (--iatloader). */
+    iat_loader = opt.iat_loader_exp && !opt.pack && !is_dot && !tls_cb;
         if (opt.iat_prot && tls_cb)
             L("[IAT-LOADER] atlandi (neden: TLS-callback dolu) — eski thunk modu (EP-oncesi import guvenligi)");
         else if (opt.iat_prot && tlsz)
@@ -2249,8 +2254,8 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         secimg.resize(secimg.size() + iat_tbl.size() * 4, 0);
         for (size_t q = 0; q < iat_tbl.size(); q++)
             wrv32(secimg, (u32)(secimg.size() - iat_tbl.size() * 4) + (u32)q * 4, iat_tbl[q]);
-        wrv32(secimg, cfg_off + 0x64, iat_tbl_rva);   /* XCFG_OFF_IATRVA */
-        wrv32(secimg, cfg_off + 0x68, iat_tbl_n);     /* XCFG_OFF_IATN */
+        wrv32(secimg, cfg_off + 0x70, iat_tbl_rva);   /* XCFG_OFF_IATRVA (cp277: VF cfg+0x68 cakismasi) */
+        wrv32(secimg, cfg_off + 0x74, iat_tbl_n);     /* XCFG_OFF_IATN */
     }
     if ((comps.empty() && !opt.pack && (rt_any || vf_area || strenc_want)) || (iat_loader && !opt.pack)) {
         while (secimg.size() & 15u) secimg.push_back(0xCC);
