@@ -2835,12 +2835,78 @@ static DWORD WINAPI compile_thread(LPVOID p) {
     delete j;
     return 0;
 }
+/* cp268 FIX (kullanici: metin2client "0 aday / HICBIR FONKSIYON UYGULANAMADI"):
+   GUI derlemesi isaretli fonksiyonlari opt.manual/opt.funcs ile gecirir;
+   isaretsiz pdbscope listesi MOTORA HIC ULASMİYORDU (motor yalnizca kendi
+   export/COFF/<hedef>.map keşfini kullaniyor → 53238 fonksiyonluk projede
+   motor 2 export gorup 0 aday uretiyordu). FIX: derleme oncesi tarama
+   listesini LINK-map biciminde <hedef>.map olarak yaz (motor zaten okur);
+   VA/rva karisikligi imagebase ile normalize edilir. Var olan .map EZILMEZ. */
+static bool write_engine_map(const std::wstring& target) {
+    if (g_proj.funcs.empty()) return false;
+    size_t dot = target.rfind(L'.');
+    size_t bslash = target.rfind(L'\\');
+    if (dot == std::wstring::npos || (bslash != std::wstring::npos && dot < bslash)) return false;
+    std::wstring base = target.substr(0, dot);
+    std::wstring mpath = base + L".map";
+    if (GetFileAttributesW(mpath.c_str()) != INVALID_FILE_ATTRIBUTES) return false;   // ezme YASAK
+    /* secim-listesi motorun keşfiyle aynı sira: PE bolum tablosu (1-bazli seg) */
+    std::string out;
+    char line[512];
+    int written = 0;
+    for (auto& f : g_proj.funcs) {
+        if (f.excluded) continue;
+        unsigned long long r = f.rva;
+        if (g_pe.imagebase && r >= g_pe.imagebase && r < g_pe.imagebase + 0x10000000ull)
+            r -= g_pe.imagebase;   // VA -> RVA normalizasyon (pdbscope kolon-0 semantiği)
+        int seg = 0;
+        unsigned long long off = 0;
+        for (size_t i = 0; i < g_pe.secs.size(); i++) {
+            const auto& sc = g_pe.secs[i];
+            if (!(sc.chars & 0x20000000u)) continue;   // IMAGE_SCN_MEM_EXECUTE
+            if (r >= sc.va && r < sc.va + sc.vsz) { seg = (int)i + 1; off = r - sc.va; break; }
+        }
+        if (!seg) continue;
+        std::string nm;
+        for (wchar_t ch : f.name) {
+            if ((ch >= L'a' && ch <= L'z') || (ch >= L'A' && ch <= L'Z') ||
+                (ch >= L'0' && ch <= L'9') || ch == L'_' || ch == L'@' || ch == L'$' || ch == L'.')
+                nm.push_back((char)(ch & 0xFF));
+            else nm.push_back('_');
+        }
+        if (nm.empty() || nm[0] == '_') {
+            wchar_t b[40]; _snwprintf(b, 40, L"sub_%08llX", r);
+            nm.clear();
+            for (wchar_t ch : b) nm.push_back((char)(ch & 0xFF));
+        }
+        if (off > 0xFFFFFFFFull) continue;
+        snprintf(line, sizeof line, " %04X:%08llX  %s  %08llX  f\n",
+                 (unsigned)seg, (unsigned long long)off, nm.c_str(),
+                 (unsigned long long)(r + (g_pe.imagebase ? g_pe.imagebase : 0)));
+        out += line;
+        written++;
+    }
+    if (!written) return false;
+    FILE* fp = _wfopen(mpath.c_str(), L"wb");
+    if (!fp) return false;
+    fwrite(out.data(), 1, out.size(), fp);
+    fclose(fp);
+    return true;
+}
+
 static void start_compile() {
     if (!g_proj.open || g_compiling) return;
-    if (g_proj.funcs.empty()) {
+    /* cp268: liste bos DEĞIL ama HICBIR fonksiyon isaretli/aktif degilse
+       da "tum uygun fonksiyonlar?" sor (0-aday rc=3 cikisinin UI yuzu). */
+    size_t marked_cnt = 0;
+    for (auto& f : g_proj.funcs) if (!f.excluded) marked_cnt++;
+    if (marked_cnt == 0) {
         int r = MessageBoxW(g_main, L"No functions marked. Compile ALL suitable functions?", L(LS_QUESTION), MB_YESNO | MB_ICONQUESTION);
         if (r != IDYES) return;
     }
+    /* cp268: motorun keşfi pdbscope listesini gorur (fix kök: motor .map okur) */
+    if (write_engine_map(g_proj.target))
+        add_log(L"Engine map written from scan list (function handoff fix)");
     CompileJob* j = new CompileJob();
     j->in = w2s(g_proj.target);
     std::wstring out = protected_path();

@@ -481,6 +481,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         };
         // hedef klasoru + ad (dar yol)
         std::string dir = ".", base;
+        /* cp268: yol-ayraci tasinabilir — WIN32 disinda '/' (host-kanit) */
+#if !defined(_WIN32)
+#define XP_DIRSEP '/'
+#else
+#define XP_DIRSEP '\\'
+#endif
         {
             size_t q = in.find_last_of("\\/");
             if (q != std::string::npos) { dir = in.substr(0, q); base = in.substr(q + 1); }
@@ -489,7 +495,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             if (d != std::string::npos && d > 0) base.resize(d);
         }
         std::vector<std::string> cands;
-        cands.push_back(dir + "\\" + base + ".pdb");
+        cands.push_back(dir + (char)XP_DIRSEP + base + ".pdb");
         std::vector<DbgPdbRef> dbg_names;
         pe_debug_pdb_names(pe.buf.data(), pe.buf.size(), ss, dbg_names);
         const su8* want_guid = NULL; su32 want_age = 0;
@@ -501,7 +507,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             bool abs_ = (n.size() > 1 && (n[1] == ':' || n[0] == '\\' || n[0] == '/'));
             if (abs_) cands.push_back(n);
             size_t q = n.find_last_of("\\/");
-            cands.push_back(dir + "\\" + (q != std::string::npos ? n.substr(q + 1) : n));
+            cands.push_back(dir + (char)XP_DIRSEP + (q != std::string::npos ? n.substr(q + 1) : n));
         }
         // dedupe
         for (size_t i = 0; i < cands.size(); i++)
@@ -519,7 +525,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         // MAP
         {
             std::vector<u8> md;
-            if (slurp_n(dir + "\\" + base + ".map", md)) {
+            if (slurp_n(dir + (char)XP_DIRSEP + base + ".map", md)) {
                 std::vector<SymEntry> mfns;
                 if (map_parse((const char*)md.data(), md.size(), ss, pe.imagebase, mfns, serr))
                     for (auto& e : mfns) sfns.push_back(e);
