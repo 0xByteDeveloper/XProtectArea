@@ -22,6 +22,13 @@ int main(int argc, char** argv) {
         else if (a == "--sdkonly") opt.sdk_only = true;
         else if (a == "--strength" && i + 1 < argc) opt.mut_strength = atoi(argv[++i]);
         else if (a == "--antidebug") opt.antidebug = true;
+        else if (a == "--lic-key" && i + 1 < argc) opt.lic_pubkey = argv[++i];
+        else if (a == "--lic-pc" && i + 1 < argc) opt.lic_prodcode = argv[++i];
+        else if (a == "--lic-wm" && i + 1 < argc) opt.lic_watermark = argv[++i];
+        else if (a == "--lic-url" && i + 1 < argc) opt.lic_url = argv[++i];  /* cp273 PORT E */
+        else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */
+        else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
+        else if (a == "--dwarf") opt.dwarf = true;   /* cp275: DWARF kesfi acik */
         else if (a == "--nosdk") opt.sdk_scan = false;
         else if (a == "--dotnet") opt.dotnet = true;
         else if (a == "--nodotnet") opt.dotnet = false;

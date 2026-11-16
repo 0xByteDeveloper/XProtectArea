@@ -7,6 +7,7 @@
 //       secenekler (antidebug/strenc/memprot) -> checksum -> kaydet
 // ============================================================
 #include "engine.hpp"
+#include "xprotect_dwarf.h"   // cp275: DWARF .debug_info kesfi
 #include "xprotect_dotnet.h"   // 1.2.3: .NET (dotnetfile.cc portu)
 
 /* A14 (x2 devam): xrt_core ile BIREBIR FNV-1a hash'ler (P/Invoke cozumu) */
@@ -540,6 +541,28 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             L("[KESIF] +PDB/MAP=" + std::to_string(sym_added) + " (pdb/map yaninda/hata-ayiklama dizininde)");
     }
 
+    /* cp275: DWARF .debug_info kesfi (UI 1.2.5-A13 ile ayni yurutme) —
+       MinGW/clang -g derlenen dosyalarda PDB yokken fonksiyon adlari
+       buradan gelir. OPT-IN (opt.dwarf): DWARF adlari CRT-ic fonksiyonlari
+       (printf/varargs ailesi) secime sokar — lifter varargs-paritesi
+       tamamlanana dek varsayilan KAPALI (wine page-fault kaniti). */
+    if (opt.dwarf) {
+        std::vector<xpdwarf::DwarfFn> dfn;
+        std::string derr;
+        if (xpdwarf::parse(pe.buf.data(), pe.buf.size(), pe.imagebase, &dfn, &derr)) {
+            u32 dw_added = 0;
+            for (auto& f : dfn) {
+                if (f.name.empty()) continue;
+                u32 frva = (u32)f.rva;
+                if (fnames.count(frva)) continue;
+                fnames[frva] = f.name;
+                dw_added++;
+            }
+            if (dw_added)
+                L("[KESIF] +DWARF=" + std::to_string(dw_added) + " (.debug_info subprogram)");
+        }
+    }
+
     std::vector<FnInfo> fns;
     {
         Section* text0 = pe.secbyname(".text");
@@ -550,6 +573,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         for (size_t i = 0; i < rv.size(); i++) {
             u32 r = rv[i];
             if (!text0 || r < text0->va || r >= textend) continue;
+            /* cp275: giris noktasi otomatik VM'leme YASAK — mainCRTStartup
+               VM'lenince runtime-init sirasi bozuluyor (wine page-fault kaniti) */
+            if (r == pe.entry_rva) continue;
             u32 next_bound = (i + 1 < rv.size() ? rv[i + 1] : textend);
             u32 sz = next_bound - r;
             if (sz > 0x8000) sz = 0x8000;
@@ -1926,11 +1952,20 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             /* 1.1.0-A7: watermark METNI gomulu (UO cpIncludeWatermark 1:1:
                sizinti izleme — korunan dosyada metin okunur bulunur).
                LSD_CRC (0x000..0x11F) DISINDA — runtime etkisi yok. */
+            /* cp273 PORT E: cap 31 (0x130..0x14F) — URL alanina yer acildi */
             u32 wl = (u32)opt.lic_watermark.size();
-            if (wl > 64) wl = 64;
+            if (wl > 31) wl = 31;
             for (u32 wi = 0; wi < wl; wi++) lsd[0x130 + wi] = (u8)opt.lic_watermark[wi];
             lsd[0x12C] = (u8)wl;
             lsd[0x12D] = (u8)(wl >> 8);
+        }
+        /* cp273 PORT E: aktivasyon URL'i LSD 0x150 (max 31B + NUL) —
+           runtime lic_http_get buradan okur (licensing_manager Send paritesi). */
+        if (!opt.lic_url.empty()) {
+            u32 ul = (u32)opt.lic_url.size();
+            if (ul > 31) { L("[LSD] UYARI: lic_url 31B uzun — kirpildi (online aktivasyon calismaz)"); ul = 31; }
+            for (u32 wi = 0; wi < ul; wi++) lsd[0x150 + wi] = (u8)opt.lic_url[wi];
+            lsd[0x150 + ul] = 0;
         }
         /* 0.7.0-final FIX: CRC SADECE 0x000..0x11F (LSD_CRC_LEN) — state(0x120)
            /tick(0x124) runtime-yazılabilir; CRC'ye dahil edilirse ilk SetSerial
