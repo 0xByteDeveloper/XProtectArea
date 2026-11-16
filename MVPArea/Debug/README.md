@@ -78,6 +78,55 @@ Loglar: `logs/testA_plain.log`, `logs/testB_plain_debugger*.log`,
    kancalı modda motorumuzun ek katmanları devreye giriyor. Kapatma=false
    (cp282) ile tetikte kapanma yerine devam davranışı da ayrı kontrol edilir.
 
+## v1.1 GÜÇLENDİRME — "takılmaz" mod (2026-11-16, cp284)
+
+C2'de (tüm 13 kontrol) int3 kancalarının neden sorun çıkardığı kök-nedenine
+indi ve motor ikiye ayrıldı:
+
+### Motor 1: `--engine dr` (VARSAYILAN, Windows) — belleğe SIFIR yazma
+- int3 YOK (CRC/tamper imzası oluşmaz). Donanım kesme noktaları DR0-DR3
+  (execute-only, DR7=0x55) + tam-çağrı-emülasyonu:
+  - **DR0 = ntdll!NtQueryInformationProcess**: sınıf 7/0x1f → buffer=0 yazılıp
+    çağrı HİÇ çalıştırılmadan dönüş (0); sınıf 0x1e → STATUS_PORT_NOT_SET
+    (0xC0000353). xrt'nin K8 **gerçek-ntdll** sorgularını da yakalar (K8 her
+    zaman gerçek NtQIP'i de çağırır — xrt_core.c:2394).
+  - **DR1 = ntdll!NtQuerySystemInformation**: 0x23 → {00,01} yaz + emüle dönüş.
+  - **DR2 = ntdll!NtClose**: 0xDEADC0DE → STATUS_INVALID_HANDLE; CloseHandle
+    (K9) dahili NtClose üzerinden aynı DR ile kapsanır (4 slot yeter).
+  - **DR3 = kernel32!CreateFileA**: yolu "ntdll.dll" içeren açılışlar
+    INVALID_HANDLE döner → **xrt A21 temiz-ntdll kopyası kurulamaz**
+    (xrt_core.c:2238 CreateFileA → h==INVALID → clean_nqip=0 → kopya yolu
+    komple atlanır). KozDbg bu sayede A21 katmanını da aşar.
+- PEB.BeingDebugged + NtGlobalFlag temizliği (K1) DR modunda da yapılır —
+  tek bellek-yazması bu (gerekli ve zararsız: K1 doğrudan okur).
+- Yeni thread'ler otomatik DR alır (CREATE_THREAD). DR6 durum bitleri
+  temizlenerek devam edilir; DR'siz SS = hedefin TF probe'u → teslim.
+- sınırlama: wine 11.22-wow64 donanım DR'yi UYGULAMAZ ve DR7-etkin thread'i
+  sessizce öldürür (deney: DR7=0 → rc=0, DR7=0x55 → rc=1). DR modu gerçek
+  Windows'ta doğrulanmalıdır (TitanHide/ScyllaHide de DR temellidir).
+
+### Motor 2: `--engine int3` (wine-uyumlu yedek) — tam-emülasyon
+- v1.0'dan farklar:
+  1. **Tam-emülasyon**: NtQIP 7/0x1f → buffer=0 + emüle dönüş (TF-step yok);
+     NtQSI 0x23 → {00,01} + emüle dönüş. İstisna-bağlamı içinde stepping
+     kalmadı.
+  2. **Yeni action 7**: kernel32!CreateFileA(intdll) → INVALID_HANDLE —
+     int3 motoru da A21 kopyasını bloklayabilir.
+  3. **Passthrough stepping'siz**: eşleşmeyen sınıflarda bayt kalıcı restore +
+     talimat başından normal devam (iç içe istisna/stack-overflow yok — kanıt:
+     v1.0'da +seh izinde `virtual_setup_exception stack overflow`).
+  4. **W^X-güvenli yazma**: wine 11 wow64'te WriteProcessMemory, +X sayfayı
+     +X'siz bırakıp loader'ı sessizce öldürüyordu (exit 1); artık sayfa
+     koruması yazma sonrası GERİ YÜKLENİyor (VirtualProtectEx).
+
+### Wine kısıtının tam açıklaması (önemli bulgu)
+wine, `PEB.BeingDebugged=0` yapılınca **debug-event kanalını kapatıyor**:
+istisnalar artık debugger'a teslim edilmiyor. Bu yüzden wine'da "PEB temizle +
+kendi int3'ümüzle kes" aynı anda mümkün değil (int3 ölümcül). Gerçek Windows'ta
+yönlendirme debug-object üzerinden yapılır ve BeingDebugged'dan bağımsızdır —
+bu kısıt Windows'ta YOK. Sonuç: wine'da yalnız K1 katmanı geçilebilir (C
+testi, rc=0 ✓); K8/K5/K9'un tam bypass doğrulaması Windows'ta yapılır.
+
 ## Gerçek Windows'ta tam doğrulama protokolü (öneri)
 
 1. x32dbg/x64dbg + orijinal KozDbg (dp32/dp64) plugin; profil **3.5.0** seçili,

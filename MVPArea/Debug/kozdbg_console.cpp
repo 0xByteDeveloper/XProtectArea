@@ -40,6 +40,11 @@ struct PBI { PVOID Reserved1; PVOID PebBaseAddress; PVOID Reserved2[2]; ULONG_PT
 
 static FILE* g_logfile = nullptr;
 static bool g_verbose = false;   // --verbose: her olay/dispatch teshis satiri
+static int  g_engine = 1;        // 0=int3 (bellek-yazan), 1=dr (donanim, bellege dokunmaz)
+static uintptr_t g_drAddr[4] = {0, 0, 0, 0};   // DR0..DR3
+static uintptr_t g_dr7 = 0x55;                 // --dr7 ile asilabilir (wine deneyi)
+static bool g_ngfSkip = false;                 // --ngf0: NtGlobalFlag yazmasini atla (wine deneyi)
+static const char* g_drName[4] = {"NtQueryInformationProcess", "NtQuerySystemInformation", "NtClose", "CreateFileA(A21-kirici)"};
 static void logf(const char* fmt, ...) {
     char text[4096]; va_list a; va_start(a, fmt); _vsnprintf_s(text, sizeof(text), _TRUNCATE, fmt, a); va_end(a);
     printf("%s", text); fflush(stdout);
@@ -86,8 +91,18 @@ static bool rmem(uintptr_t p, void* out, size_t n) {
     SIZE_T got = 0; return p && ReadProcessMemory(S.hProc, (LPCVOID)p, out, n, &got) && got == n;
 }
 static bool wmem(uintptr_t p, const void* in, size_t n) {
-    SIZE_T w = 0; if (!p || !WriteProcessMemory(S.hProc, (LPVOID)p, in, n, &w) || w != n) return false;
-    FlushInstructionCache(S.hProc, (LPCVOID)p, n); return true;
+    if (!p) return false;
+    /* wine 11 wow64 W^X: calistirilabilir sayfaya yazim sayfayi +X'siz birakir ->
+       loader sessizce olur (exit 1). Once korumayi ogren, yaz, sonra GERI YUKLE. */
+    MEMORY_BASIC_INFORMATION mbi{};
+    DWORD oldp = 0;
+    bool restore = VirtualQueryEx(S.hProc, (LPCVOID)p, &mbi, sizeof(mbi)) && mbi.State == MEM_COMMIT;
+    if (restore && (mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)))
+        VirtualProtectEx(S.hProc, (LPVOID)p, n, PAGE_EXECUTE_READWRITE, &oldp);
+    SIZE_T w = 0; bool ok = WriteProcessMemory(S.hProc, (LPVOID)p, in, n, &w) && w == n;
+    if (restore) { DWORD tmp = 0; VirtualProtectEx(S.hProc, (LPVOID)p, n, mbi.Protect, &tmp); }
+    if (ok) FlushInstructionCache(S.hProc, (LPCVOID)p, n);
+    return ok;
 }
 template<class T> static bool rd(uintptr_t p, T& v) { return rmem(p, &v, sizeof(T)); }
 template<class T> static bool wr(uintptr_t p, const T& v) { return wmem(p, &v, sizeof(T)); }
@@ -227,6 +242,33 @@ static bool resolveApi(const char* mod, const char* fn, bool atRet, uintptr_t& o
     if (atRet) { uintptr_t r = leafRet(a); if (!r) { logf("[KozDbg-c] %s!%s RET cozulemedi\n", mod, fn); return false; } a = r; }
     out = a; return true;
 }
+// ---- DR motoru: donanim kesme noktalari (bellek IKI YAZMAZ -> CRC/tamper imzasi yok) ----
+static bool applyDr(HANDLE th) {
+    CONTEXT c{}; c.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+    if (!GetThreadContext(th, &c)) return false;
+    c.Dr0 = g_drAddr[0]; c.Dr1 = g_drAddr[1]; c.Dr2 = g_drAddr[2]; c.Dr3 = g_drAddr[3];
+    c.Dr6 = 0;
+    c.Dr7 = g_dr7;   /* L0-L3 yerel etkin, RW=00 LEN=00 -> yalnizca-execute */
+    if (!SetThreadContext(th, &c)) return false;
+    FlushInstructionCache(S.hProc, nullptr, 0);
+    return true;
+}
+static void applyDrAll() {
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snap == INVALID_HANDLE_VALUE) return;
+    THREADENTRY32 te{}; te.dwSize = sizeof(te);
+    unsigned n = 0;
+    if (Thread32First(snap, &te)) do {
+        if (te.th32OwnerProcessID != S.pid) continue;
+        HANDLE th = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+        if (!th) continue;
+        if (applyDr(th)) n++;
+        CloseHandle(th);
+    } while (Thread32Next(snap, &te));
+    CloseHandle(snap);
+    logf("[KozDbg-c] DR motoru: %u thread'e DR0-3 uygulandi\n", n);
+}
+
 static void arm() {
     if (!S.enabled || S.armed || !S.ntdll || !S.kernel32) return;
     S.armed = true;
@@ -237,9 +279,29 @@ static void arm() {
             unsigned char bd = 0;
             if (rd(peb + 2, bd) && bd) { wrByte(peb + 2, 0); log("[KozDbg-c] PEB.BeingDebugged 1 -> 0"); }
             uint32_t ngf = 0; const uint32_t off = S.is64 ? 0xBC : 0x68;
-            if (rd(peb + off, ngf) && (ngf & 0x70)) { wr(peb + off, ngf & ~0x70u); log("[KozDbg-c] PEB.NtGlobalFlag FLG_HEAP temizlendi"); }
+            if (!g_ngfSkip && rd(peb + off, ngf) && (ngf & 0x70)) { wr(peb + off, ngf & ~0x70u); log("[KozDbg-c] PEB.NtGlobalFlag FLG_HEAP temizlendi"); }
             S.hits[0]++;
         } else log("[KozDbg-c] PEB tabani cozulemedi (K1 PEB yamasi atlandi)");
+    }
+    if (g_engine == 1) {
+        /* --- DR modu: DR0=NtQIP, DR1=NtQSI, DR2=NtClose, DR3=kernel32!CreateFileA --- */
+        uintptr_t a2 = 0;
+        bool ok = true;
+        if (resolveApi("ntdll", "NtQueryInformationProcess", false, a2)) g_drAddr[0] = a2; else ok = false;
+        a2 = 0;
+        if (resolveApi("ntdll", "NtQuerySystemInformation", false, a2)) g_drAddr[1] = a2; else ok = false;
+        a2 = 0;
+        if (resolveApi("ntdll", "NtClose", false, a2)) g_drAddr[2] = a2; else ok = false;
+        a2 = 0;
+        if (resolveApi("kernel32", "CreateFileA", false, a2)) g_drAddr[3] = a2; else ok = false;
+        if (!ok) { log("[KozDbg-c] DR cozumlemesi eksik — int3 motoruna duser"); g_engine = 0; }
+        else {
+            logf("[KozDbg-c] DR ARM: DR0=%p (NtQIP) DR1=%p (NtQSI) DR2=%p (NtClose) DR3=%p (CreateFileA)\n",
+                 (void*)g_drAddr[0], (void*)g_drAddr[1], (void*)g_drAddr[2], (void*)g_drAddr[3]);
+            applyDrAll();
+            logf("[KozDbg-c] profil=%d ARM(DR): bellek yazmasi = 0 (yalniz PEB K1), int3 YOK\n", S.profile);
+            return;
+        }
     }
     uintptr_t a = 0;
     if (S.on(0)) {
@@ -259,6 +321,7 @@ static void arm() {
         if (resolveApi("ntdll", "NtClose", false, a)) addHook(a, 5);
         if (resolveApi("kernel32", "CloseHandle", false, a)) addHook(a, 6);   // K9 dogrudan CloseHandle
     }
+    if (S.on(1) && resolveApi("kernel32", "CreateFileA", false, a)) addHook(a, 7);  // v1.1: A21 temiz-ntdll okumasi bloklanir
     for (auto& h : S.hooks) {
         uintptr_t base = (S.ntdll && h.addr >= S.ntdll && h.addr < S.ntdll + 0x400000) ? S.ntdll : S.kernel32;
         h.rva = h.addr - base;
@@ -344,10 +407,13 @@ static int dispatchHit(Hook* h, Regs& r, HANDLE th, DWORD tid, uintptr_t exip) {
     // passthrough: orijinal bayti restore et, o instruction'u tek adimla calistir,
     // SS'de int3'u geri koy (rearm kaydi).
     auto passthrough = [&]() {
+        /* v1.1: TF-step YOK — istisna-ici stepping wine'da virtual_setup_exception
+           stack-overflow verir (kanit: +seh izi). Bayt kalici restore edilir,
+           talimat basindan normal devam edilir; o API artik kesmez. */
         const uintptr_t site = (uintptr_t)exip;   // kesme adresi (orijinal VEYA temiz kopya)
-        wrByte(site, h->orig);                    // kopyada da bayt icin ayni orijinal dogru
-        r.ip(site); r.c.EFlags |= 0x100; r.set(th);
-        S.stepping[tid] = true; S.rearm[tid] = site;
+        wrByte(site, h->orig);
+        r.ip(site); r.set(th);
+        S.stepping.erase(tid); S.rearm.erase(tid);
         return 0;
     };
     if (h->action == 99) {                       // izlenen donus
@@ -400,6 +466,13 @@ static int dispatchHit(Hook* h, Regs& r, HANDLE th, DWORD tid, uintptr_t exip) {
                 if (!finish(0, 0xc0000353)) return -1;
                 countHit(2, tid); logf("[KozDbg-c] tid=%u: DebugObjectHandle -> STATUS_PORT_NOT_SET\n", tid);
                 emulated = true;
+            } else if (S.on(1) && (cls == 0x7 || cls == 0x1f) && buf) {
+                /* v1.1 tam-emulasyon: buffer=0 yaz, cagriyi hic calistirmadan don
+                   (TF-step yok -> hedefin VEH/istisna akisini bozmaz) */
+                const unsigned long long z = 0; wr(buf, z);
+                if (!finish(0, 0)) return -1;
+                countHit(1, tid); logf("[KozDbg-c] tid=%u: NtQIP sinif=%llu -> Port/Flags=0 (tam-emule donus)\n", tid, (unsigned long long)cls);
+                emulated = true;
             } else return passthrough();
 #else
             uintptr_t retlen = r.a4();
@@ -422,7 +495,13 @@ static int dispatchHit(Hook* h, Regs& r, HANDLE th, DWORD tid, uintptr_t exip) {
         } else return passthrough();
     } else if (action == 4) {                                    // NtQuerySystemInformation
         uintptr_t cls = r.a0(), buf = r.a1(), sz = r.a2();
-        if (cls == 0x23 && S.on(4) && buf && sz >= 2) { if (!watchReturn(ra, K_KERNEL, buf, sz, r, tid)) return -1; }
+        if (cls == 0x23 && S.on(4) && buf && sz >= 2) {
+            /* v1.1 tam-emulasyon: {KdEnabled=0, KdNotPresent=1} yaz, don */
+            const uint16_t kd = 0x0100; wr(buf, kd);
+            if (!finish(0, 0)) return -1;
+            countHit(4, tid); logf("[KozDbg-c] tid=%u: NtQSI 0x23 -> 00 01 (tam-emule donus)\n", tid);
+            emulated = true;
+        }
         else if (cls == 0xb && S.on(5) && buf && sz >= (S.is64 ? 8u : 4u)) { if (!watchReturn(ra, K_MODULES, buf, sz, r, tid)) return -1; }
         else return passthrough();
     } else if (action == 5 || action == 6) {                     // NtClose / CloseHandle
@@ -430,6 +509,17 @@ static int dispatchHit(Hook* h, Regs& r, HANDLE th, DWORD tid, uintptr_t exip) {
             if (!finish(S.is64 ? 0 : 1, 0xc0000008)) return -1;
             countHit(6, tid); logf("[KozDbg-c] tid=%u: DEADC0DE -> STATUS_INVALID_HANDLE (istisna yok)\n", tid);
             emulated = true;
+        } else return passthrough();
+    } else if (action == 7) {                                    // CreateFileA: A21 temiz-ntdll okumasi
+        char path[268] = {0};
+        uintptr_t pth = r.a0();
+        if (pth && rmem(pth, path, sizeof(path) - 1)) {
+            std::string low = path; for (auto& ch : low) ch = (char)tolower((unsigned char)ch);
+            if (low.find("ntdll.dll") != std::string::npos) {
+                if (!finish(0, S.is64 ? 0xFFFFFFFFFFFFFFFFull : 0xFFFFFFFFull)) return -1;
+                countHit(1, tid); logf("[KozDbg-c] tid=%u: CreateFileA(%s) -> INVALID_HANDLE (A21 temiz-kopya bloklandi)\n", tid, path);
+                emulated = true;
+            } else return passthrough();
         } else return passthrough();
     } else return passthrough();
 
@@ -440,6 +530,91 @@ static int dispatchHit(Hook* h, Regs& r, HANDLE th, DWORD tid, uintptr_t exip) {
         return 0;
     }
     return passthrough();                                        // watch kurulanlar: giris yeniden calisir
+}
+
+// ---- DR dispatch: donanim kesme noktasi vurusu -> tam emulasyon --------------
+// donus: true = olay yonetildi (DBG_CONTINUE), false = baskasi (TF probe vb.)
+static bool dispatchDr(DWORD tid, HANDLE th) {
+    CONTEXT c{}; c.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL | CONTEXT_DEBUG_REGISTERS;
+    if (!GetThreadContext(th, &c)) return false;
+    const uintptr_t bits = (uintptr_t)(c.Dr6 & 0xF);
+    if (!bits) return false;                      // DR vurusu degil -> TF probe vb.
+    if (g_verbose) logf("[KozDbg-c] DR vurusu tid=%u Dr6=0x%llX\n", tid, (unsigned long long)c.Dr6);
+    Regs r; r.c = c; r.get(th);                   // tam baglam (integer+control)
+#ifdef _WIN64
+    auto finish = [&](uintptr_t status) {         // cagriyi taklit et, don
+        uintptr_t ret = 0; rd(c.Rsp, ret);
+        c.Rip = ret; c.Rsp += 8; c.Rax = status;
+    };
+    #define DR_ARG0 c.Rcx
+    #define DR_ARG1 c.Rdx
+    #define DR_ARG2 c.R8
+    #define DR_RETLEN() ({ uintptr_t v = 0; rd(c.Rsp + 0x28, v); v; })
+#else
+    auto finish = [&](uintptr_t status) {
+        uintptr_t ret = 0; rd(c.Esp, ret);
+        uintptr_t a0 = 0; rd(c.Esp + 4, a0);
+        (void)a0;
+        c.Eip = ret; c.Eax = (DWORD)status;
+    };
+    static auto stackArg = [&](unsigned i) -> uintptr_t { uintptr_t v = 0; rd(c.Esp + 4 + 4u * i, v); return v; };
+    #define DR_ARG0 stackArg(0)
+    #define DR_ARG1 stackArg(1)
+    #define DR_ARG2 stackArg(2)
+    #define DR_RETLEN() stackArg(4)
+    auto finishN = [&](unsigned argCount, uintptr_t status) {   // stdcall: arglari da dusur
+        uintptr_t ret = 0; rd(c.Esp, ret);
+        c.Eip = ret; c.Esp += 4 * (argCount + 1); c.Eax = (DWORD)status;
+    };
+#endif
+    bool handled = false;
+    if (bits & 0x1) {                              // DR0: NtQueryInformationProcess
+        uintptr_t cls = DR_ARG1, buf = DR_ARG2;
+        if (S.on(1) && (cls == 0x7 || cls == 0x1f) && buf) {
+            const unsigned long long z = 0; wr(buf, z);   // DebugPort/DebugFlags -> 0
+            finish(0); handled = true;
+            logf("[KozDbg-c] tid=%u: DR0 NtQIP sinif=%llu -> Port/Flags=0 (emule donus)\n", tid, (unsigned long long)cls);
+        } else if (S.on(2) && cls == 0x1e) {
+            finish(0xc0000353); handled = true;    // PORT_NOT_SET
+            logf("[KozDbg-c] tid=%u: DR0 NtQIP sinif=0x1e -> STATUS_PORT_NOT_SET (emule donus)\n", tid);
+        }
+    }
+    if (!handled && (bits & 0x2)) {                // DR1: NtQuerySystemInformation
+        uintptr_t cls = DR_ARG0, buf = DR_ARG1;
+        if (S.on(4) && cls == 0x23 && buf) {
+            const uint16_t kd = 0x0100; wr(buf, kd);       // {KdEnabled=0, KdNotPresent=1}
+            finish(0); handled = true;
+            logf("[KozDbg-c] tid=%u: DR1 NtQSI 0x23 -> 00 01 (emule donus)\n", tid);
+        }
+    }
+    if (!handled && (bits & 0x4)) {                // DR2: NtClose (CloseHandle dahil)
+        if (S.on(6) && DR_ARG0 == 0xdeadc0de) {
+#ifndef _WIN64
+            finishN(1, 0xc0000008);
+#else
+            finish(0xc0000008);
+#endif
+            handled = true;
+            logf("[KozDbg-c] tid=%u: DR2 NtClose(0xDEADC0DE) -> STATUS_INVALID_HANDLE (istisna yok)\n", tid);
+        }
+    }
+    if (!handled && (bits & 0x8)) {                // DR3: kernel32!CreateFileA — A21 kirici
+        char path[268] = {0};
+        uintptr_t pth = DR_ARG0;
+        if (pth && rmem(pth, path, sizeof(path) - 1)) {
+            std::string low = path; for (auto& ch : low) ch = (char)tolower((unsigned char)ch);
+            if (S.on(1) && low.find("ntdll.dll") != std::string::npos) {
+                // temiz-ntdll kopyasi diskten acilamaz -> A21 katmani kurulamaz (clean_nqip=0)
+                finish(S.is64 ? 0xFFFFFFFFFFFFFFFFull : 0xFFFFFFFFull);
+                handled = true;
+                logf("[KozDbg-c] tid=%u: DR3 CreateFileA(%s) -> INVALID_HANDLE (A21 temiz-kopya bloklandi)\n", tid, path);
+            }
+        }
+    }
+    c.Dr6 &= ~(uintptr_t)0xF;                      // durum bitlerini temizle
+    c.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL | CONTEXT_DEBUG_REGISTERS;
+    SetThreadContext(th, &c);
+    return handled;
 }
 
 // ---- ana dongu ---------------------------------------------------------------
@@ -453,10 +628,14 @@ int main(int argc, char** argv) {
         else if (a == "--controls" && i + 1 < argc) ctl = (unsigned)strtoul(argv[++i], nullptr, 0);
         else if (a == "--log" && i + 1 < argc) logPath = argv[++i];
         else if (a == "--verbose") g_verbose = true;
+        else if (a == "--engine" && i + 1 < argc) g_engine = (strcmp(argv[++i], "dr") == 0) ? 1 : 0;
+        else if (a == "--dr7" && i + 1 < argc) g_dr7 = (uintptr_t)strtoull(argv[++i], nullptr, 0);
+        else if (a == "--ngf0") g_ngfSkip = true;
         else if (!target) target = argv[i];
         else targs.push_back(a);
     }
-    if (!target) { printf("Kullanim: kozdbgc [--profile 331|340|350|off] [--controls N] [--log dosya] hedef.exe [args]\n"); return 2; }
+    if (!target) { printf("Kullanim: kozdbgc [--profile 331|340|350|off] [--engine dr|int3] [--controls N] [--verbose] [--log dosya] hedef.exe [args]\n"
+                          "  v1.1: --engine dr (varsayilan) = donanim DR0-3, bellek yazmasi yok (CRC/tamper'e takilmaz)\n"); return 2; }
     if (prof == "off") S.enabled = false; else S.profile = atoi(prof.c_str());
     S.controls = ctl & 8191;
     if (fopen_s(&g_logfile, logPath, "a") != 0) g_logfile = nullptr;
@@ -496,6 +675,15 @@ int main(int argc, char** argv) {
             logf("[KozDbg-c] surec olustu pid=%u ana modul=%p\n", S.pid, (void*)S.mainBase);
             break;
         }
+        case CREATE_THREAD_DEBUG_EVENT:
+            if (g_engine == 1 && S.armed && ev.u.CreateThread.hThread &&
+                ev.u.CreateThread.hThread != INVALID_HANDLE_VALUE) {
+                if (applyDr(ev.u.CreateThread.hThread))
+                    logf("[KozDbg-c] yeni thread tid=%u: DR0-3 uygulandi\n", tid);
+                CloseHandle(ev.u.CreateThread.hThread);
+            } else if (ev.u.CreateThread.hThread && ev.u.CreateThread.hThread != INVALID_HANDLE_VALUE)
+                CloseHandle(ev.u.CreateThread.hThread);
+            break;
         case LOAD_DLL_DEBUG_EVENT: {
             char nm[MAX_PATH] = {0};
             if (ev.u.LoadDll.hFile && ev.u.LoadDll.hFile != INVALID_HANDLE_VALUE) {
@@ -533,6 +721,9 @@ int main(int argc, char** argv) {
                 } else cont = DBG_EXCEPTION_NOT_HANDLED;   // hedefin kendi int3/SEH probu
                 if (g_verbose && !sysBpSeen2) { logf("[KozDbg-c] istisna iletilmedi-code=0x%08X tid=%u first=%u ip=%p\n", (unsigned)code, tid, (unsigned)first, (void*)ip); }
             } else if (code == EXCEPTION_SINGLE_STEP && th) {
+                if (g_engine == 1 && S.armed && dispatchDr(tid, th)) {
+                    cont = DBG_CONTINUE;
+                } else {
                 Regs r; r.get(th);
                 auto st = S.stepping.find(tid);
                 if (st != S.stepping.end() && st->second) {
@@ -549,6 +740,7 @@ int main(int argc, char** argv) {
                         cont = DBG_EXCEPTION_NOT_HANDLED;
                     } else cont = DBG_EXCEPTION_NOT_HANDLED;
                 } else cont = DBG_EXCEPTION_NOT_HANDLED;
+                }
             } else { cont = DBG_EXCEPTION_NOT_HANDLED; if (code != 0x4000001F) logf("[KozDbg-c] istisna (diger) code=0x%08X tid=%u first=%u\n", (unsigned)code, tid, (unsigned)first); }
             break;
         }
