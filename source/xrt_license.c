@@ -96,6 +96,7 @@
 #define XH_GETWINDOWSDIR   0xDF670872u   // GetWindowsDirectoryA
 #define XH_GETVOLINFO      0xC6DD0460u   // GetVolumeInformationA
 #define XH_GETCOMPUTERNAME 0x446EAA3Cu   // GetComputerNameA
+#define XH_TERMINATE       0xF84EEE59u   // TerminateProcess (cp273 PORT A)
 /* ---- 0.7.0-final SDK-40 kaynak API hash'leri (fnv_a ile ayni algoritma,
         python dogrulamali: kernel32/user32 bilinen sabitleriyle eslesti) ---- */
 #define XH_FINDRESOURCEA          0x3D905489u   // "FindResourceA"
@@ -617,18 +618,99 @@ static const u8* lic_lsd(void) {
 
 static void lic_wr32(u8* p, u32 v) { p[0]=(u8)v; p[1]=(u8)(v>>8); p[2]=(u8)(v>>16); p[3]=(u8)(v>>24); }
 
+/* cp273 PORT A: VMProtect DecryptBuffer rotl yardimcisi */
+static u32 lic_rotl(u32 v, u32 r) { return (v << r) | (v >> (32u - r)); }
+
+/* cp273 PORT A: cevrimdisi aktivasyon/deaktivasyon string'i (UO 1:1 semantik):
+   "type=activation&code=CODE&hwid=BASE64&hash=BASE64" -> base64(SHA1(modulus) ile
+   ayni sira). sunucu tarafina gidecek URL parametrelerini URLEscape eder ve
+   tamami base64'e kodlar (BuildUrl+EncodeUrl birebir). */
+static u32 lic_url_escape(char* dst, u32 cap, const char* src) {
+    static const char hex[] = "0123456789abcdef";
+    u32 o = 0;
+    for (; *src; src++) {
+        u8 c = (u8)*src;
+        int plain = ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                     (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~');
+        if (c == ' ' && o + 1 < cap) dst[o++] = '+';
+        else if (plain && o + 1 < cap) dst[o++] = (char)c;
+        else if (o + 3 < cap) { dst[o++] = '%'; dst[o++] = hex[c >> 4]; dst[o++] = hex[c & 15]; }
+        else break;
+    }
+    dst[o] = 0;
+    return o;
+}
+static u32 lic_offline_str(char* out, u32 cap, const char* type, const char* code,
+                           const u8* lsd, u64 k32) {
+    /* hwid -> base64 (mevcut 2-blok) */
+    u32 cur[2];
+    if (!lic_hwid_env(cur)) return 0;
+    u8 raw[8]; u32 r;
+    for (r = 0; r < 4; r++) raw[r]     = (u8)(cur[0] >> (8 * r));
+    for (r = 0; r < 4; r++) raw[4 + r] = (u8)(cur[1] >> (8 * r));
+    char str_hwid[24]; u32 hn = 0;
+    lic_b64enc(raw, 8, str_hwid, &hn);
+    /* hash -> base64: SHA1(modulus 256B) ilk 20B */
+    u8 h[20];
+    {
+        sha1_ctx c; sha1_init(&c);
+        sha1_update(&c, lsd + LSD_OFF_MOD, 256);
+        sha1_final(&c, h);
+    }
+    char str_hash[32]; u32 sn = 0;
+    lic_b64enc(h, 20, str_hash, &sn);
+    /* birlesik: type=...&code=...&hwid=...&hash=... */
+    char body[512]; u32 o = 0;
+    const char* parts[8]; u32 pi;
+    parts[0] = "type=";      parts[1] = type;
+    parts[2] = "&code=";     parts[3] = code;
+    parts[4] = "&hwid=";     parts[5] = str_hwid;
+    parts[6] = "&hash=";     parts[7] = str_hash;
+    for (pi = 0; pi < 8 && o + 1 < sizeof body; pi++) {
+        const char* s = parts[pi];
+        if (pi & 1) o += lic_url_escape(body + o, (u32)(sizeof body - o - 1), s);
+        else while (*s && o + 1 < sizeof body) body[o++] = *s++;
+    }
+    body[o] = 0;
+    /* EncodeUrl: tamami base64 */
+    u32 on = 0;
+    lic_b64enc((const u8*)body, o, out, &on);
+    (void)k32;
+    return (on && on < cap) ? on + 1 : 0;
+}
+
 static int lic_check_hwid(const u8* em, u32 pos, u8 s, u64 k32, u32* state) {
+    /* VMProtect hwid.cc IsCorrect birebir (cp273 PORT B):
+       - bloklar 4B hizali; her blok alt-2 biti TIP (0=CPU 1=HOST 2=MAC 3=HDD)
+       - kural: CPU tipli blok ESLESMELI + bulunan tiplerin TUMU ya >=3 tip eslesmeli
+       (ag donanimi degisse de makul esneklik — UO 1:1 semantik) */
     if (s == 0 || (s & 3) || pos + s > 256) { *state = XS_BAD_HWID; return 0; }
     u32 cur[2];
     if (!lic_hwid_env(cur)) { *state = XS_BAD_HWID; return 0; }
-    u32 i;
-    for (i = 0; i < 2; i++) {
-        u32 j, found = 0;
-        for (j = 0; j + 4 <= s; j += 4) {
-            u32 d = em[pos+j] | (em[pos+j+1] << 8) | (em[pos+j+2] << 16) | ((u32)em[pos+j+3] << 24);
-            if (d == cur[i]) { found = 1; break; }
-        }
-        if (!found) { *state = XS_BAD_HWID; return 0; }
+    /* mevcut makinenin bloklari: [0]=env-host (HOST tipi=1), [1]=env-cpu (CPU tipi=0)
+       lic_hwid_env: b[0]=COMPUTERNAME-hash, b[1]=PROCESSOR_IDENTIFIER-hash */
+    u32 cur_blocks[2]; u32 cur_types[2];
+    cur_blocks[0] = cur[0]; cur_types[0] = 1u;   /* HOST  */
+    cur_blocks[1] = cur[1]; cur_types[1] = 0u;   /* CPU   */
+    int equals[4]; int found[4];
+    u32 t;
+    for (t = 0; t < 4; t++) { equals[t] = 0; found[t] = 0; }
+    u32 nblocks = s / 4u;
+    u32 j;
+    for (j = 0; j < nblocks; j++) {
+        u32 d = em[pos+j*4] | (em[pos+j*4+1] << 8) | (em[pos+j*4+2] << 16) | ((u32)em[pos+j*4+3] << 24);
+        found[d & 3u] = 1;
+        u32 c;
+        for (c = 0; c < 2u; c++)
+            if (d == cur_blocks[c]) { equals[cur_types[c]] = 1; break; }
+    }
+    /* CPU zorunlu (hwid.cc: if (!equals[0]) return false) */
+    if (!equals[0]) { *state = XS_BAD_HWID; return 0; }
+    /* n == c || n >= 3 */
+    {
+        int n = 0, c2 = 0;
+        for (t = 0; t < 4; t++) { if (found[t]) c2++; if (equals[t]) n++; }
+        if (!(n == c2 || n >= 3)) { *state = XS_BAD_HWID; return 0; }
     }
     return 1;
 }
@@ -799,8 +881,21 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
     case XPAPI_FREESTRING: return 1;
     case XPAPI_ACTIVATE:   return 5;      /* MVP: bağlantı yok (Weblm 1.1+) */
     case XPAPI_DEACTIVATE: return 5;
-    case XPAPI_OFFACT:   return 0;
-    case XPAPI_OFFDEACT: return 0;
+    case XPAPI_OFFACT: case XPAPI_OFFDEACT: {
+        /* cp273 PORT A: cevrimdisi aktivasyon/deaktivasyon string'i —
+           ActivationRequest::BuildUrl(offline=true) + EncodeUrl birebir */
+        char* buf = (char*)(unsigned long)a1;
+        int size = (int)a2;
+        const char* code = (const char*)(unsigned long)a3;
+        if (!lsd || !buf || size <= 0) return 0;
+        char tmp[512];
+        u32 n = lic_offline_str(tmp, sizeof tmp,
+                                (fnid == XPAPI_OFFACT) ? "activation" : "deactivation",
+                                code ? code : "", lsd, k32);
+        if (!n || (int)n > size) return 0;
+        { u32 i2; for (i2 = 0; i2 < n; i2++) buf[i2] = tmp[i2]; }
+        return 1;
+    }
     case XPAPI_ISVM:     return 0;        /* MVP: 0.9.0'da gerçek tespit */
 
     /* ---------- 0.7.0-final SDK-40: kaynak ailesi (gercek API delege) ----
@@ -847,12 +942,50 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
 
     /* ---------- 0.7.0-final: buffer/rastgele/kutu ---------- */
     case XPAPI_DECBUF: {
-        /* buf ^= keystream(key); s_i = splitmix64 adımı — şifre/basit ama
-           düz-XOR'dan güçlü (pozisyon-bağımsız akış) */
+        /* cp273 PORT A — licensing_manager.cc DecryptBuffer birebir:
+           p[0..3] = rotl((p+session)^key0, 7/11/17/23) + key1
+           dogrulama: p0+p1+p2+p3 == session*4 degilse lisans mesaji +
+           TerminateProcess(0xDEADC0DE). Anahtar uretimi:
+           key0 = lo64(product_code), key1 = hi64(product_code)+session_key.
+           SDK'dan key argumaninda [lo32 key0 | hi32 session] gelir —
+           uyumluluk: eski splitmix yolu 16B'den KUCUK tamponlarda kalir
+           (test cagrilari bozulmasin); VMProtect yolu >=16B'de. */
         u8* buf = (u8*)(unsigned long)a1;
         u32 n = (u32)a2;
         u64 key = a3;
         if (!buf || !n) return 0;
+        if (n >= 16 && lsd && ((u32)1u << 0)) {
+            u32 session = (u32)key;
+            u32 key0 = ld32(lsd + LSD_OFF_PC);
+            u32 key1 = ld32(lsd + LSD_OFF_PC + 4) + session;
+            u32* p = (u32*)(unsigned long)buf;
+            u32 q0 = p[0], q1 = p[1], q2 = p[2], q3 = p[3];
+            p[0] = lic_rotl((q0 + session) ^ key0,  7) + key1;
+            p[1] = lic_rotl((q1 + session) ^ key0, 11) + key1;
+            p[2] = lic_rotl((q2 + session) ^ key0, 17) + key1;
+            p[3] = lic_rotl((q3 + session) ^ key0, 23) + key1;
+            if (p[0] + p[1] + p[2] + p[3] != session * 4u) {
+                /* VMProtect: lisans-gerekli mesaji + sonlandir (0xDEADC0DE) */
+                u64 kp = find_export(k32, XH_TERMINATE);
+                if (kp) api1(kp, 0xDEADC0DEull);
+                return 0;
+            }
+            /* kalan baytlar: splitmix akisi (VMProtect yalniz ilk 16B'yi
+               sifreler; uzun tamponlar icin geri kalan bize kalmis) */
+            {
+                u64 s = key ^ 0xC2B2AE3D27D4EB4Full;
+                u32 i;
+                for (i = 16; i < n; i++) {
+                    s += 0x9E3779B97F4A7C15ull;
+                    { u64 z = s;
+                      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+                      z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+                      z ^= z >> 31;
+                      buf[i] ^= (u8)(z >> 24); }
+                }
+            }
+            return a1;
+        }
         u64 s = key ^ 0xC2B2AE3D27D4EB4Full;
         u32 i;
         for (i = 0; i < n; i++) {
