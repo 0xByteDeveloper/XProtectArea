@@ -36,6 +36,7 @@
 #define LSD_OFF_PC     0x110
 #define LSD_OFF_WM     0x118
 #define LSD_OFF_STATE  0x120
+#define LSD_OFF_URL    0x150   /* cp273 PORT E: ASCII NUL-sonlu aktivasyon URL'i (max 0x1F bayt; CRC-disi; wm-metni 0x130..0x14F) */
 #define LSD_OFF_TICK   0x124
 #define LSD_OFF_CRC    0x128
 // 0.7.0-final FIX: LSD CRC SADECE 0x000..0x11F (salt-okunur yapi) uzerinden
@@ -164,6 +165,34 @@ static void lcopy(u8* d, const u8* s, u32 n) { while (n--) *d++ = *s++; }
 #endif
 /* W2(api2) — 0.7.0-final: xrt_core.c'te tanimli */
 W8(api8)
+/* cp273 PORT E: api6 — WinHttpQueryHeaders (6 arguman); xrt_core api1-5/7,
+   burada 6-argumanli yapi her arch icin acik yazilir */
+#if defined(XRT_IS_X64)
+static u64 api6(u64 fn, u64 a0, u64 a1, u64 a2, u64 a3, u64 a4, u64 a5) {
+    u64 ret; u64 ar_[6];
+    register u64 rfn __asm__("r15") = fn;
+    register u64 rar __asm__("r14") = (u64)(unsigned long)(void*)ar_;
+    ar_[0] = a0; ar_[1] = a1; ar_[2] = a2; ar_[3] = a3; ar_[4] = a4; ar_[5] = a5;
+    __asm__ volatile ("pushq %%rbp\n\tmovq %%rsp, %%rbp\n\tandq $-16, %%rsp\n\tsubq $0x38, %%rsp\n\t"
+        "movq 0(%%r14), %%rcx\n\tmovq 8(%%r14), %%rdx\n\tmovq 16(%%r14), %%r8\n\tmovq 24(%%r14), %%r9\n\t"
+        "movq 32(%%r14), %%r10\n\tmovq %%r10, 0x20(%%rsp)\n\t"
+        "movq 40(%%r14), %%r10\n\tmovq %%r10, 0x28(%%rsp)\n\tcall *%%r15\n\t"
+        "movq %%rbp, %%rsp\n\tpopq %%rbp"
+        : "=a"(ret) : "r"(rfn), "r"(rar)
+        : "rcx", "rdx", "r8", "r9", "r10", "r11", "memory", "cc"); return ret;
+}
+#else
+static u32 api6(u32 fn, u32 a0, u32 a1, u32 a2, u32 a3, u32 a4, u32 a5) {
+    u32 ret; u32 ar_[6];
+    ar_[0] = a0; ar_[1] = a1; ar_[2] = a2; ar_[3] = a3; ar_[4] = a4; ar_[5] = a5;
+    __asm__ volatile ("movl %[ar], %%esi\n\t"
+        "pushl 20(%%esi)\n\tpushl 16(%%esi)\n\tpushl 12(%%esi)\n\tpushl 8(%%esi)\n\t"
+        "pushl 4(%%esi)\n\tpushl 0(%%esi)\n\tcall *%[fn]\n\t"
+        "addl $24, %%esp"
+        : "=a"(ret) : [fn] "r"(fn), [ar] "r"(ar_)
+        : "ecx", "edx", "esi", "memory", "cc"); return ret;
+}
+#endif
 
 // ---- exe tabanı: PEB InLoadOrder ilk girdi (exe kendisi) ----
 static u64 lic_exe_base(void) {
@@ -435,7 +464,10 @@ static u32 lic_now_date(void) {
     u32 lo = ld32((const u8*)(unsigned long)(0x7FFE0000ull + 0x14));
     u32 hi = ld32((const u8*)(unsigned long)(0x7FFE0000ull + 0x18));
     u64 ft = ((u64)hi << 32) | lo;
-    u64 days = lic_div64(ft, 864000000000ull, 0);   /* 100ns -> gün */
+    /* FILETIME 1601-epoch — 1970 dongusu icin offset cikar (cp273 FIX):
+       1601->1970 = 369 yil + 89 artik = 134774 gun */
+    u64 days = lic_div64(ft, 864000000000ull, 0);
+    days = (days > 134774ull) ? (days - 134774ull) : 0ull;
     u64 rem = days;
     u32 yy = 1970;
     while (1) {
@@ -488,14 +520,14 @@ static int lic_hwid_env(u32 b[2]) {
         if (len > 14 && q[0] == 'C' && q[1] == 'O' && q[2] == 'M' && q[3] == 'P' &&
             q[4] == 'U' && q[5] == 'T' && q[6] == 'E' && q[7] == 'R' && q[8] == 'N' &&
             q[9] == 'A' && q[10] == 'M' && q[11] == 'E' && q[12] == '=') {
-            b[0] = fnv_w(q + 13, len - 13) | 1u; got++;
+            b[0] = (fnv_w(q + 13, len - 13) & ~3u) | 1u; got++;   /* HOST type=1 */
         } else if (len > 21 && q[0] == 'P' && q[1] == 'R' && q[2] == 'O' &&
                    q[3] == 'C' && q[4] == 'E' && q[5] == 'S' && q[6] == 'S' &&
                    q[7] == 'O' && q[8] == 'R' && q[9] == '_' && q[10] == 'I' &&
                    q[11] == 'D' && q[12] == 'E' && q[13] == 'N' && q[14] == 'T' &&
                    q[15] == 'I' && q[16] == 'F' && q[17] == 'I' && q[18] == 'E' &&
                    q[19] == 'R' && q[20] == '=') {
-            b[1] = fnv_w(q + 21, len - 21) | 1u; got++;
+            b[1] = (fnv_w(q + 21, len - 21) & ~3u); got++;        /* CPU type=0 */
         }
         i += len + 1;
     }
@@ -582,7 +614,7 @@ static void lic_fill_data(lic_snd_t* d, const u8* em, u32 start, u32 state) {
         case 0x06: { d->bRunningTime = (int)em[pos]; pos += 1; break; }
         case 0x07: pos += 8; break;
         case 0x08: { u8 s2 = em[pos++]; u32 cp2 = (s2 > 255) ? 255 : s2;
-                     d->nUserDataLength = s2; lcopy(em + pos, d->bUserData, cp2); pos += s2; break; }
+                     d->nUserDataLength = s2; lcopy(d->bUserData, em + pos, cp2); pos += s2; break; }
         case 0x09: { u32 v = em[pos] | (em[pos+1] << 8) | (em[pos+2] << 16) | ((u32)em[pos+3] << 24);
                      d->dtMaxBuild.wYear = (u16)(v >> 16); d->dtMaxBuild.bMonth = (u8)(v >> 8); d->dtMaxBuild.bDay = (u8)v;
                      pos += 4; break; }
@@ -788,6 +820,361 @@ static u32 lic_parse_serial(const u8* em, u32 start, const u8* lsd, u64 k32) {
     return XS_INVALID;
 }
 
+// ---- cp273 PORT E: ONLINE AKTIVASYON (licensing_manager.cc Send/Process 1:1) ----
+// WinHTTP ailesi LoadLibraryA + PEB-hash ile cozulur (IAT yok, PIC-guvenli).
+// URL LSD 0x130'dan okunur (motor --lic-url ile gomer). CrackUrl yerine
+// birebir URL parse (VMProtect CrackUrl es-deger: scheme/host/port/path).
+#define XH_WINHTTP_DLL    0x91BD45A3u   // "winhttp.dll"
+#define XH_WINHTTP_OPEN   0xAEBC83A5u   // "WinHttpOpen"
+#define XH_WINHTTP_READ   0x943A5129u   // "WinHttpReadData"
+#define XH_WINHTTP_CLOSE  0xD2053A99u   // "WinHttpCloseHandle"
+#define XH_WINHTTP_CONN   0xB0B51A4Du   // "WinHttpConnect"
+#define XH_WINHTTP_OREQ   0x1552DF72u   // "WinHttpOpenRequest"
+#define XH_WINHTTP_SEND   0xE0CFB564u   // "WinHttpSendRequest"
+#define XH_WINHTTP_RECV   0xEC3C8021u   // "WinHttpReceiveResponse"
+#define XH_WINHTTP_SETOPT 0xA64F42FAu   // "WinHttpSetOption"
+#define XH_WINHTTP_QHDRS  0x437AA28Fu   // "WinHttpQueryHeaders"
+// VMProtectActivationFlags (VMProtectDDK.h birebir)
+#define ACT_OK            0u
+#define ACT_SMALL_BUFFER  1u
+#define ACT_NO_CONNECTION 2u
+#define ACT_BAD_REPLY     3u
+#define ACT_BANNED        4u
+#define ACT_CORRUPTED     5u
+#define ACT_BAD_CODE      6u
+#define ACT_ALREADY_USED  7u
+#define ACT_SERIAL_UNK    8u
+#define ACT_EXPIRED       9u
+#define ACT_NOT_AVAIL     10u
+
+static u32 lic_widen(u16* out, u32 cap, const char* s) {
+    u32 n = 0;
+    for (; *s && n + 1 < cap; s++) out[n++] = (u16)(u8)*s;
+    out[n] = 0;
+    return n;
+}
+
+/* LSD URL'i parse eder: "http(s)://host[:port][/base]"
+   donus: 1 = OK; *is_https, host_w, port, base_w doldurulur */
+static int lic_parse_url(const char* url, int* is_https, u16* host_w, u16* base_w,
+                         u32* port, u32* base_len) {
+    const char* p = url;
+    *is_https = 0;
+    if (p[0] == 'h' && p[1] == 't' && p[2] == 't' && p[3] == 'p') {
+        if (p[4] == 's') { *is_https = 1; p += 5; }
+        else p += 4;
+    } else return 0;
+    if (p[0] != ':' || p[1] != '/' || p[2] != '/') return 0;
+    p += 3;
+    /* host */
+    u32 hn = 0;
+    while (*p && *p != ':' && *p != '/' && hn < 63) host_w[hn++] = (u16)(u8)*p++;
+    host_w[hn] = 0;
+    if (!hn) return 0;
+    /* port */
+    *port = *is_https ? 443u : 80u;
+    if (*p == ':') {
+        p++;
+        u32 v = 0;
+        while (*p >= '0' && *p <= '9') { v = v * 10u + (u32)(*p - '0'); p++; }
+        if (v) *port = v;
+    }
+    /* base path ("-" yoksa "/") */
+    u32 bl = 0;
+    base_w[bl++] = '/';
+    if (*p == '/') {
+        p++;
+        while (*p && bl < 200) base_w[bl++] = (u16)(u8)*p++;
+    }
+    base_w[bl] = 0;
+    *base_len = bl;
+    return 1;
+}
+
+/* HTTP GET: VMProtect Send() birebir akis (open->connect->open_request->
+   send->receive->read loop->query date->close). donus: okunan bayt; 0 = baglanti yok */
+static u32 lic_http_get(const u8* lsd, u64 k32, const char* lsd_url,
+                        const char* path_query, u8* resp, u32 cap, u32* srv_date) {
+    int is_https = 0;
+    u16 host_w[64], base_w[208], agent_w[64], path_w[320];
+    u32 port = 0, base_len = 0;
+    if (!lic_parse_url(lsd_url, &is_https, host_w, base_w, &port, &base_len)) return 0;
+
+    u64 ll = find_export(k32, XH_LOADLIBRARYA);
+    if (!ll) return 0;
+    char dllname[16];
+    VP4(dllname, 0, A4('w','i','n','h')); VP4(dllname, 4, A4('t','t','p','.'));
+    VP4(dllname, 8, A4('d','l','l',0));
+    u64 dll = api1(ll, (u64)(unsigned long)dllname);
+    if (!dll) return 0;
+    u64 f_open = find_export(dll, XH_WINHTTP_OPEN);
+    u64 f_read = find_export(dll, XH_WINHTTP_READ);
+    u64 f_close = find_export(dll, XH_WINHTTP_CLOSE);
+    u64 f_conn = find_export(dll, XH_WINHTTP_CONN);
+    u64 f_oreq = find_export(dll, XH_WINHTTP_OREQ);
+    u64 f_send = find_export(dll, XH_WINHTTP_SEND);
+    u64 f_recv = find_export(dll, XH_WINHTTP_RECV);
+    u64 f_setopt = find_export(dll, XH_WINHTTP_SETOPT);
+    u64 f_qhdrs = find_export(dll, XH_WINHTTP_QHDRS);
+    if (!f_open || !f_read || !f_close || !f_conn || !f_oreq ||
+        !f_send || !f_recv || !f_setopt || !f_qhdrs) return 0;
+
+    /* agent: VMProtectDecryptStringW("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)")
+       PIC: stack kurulum (literal rodata'a dusemez) */
+    {
+        char agb[52];
+        u32 i = 0;
+        VP4(agb, 0,  A4('M','o','z','i')); VP4(agb, 4,  A4('l','l','a','/'));
+        VP4(agb, 8,  A4('4','.','0',' ')); VP4(agb, 12, A4('(','c','o','m'));
+        VP4(agb, 16, A4('p','a','t','i')); VP4(agb, 20, A4('b','l','e',';'));
+        VP4(agb, 24, A4(' ','M','S','I')); VP4(agb, 28, A4('E',' ','6','.'));
+        VP4(agb, 32, A4('0',';',' ','W')); VP4(agb, 36, A4('i','n','d','o'));
+        VP4(agb, 40, A4('w','s',' ','N')); VP4(agb, 44, A4('T',' ','5','.'));
+        VP4(agb, 48, A4('1',')',0,0));
+        for (; i < 52; i++) { if (!agb[i]) break; }
+        lic_widen(agent_w, 64, agb);
+    }
+    /* dwAccessType: PEB OSBuildNumber >= 9600 (WIN8_1) -> 4 (AUTOMATIC), yoksa 0 */
+    u32 access = 0;
+    {
+        u64 peb = peb_addr();
+        if (peb) {
+#if defined(XRT_IS_X64)
+            u16 build = ld16((const u8*)(unsigned long)(peb + 0x120));
+#else
+            u16 build = ld16((const u8*)(unsigned long)(peb + 0xAC));
+#endif
+            if (build >= 9600u) access = 4;
+        }
+    }
+    u64 inet = api5(f_open, (u64)(unsigned long)agent_w, access, 0, 0, 0);
+    if (!inet) return 0;
+    u64 conn = api4(f_conn, inet, (u64)(unsigned long)host_w, port, 0);
+    if (!conn) { api2(f_close, inet, 0); return 0; }
+    /* path_query base'in ucune eklenir; open_request'e kopya gecer */
+    u16 verb[4];
+    u32 bl = base_len, q = 0;
+    while (path_query[q] && bl < 300) base_w[bl++] = (u16)(u8)path_query[q++];
+    base_w[bl] = 0;
+    verb[0] = 'G'; verb[1] = 'E'; verb[2] = 'T'; verb[3] = 0;
+    {
+        u32 i2;
+        for (i2 = 0; i2 <= bl; i2++) path_w[i2] = base_w[i2];
+    }
+    u64 req = api7(f_oreq, conn,
+                   (u64)(unsigned long)verb,
+                   (u64)(unsigned long)path_w, 0, 0, 0,
+                   0x00000100u /*BYPASS_CACHE*/ | (u32)(is_https ? 0x00800000u : 0u));
+    if (!req) { api2(f_close, conn, 0); api2(f_close, inet, 0); return 0; }
+    if (is_https && f_setopt) {
+        u32 flags = 0x100u | 0x2000u | 0x8000u;   /* UNKNOWN_CA|DATE|CN ignore */
+        api4(f_setopt, req, 31u /*OPTION_SECURITY_FLAGS*/,
+             (u64)(unsigned long)&flags, 4u);
+    }
+    u32 ok = api7(f_send, req, 0, 0, 0, 0, 0, 0);
+    if (!ok) { api2(f_recv, req, 0); }
+    ok = api2(f_recv, req, 0);
+    u32 total = 0;
+    if (ok) {
+        while (total + 1 < cap) {
+            u32 n = 0;
+            if (!api4(f_read, req, (u64)(unsigned long)(resp + total),
+                      (u64)(cap - 1 - total), (u64)(unsigned long)&n) || !n) break;
+            total += n;
+        }
+    }
+    resp[total] = 0;
+    /* Date header -> server_date (VMProtect QueryHeaders birebir) */
+    if (srv_date && ok) {
+        u32 st[8]; u32 len = 32;   /* SYSTEMTIME: 8 x u16 */
+        if (api6(f_qhdrs, req, 9u /*QUERY_DATE*/ | 0x40000000u /*FLAG_SYSTEMTIME*/,
+                 0xFFFFFFFFull /*HEADER_NAME_BY_INDEX*/, (u64)(unsigned long)st,
+                 (u64)(unsigned long)&len, 0)) {
+            u16 y = (u16)st[0], mo = (u16)st[1], d = (u16)st[3];
+            *srv_date = ((u32)y << 16) | ((u32)(u8)mo << 8) | (u32)(u8)d;
+        }
+    }
+    api2(f_close, req, 0);
+    api2(f_close, conn, 0);
+    api2(f_close, inet, 0);
+    return total;
+}
+
+/* ActivationRequest::VerifyCode birebir: alphabet 0-9a-z-, max 33 kar */
+static int lic_verify_code(const char* code) {
+    if (!code || !code[0]) return 0;
+    for (const char* p = code; *p; p++) {
+        char c = *p;
+        int okc = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+                  (c >= 'A' && c <= 'Z') || c == '-';
+        if (!okc) return 0;
+        if (p - code > 32) return 0;
+    }
+    return 1;
+}
+
+/* XPAPI_ACTIVATE govdesi: BuildUrl(online)+Send+Process birebir.
+   donus: ACTIVATION_* ; basarida serial_buf'a serial yazilir. */
+static u32 lic_activate(const u8* lsd, u64 k32, const char* code,
+                        char* serial_buf, u32 size) {
+    if (!lic_verify_code(code)) return ACT_BAD_CODE;
+    const char* url = (const char*)(unsigned long)(lsd + LSD_OFF_URL);
+    if (!url[0]) return ACT_NOT_AVAIL;
+    /* hwid + hash parametreleri (offline yol ile ayni uretim) */
+    u32 cur[2];
+    if (!lic_hwid_env(cur)) return ACT_BAD_REPLY;
+    u8 raw[8]; u32 r;
+    for (r = 0; r < 4; r++) raw[r]     = (u8)(cur[0] >> (8 * r));
+    for (r = 0; r < 4; r++) raw[4 + r] = (u8)(cur[1] >> (8 * r));
+    char str_hwid[24]; u32 hn = 0;
+    lic_b64enc(raw, 8, str_hwid, &hn);
+    u8 h[20];
+    { sha1_ctx c; sha1_init(&c); sha1_update(&c, lsd + LSD_OFF_MOD, 256); sha1_final(&c, h); }
+    char str_hash[32]; u32 sn = 0;
+    lic_b64enc(h, 20, str_hash, &sn);
+    /* path: activation.php?code=<code>&hwid=<hwid>&hash=<hash>
+       (ActivationRequest::BuildUrl online formu birebir; stack-stringler) */
+    char path[512]; u32 o = 0;
+    char s_pre[24], s_p3[8], s_p4[8];
+    VP4(s_pre, 0,  A4('a','c','t','i')); VP4(s_pre, 4,  A4('v','a','t','i'));
+    VP4(s_pre, 8,  A4('o','n','.','p')); VP4(s_pre, 12, A4('h','p','?','c'));
+    VP4(s_pre, 16, A4('o','d','e','='));
+    s_pre[20] = 0;
+    VP4(s_p3, 0, A4('&','h','w','i')); VP4(s_p3, 4, A4('d','=',0,0));
+    VP4(s_p4, 0, A4('&','h','a','s')); VP4(s_p4, 4, A4('h','=',0,0));
+    const char* parts[6]; u32 pi;
+    parts[0] = s_pre;    parts[1] = code;
+    parts[2] = s_p3;     parts[3] = str_hwid;
+    parts[4] = s_p4;     parts[5] = str_hash;
+    for (pi = 0; pi < 6 && o + 1 < sizeof path; pi++) {
+        const char* s = parts[pi];
+        if (pi & 1) o += lic_url_escape(path + o, (u32)(sizeof path - o - 1), s);
+        else while (*s && o + 1 < sizeof path) path[o++] = *s++;
+    }
+    path[o] = 0;
+    u8 resp[2048]; u32 srv_date = 0;
+    u32 n = lic_http_get(lsd, k32, url, path, resp, sizeof resp, &srv_date);
+    (void)srv_date;   /* GetCurrentDate max'ine 0.9.0'da baglanir (LSD alan izi var) */
+    if (!n) return ACT_NO_CONNECTION;
+    /* reply: OK\n<serial> | BAD | BANNED | USED | EXPIRED (birebir) */
+    if (resp[0] == 'B' && resp[1] == 'A' && resp[2] == 'D') return ACT_BAD_CODE;
+    if (resp[0] == 'B' && resp[1] == 'A' && resp[2] == 'N') return ACT_BANNED;
+    if (resp[0] == 'U' && resp[1] == 'S' && resp[2] == 'E') return ACT_ALREADY_USED;
+    if (resp[0] == 'E' && resp[1] == 'X' && resp[2] == 'P') return ACT_EXPIRED;
+    if (!(resp[0] == 'O' && resp[1] == 'K' && resp[2] == '\n')) return ACT_BAD_REPLY;
+    const char* s2 = (const char*)resp + 3;
+    u32 need = 0;
+    while (s2[need]) need++;
+    if (need + 1 > size) return ACT_SMALL_BUFFER;
+    { u32 i2; for (i2 = 0; i2 <= need; i2++) serial_buf[i2] = s2[i2]; }
+    return ACT_OK;
+}
+
+/* XPAPI_DEACTIVATE govdesi: DeactivationRequest::BuildUrl/Process birebir.
+   reply: OK | ERROR | UNKNOWN */
+static u32 lic_deactivate(const u8* lsd, u64 k32, const char* serial) {
+    /* VerifySerial: base64 + minimum boyut */
+    if (!serial || !serial[0]) return ACT_BAD_CODE;
+    u32 slen = 0;
+    while (serial[slen]) slen++;
+    u8 bin[512]; u32 bl = 0;
+    if (!lic_b64dec((const u8*)(unsigned long)serial, slen, bin, &bl) || bl < 16)
+        return ACT_BAD_CODE;
+    const char* url = (const char*)(unsigned long)(lsd + LSD_OFF_URL);
+    if (!url[0]) return ACT_NOT_AVAIL;
+    u8 h[20];
+    { sha1_ctx c; sha1_init(&c); sha1_update(&c, bin, bl); sha1_final(&c, h); }
+    char str_hash[32]; u32 sn = 0;
+    lic_b64enc(h, 20, str_hash, &sn);
+    char path[128]; u32 o = 0;
+    char s_pre[16], s_p2[8];
+    VP4(s_pre, 0, A4('d','e','a','c')); VP4(s_pre, 4, A4('t','i','v','a'));
+    VP4(s_pre, 8, A4('t','i','o','n')); VP4(s_pre, 12, A4('.','p','h','p'));
+    VP4(s_p2, 0, A4('?','h','a','s')); VP4(s_p2, 4, A4('h','=',0,0));
+    for (u32 pi = 0; pi < 4 && o + 1 < sizeof path; pi++) {
+        const char* s = (pi == 0) ? s_pre : (pi == 1) ? s_p2 :
+                        (pi == 2) ? str_hash : "";
+        while (*s && o + 1 < sizeof path) path[o++] = *s++;
+    }
+    path[o] = 0;
+    u8 resp[256];
+    u32 n = lic_http_get(lsd, k32, url, path, resp, sizeof resp, 0);
+    if (!n) return ACT_NO_CONNECTION;
+    if (resp[0] == 'O' && resp[1] == 'K') return ACT_OK;
+    if (resp[0] == 'E' && resp[1] == 'R') return ACT_CORRUPTED;
+    if (resp[0] == 'U' && resp[1] == 'N') return ACT_SERIAL_UNK;
+    return ACT_BAD_REPLY;
+}
+
+// ---- cp273 PORT F: ISVM GERÇEK TESPİT (runtime/core.cc ExportedIsVirtualMachinePresent 1:1) ----
+#define XH_ENUMFIRM     0xA0DA901Du   // "EnumSystemFirmwareTables"
+#define XH_GETSYSFIRM   0xC74E7819u   // "GetSystemFirmwareTable"
+
+/* InternalFindFirmwareVendor (Windows dalı birebir): VirtualBox/VMware/Parallels */
+static int lic_find_vendor(const u8* data, u32 size) {
+    for (u32 i = 0; i < size; i++) {
+        if (i + 9 < size && data[i]=='V' && data[i+1]=='i' && data[i+2]=='r' &&
+            data[i+3]=='t' && data[i+4]=='u' && data[i+5]=='a' && data[i+6]=='l' &&
+            data[i+7]=='B' && data[i+8]=='o' && data[i+9]=='x') return 1;
+        if (i + 5 < size && data[i]=='V' && data[i+1]=='M' && data[i+2]=='w' &&
+            data[i+3]=='a' && data[i+4]=='r' && data[i+5]=='e') return 1;
+        if (i + 8 < size && data[i]=='P' && data[i+1]=='a' && data[i+2]=='r' &&
+            data[i+3]=='a' && data[i+4]=='l' && data[i+5]=='l' && data[i+6]=='e' &&
+            data[i+7]=='l' && data[i+8]=='s') return 1;
+    }
+    return 0;
+}
+
+static void lic_cpuid(u32 leaf, u32 out[4]) {
+    __asm__ volatile (
+        "xorl %%ebx, %%ebx\n\txorl %%ecx, %%ecx\n\tcpuid"
+        : "=a"(out[0]), "=b"(out[1]), "=c"(out[2]), "=d"(out[3])
+        : "a"(leaf));
+}
+
+/* IsVirtualMachinePresent birebir:
+   1) CPUID(1) ECX bit31 (hipervizor) ->
+      Hyper-V root-partition ayristirmasi (0x40000000 "Microsoft Hv",
+      0x40000003 EBX bit0) — root partition ise VM DEGIL.
+   2) yazilim yolu: EnumSystemFirmwareTables('FIRM') -> GetSystemFirmwareTable
+      -> vendor taramasi */
+static u32 lic_isvm(u64 k32) {
+    u32 ci[4];
+    lic_cpuid(1, ci);
+    if ((ci[2] >> 31) & 1u) {
+        /* Hyper-V root partition kontrolu */
+        lic_cpuid(0x40000000u, ci);
+        if (ci[1] == 0x7263694Du && ci[2] == 0x666F736Fu && ci[3] == 0x76482074u) {
+            lic_cpuid(0x40000003u, ci);
+            if (ci[1] & 1u) return 0;
+        }
+        return 1;
+    }
+    /* firmware tablosu taramasi */
+    {
+        u64 f_enum = find_export(k32, XH_ENUMFIRM);
+        u64 f_get = find_export(k32, XH_GETSYSFIRM);
+        if (f_enum && f_get) {
+            u32 firm = 0x4D524946u;   /* 'FIRM' (LE) */
+            u32 tables_size = (u32)api3(f_enum, firm, 0, 0);
+            if (tables_size && tables_size <= 256u) {
+                u32 tables[64];
+                api3(f_enum, firm, (u64)(unsigned long)tables, tables_size);
+                u32 n = tables_size / 4u;
+                for (u32 i = 0; i < n && i < 64u; i++) {
+                    u32 dsz = (u32)api4(f_get, firm, tables[i], 0, 0);
+                    if (dsz && dsz <= 4096u) {
+                        u8 data[4096];
+                        api4(f_get, firm, tables[i], (u64)(unsigned long)data, dsz);
+                        if (lic_find_vendor(data, dsz)) return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 // ---- çekirdek (arch-bağımsız) ----
 static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
     (void)a3; (void)a4;
@@ -807,24 +1194,7 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_STATE), XS_INVALID);
         u8 em[256];
         lic_modexp65537(bin, lsd + LSD_OFF_MOD, em);
-#ifdef XRT_LIC_DEBUG
-        /* GECICI PROBE: state alanina tani yaz (uretim derlemesinde YOK) */
-        {
-            u32 bx = 0, i2;
-            for (i2 = 0; i2 < bl; i2++) bx ^= bin[i2] * (i2 + 1);
-            lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_STATE),
-                     0xAD000000u | ((u32)em[0] << 16) | ((u32)em[1] << 8) | (bl & 0xFFu));
-            /* bin-xor probe: CRC DIŞI alan (cache bloğu sonu) — WM/0x120-altı YASAK */
-            lic_wr32((u8*)(unsigned long)(lsd + LSD_CACHE_OFF + 0x100), bx);
-            /* probe: cache'i doldur (GETDATA yolu testi) */
-            {
-                u8* cache = (u8*)(unsigned long)(lsd + LSD_CACHE_OFF);
-                cache[0] = (u8)LSD_CACHE_FLAG; cache[1] = 0; cache[2] = 0; cache[3] = 0;
-                lcopy(cache + 4, em, 256);   /* FIX: lcopy(d,s,n) — hedef once */
-            }
-            return 0xBEEFu;   /* probe modunda parse atlanir */
-        }
-#endif
+
         if (em[0] != 0 || em[1] != 2) return XS_INVALID;
         u32 pos;
         for (pos = 2; pos < 256; pos++)
@@ -887,12 +1257,20 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         u8* p = (u8*)(unsigned long)peb_addr();
         return p[2] ? 1 : 0;
     }
-    case XPAPI_ISIMAGECRC: return 1;      /* MVP: 0.9.0'da cfg sonucuna bağlanır */
+    case XPAPI_ISIMAGECRC: return lic_lsd() ? 1 : 0;   /* cp273 PORT F: LSD-CRC + self-CRC gate'i icinden gecmis demektir */
     case XPAPI_DECSTRA: return a1;        /* MVP: dizgeler şifresiz */
     case XPAPI_DECSTRW: return a1;
     case XPAPI_FREESTRING: return 1;
-    case XPAPI_ACTIVATE:   return 5;      /* MVP: bağlantı yok (Weblm 1.1+) */
-    case XPAPI_DEACTIVATE: return 5;
+    case XPAPI_ACTIVATE: {
+        /* cp273 PORT E: online aktivasyon — Send/Process 1:1 */
+        if (!lsd) return ACT_CORRUPTED;
+        return lic_activate(lsd, k32, (const char*)(unsigned long)a1,
+                            (char*)(unsigned long)a2, (u32)a3);
+    }
+    case XPAPI_DEACTIVATE: {
+        if (!lsd) return ACT_CORRUPTED;
+        return lic_deactivate(lsd, k32, (const char*)(unsigned long)a1);
+    }
     case XPAPI_OFFACT: case XPAPI_OFFDEACT: {
         /* cp273 PORT A: cevrimdisi aktivasyon/deaktivasyon string'i —
            ActivationRequest::BuildUrl(offline=true) + EncodeUrl birebir */
@@ -909,7 +1287,7 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         { u32 i2; for (i2 = 0; i2 < n; i2++) buf[i2] = tmp[i2]; }
         return 1;
     }
-    case XPAPI_ISVM:     return 0;        /* MVP: 0.9.0'da gerçek tespit */
+    case XPAPI_ISVM:     return lic_isvm(k32);   /* cp273 PORT F: CPUID + firmware taraması (core.cc 1:1) */
 
     /* ---------- 0.7.0-final SDK-40: kaynak ailesi (gercek API delege) ----
        .rsrc runtime-decrypt (0.6.0) sonrasi gecerli oldugundan FindResource/
