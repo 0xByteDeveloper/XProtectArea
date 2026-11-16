@@ -2540,6 +2540,53 @@ u32 xrt_entry(void* cfgp) {
                                   0x04u /*PAGE_READWRITE*/,
                                   (u64)(unsigned long)&mp_old);
         }
+        /* cp273 PORT D — VMProtect loader.cc 1:1: tum bolumlerin koruma
+           bayraklarini bolum-tablosundan yeniden uygula:
+             READ            -> PAGE_READONLY      (0x02)
+             READ|WRITE      -> PAGE_READWRITE     (0x04)
+             EXEC eklentisi  -> <<4 (PAGE_EXECUTE_*)
+             hicbiri         -> PAGE_NOACCESS      (0x01)
+           + eski koruma NOACCESS/GUARD ise debugger-iz tespiti (loader.cc
+           ayni kural). .vmp0 (cfg'yi icerir) RW birakilir — state yazilir. */
+        if (vp0) {
+            const u8* base2 = base;
+            if (base2) {
+                u32 e_lfanew = ld32(base2 + 0x3C);
+                u16 nsec2 = ld16(base2 + e_lfanew + 6);
+                u16 optsz2 = ld16(base2 + e_lfanew + 20);
+                u32 sh2 = e_lfanew + 24 + optsz2;
+                u32 i2;
+                if (nsec2 > 0 && nsec2 <= 96) {
+                    for (i2 = 0; i2 < nsec2; i2++) {
+                        u32 o2 = sh2 + i2 * 40;
+                        u32 va2 = ld32(base2 + o2 + 12);
+                        u32 vsz2 = ld32(base2 + o2 + 8);
+                        u32 ch2 = ld32(base2 + o2 + 36);
+                        u32 oldp2 = 0;
+                        u32 prot2;
+                        /* cfg'yi tasiyan son bolum (genelde .vmp0) RW kalsin */
+                        if (cfgva >= (u64)(unsigned long)base2 + va2 &&
+                            cfgva <  (u64)(unsigned long)base2 + va2 + vsz2)
+                            continue;
+                        if (ch2 & 0x40000000u)      prot2 = 0x04u;   /* READ|WRITE -> RW */
+                        else if (ch2 & 0x80000000u) prot2 = 0x02u;   /* READ -> RO */
+                        else                        prot2 = 0x01u;   /* NOACCESS */
+                        if (ch2 & 0x20000000u) prot2 <<= 4;          /* EXEC -> EXEC_* */
+                        if (!prot2) continue;
+                        if (api4(vp0, (u64)(unsigned long)(base2 + va2), (u64)vsz2,
+                                 prot2, (u64)(unsigned long)&oldp2)) {
+                            /* loader.cc: eski koruma NOACCESS/GUARD = izleyici */
+                            if (oldp2 & (0x01u /*PAGE_NOACCESS*/ | 0x100u /*PAGE_GUARD*/)) {
+                                if (flags & XFLAG_ANTIDBG) {
+                                    rt_fatal(k32, 3, XFLAG_EXIT);   /* debugger bulundu */
+                                    for (;;) {}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         /* 1.2.2-A11 NOT: VEH kaydi wine-dispatch etkilesiminde patolojik
            (noop handler ile de VM akisi exit-1 — v5 bisect kaniti);
            GERCEK WINDOWS'ta beklentiler farkli olabilir -> cfg gate:

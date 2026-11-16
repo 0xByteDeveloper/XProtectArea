@@ -624,9 +624,9 @@ static u32 lic_rotl(u32 v, u32 r) { return (v << r) | (v >> (32u - r)); }
 /* cp273 PORT A: cevrimdisi aktivasyon/deaktivasyon string'i (UO 1:1 semantik):
    "type=activation&code=CODE&hwid=BASE64&hash=BASE64" -> base64(SHA1(modulus) ile
    ayni sira). sunucu tarafina gidecek URL parametrelerini URLEscape eder ve
-   tamami base64'e kodlar (BuildUrl+EncodeUrl birebir). */
+   tamami base64'e kodlar (BuildUrl+EncodeUrl birebir).
+   NOT: stringler stack'te VP4 ile kurulur (.rodata YASAK — PIC blob). */
 static u32 lic_url_escape(char* dst, u32 cap, const char* src) {
-    static const char hex[] = "0123456789abcdef";
     u32 o = 0;
     for (; *src; src++) {
         u8 c = (u8)*src;
@@ -634,13 +634,17 @@ static u32 lic_url_escape(char* dst, u32 cap, const char* src) {
                      (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~');
         if (c == ' ' && o + 1 < cap) dst[o++] = '+';
         else if (plain && o + 1 < cap) dst[o++] = (char)c;
-        else if (o + 3 < cap) { dst[o++] = '%'; dst[o++] = hex[c >> 4]; dst[o++] = hex[c & 15]; }
+        else if (o + 3 < cap) {
+            dst[o++] = '%';
+            dst[o++] = (char)('0' + (c >> 4) + ((c >> 4) > 9 ? 39 : 0));
+            dst[o++] = (char)('0' + (c & 15) + ((c & 15) > 9 ? 39 : 0));
+        }
         else break;
     }
     dst[o] = 0;
     return o;
 }
-static u32 lic_offline_str(char* out, u32 cap, const char* type, const char* code,
+static u32 lic_offline_str(char* out, u32 cap, int is_deact, const char* code,
                            const u8* lsd, u64 k32) {
     /* hwid -> base64 (mevcut 2-blok) */
     u32 cur[2];
@@ -659,13 +663,21 @@ static u32 lic_offline_str(char* out, u32 cap, const char* type, const char* cod
     }
     char str_hash[32]; u32 sn = 0;
     lic_b64enc(h, 20, str_hash, &sn);
-    /* birlesik: type=...&code=...&hwid=...&hash=... */
+    /* birlesik: type=...&code=...&hwid=...&hash=... (stack-stringler) */
     char body[512]; u32 o = 0;
+    char s_pre1[8];  char s_act[12]; char s_deact[16];
+    char s_pre2[8];  char s_pre3[8];  char s_pre4[8];
+    VP4(s_pre1, 0, A4('t','y','p','e')); VP4(s_pre1, 4, A4('=','&','c','o') >> 8); s_pre1[5] = 0;
+    VP4(s_act, 0, A4('a','c','t','i')); VP4(s_act, 4, A4('v','a','t','i')); VP4(s_act, 8, A4('o','n',0,0));
+    VP4(s_deact, 0, A4('d','e','a','c')); VP4(s_deact, 4, A4('t','i','v','a')); VP4(s_deact, 8, A4('t','i','o','n')); VP4(s_deact, 12, 0);
+    VP4(s_pre2, 0, A4('&','c','o','d')); VP4(s_pre2, 4, A4('e','=',0,0));
+    VP4(s_pre3, 0, A4('&','h','w','i')); VP4(s_pre3, 4, A4('d','=',0,0));
+    VP4(s_pre4, 0, A4('&','h','a','s')); VP4(s_pre4, 4, A4('h','=',0,0));
     const char* parts[8]; u32 pi;
-    parts[0] = "type=";      parts[1] = type;
-    parts[2] = "&code=";     parts[3] = code;
-    parts[4] = "&hwid=";     parts[5] = str_hwid;
-    parts[6] = "&hash=";     parts[7] = str_hash;
+    parts[0] = s_pre1;            parts[1] = is_deact ? s_deact : s_act;
+    parts[2] = s_pre2;            parts[3] = code ? code : "";
+    parts[4] = s_pre3;            parts[5] = str_hwid;
+    parts[6] = s_pre4;            parts[7] = str_hash;
     for (pi = 0; pi < 8 && o + 1 < sizeof body; pi++) {
         const char* s = parts[pi];
         if (pi & 1) o += lic_url_escape(body + o, (u32)(sizeof body - o - 1), s);
@@ -889,9 +901,10 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         const char* code = (const char*)(unsigned long)a3;
         if (!lsd || !buf || size <= 0) return 0;
         char tmp[512];
+        char empty[1]; empty[0] = 0;    /* PIC: "" literal'i .rodata'ya dusmez */
         u32 n = lic_offline_str(tmp, sizeof tmp,
-                                (fnid == XPAPI_OFFACT) ? "activation" : "deactivation",
-                                code ? code : "", lsd, k32);
+                                (fnid == XPAPI_OFFDEACT) ? 1 : 0,
+                                code ? code : empty, lsd, k32);
         if (!n || (int)n > size) return 0;
         { u32 i2; for (i2 = 0; i2 < n; i2++) buf[i2] = tmp[i2]; }
         return 1;
