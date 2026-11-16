@@ -1,5 +1,7 @@
-// host_cli.cpp — cp268 kanıt: protect() motorunu HOST'ta koşar (wine'siz)
-// kullanım: host_cli <girdi> <cikti> [--all] [--vmn N] [--vmadv] [--sdkonly] ...
+// host_cli.cpp — cp268/273 kanıt: protect() motorunu HOST'ta koşar (wine'siz)
+// kullanım: host_cli <girdi> <cikti> [--all] [--vmn N] [--vmadv] [--sdkonly]
+//           [--strenc] [--memprot] [--antidebug] [--lic-key HEX512] [--lic-pc HEX16]
+//           [--lic-wm METIN] [--strength N] [--dotnet/--nodotnet] [--nosdk]
 #include "engine.hpp"
 #include <cstdio>
 #include <cstring>
@@ -22,6 +24,11 @@ int main(int argc, char** argv) {
         else if (a == "--sdkonly") opt.sdk_only = true;
         else if (a == "--strength" && i + 1 < argc) opt.mut_strength = atoi(argv[++i]);
         else if (a == "--antidebug") opt.antidebug = true;
+        else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */
+        else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
+        else if (a == "--lic-key" && i + 1 < argc) opt.lic_pubkey = argv[++i];
+        else if (a == "--lic-pc" && i + 1 < argc) opt.lic_prodcode = argv[++i];
+        else if (a == "--lic-wm" && i + 1 < argc) opt.lic_watermark = argv[++i];
         else if (a == "--nosdk") opt.sdk_scan = false;
         else if (a == "--dotnet") opt.dotnet = true;
         else if (a == "--nodotnet") opt.dotnet = false;
