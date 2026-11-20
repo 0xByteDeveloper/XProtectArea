@@ -17,8 +17,31 @@ int main(int argc, char** argv) {
     for (int i = 3; i < argc; i++) {
         std::string a = argv[i];
         if (a == "--all") opt.all = true;
+        else if (a == "--type" && i + 1 < argc) {           /* cp287: 0=V 1=M 2=U (default_type) */
+            int t = atoi(argv[++i]); if (t >= 0 && t <= 2) opt.default_type = t;
+        }
+        else if (a == "--func" && i + 1 < argc) {           /* cp287: RVA (hex) — secili fonksiyon */
+            std::string fv = argv[++i];
+            opt.funcs.push_back(fv);
+            char* end; unsigned long r = strtoul(fv.c_str(), &end, 16);
+            if (end != fv.c_str() && r != 0) {
+                char k[32]; snprintf(k, sizeof k, "%lX", r);
+                opt.ftypes[std::string(k)] = opt.default_type;
+            }
+        }
+        else if (a == "--pack") opt.pack = true;            /* cp287: cpPack LZMA (XPK1) */
+        else if (a == "--stripfix") opt.strip_fixups = true;  /* cpStripFixups */
+        else if (a == "--stripdbg") opt.strip_debug = true;   /* cpStripDebugInfo */
+        else if (a == "--manual" && i + 2 < argc) {         /* cp287: Base End [tip] — UI Add Function esdegeri */
+            ManFn m;
+            m.rva = (u32)strtoul(argv[++i], NULL, 16);
+            m.size = (u32)strtoul(argv[++i], NULL, 16);
+            m.ty = -1;   /* tip parse sonunda --type ile baglanir (cp287) */
+            opt.manual.push_back(m);
+        }
         else if (a == "--vmadv") opt.vm_adv = true;
-        else if (a == "--vmn" && i + 1 < argc) opt.vmn = atoi(argv[++i]);
+        else if (a == "--vmsize") opt.vm_size_mode = 1;   /* cp287/P3 VMP-compat boyut */
+        else if (a == "--vmn" && i + 1 < argc) { opt.vmn = atoi(argv[++i]); if (opt.vmn < 1) opt.vmn = 1; if (opt.vmn > 10) opt.vmn = 10; } /* cp286: Instances 1..10 */
         else if (a == "--sdkonly") opt.sdk_only = true;
         else if (a == "--strength" && i + 1 < argc) opt.mut_strength = atoi(argv[++i]);
         else if (a == "--antidebug") opt.antidebug = true;
@@ -41,6 +64,10 @@ int main(int argc, char** argv) {
         else if (a == "--nodotnet") opt.dotnet = false;
     }
     if (!opt.all && opt.funcs.empty() && opt.manual.empty()) opt.all = true;
+    /* cp287: --manual satirlari --type ONCESI de gelmis olabilir — parse
+       sonrasi tipleri guncelle (UI'daki Add Function combo esdegeri) */
+    for (auto& m : opt.manual)
+        if (m.ty < 0 || m.ty > 2) m.ty = opt.default_type;
     std::vector<std::string> log;
     int rc = protect(in, out, opt, log);
     for (size_t i = 0; i < log.size(); i++) printf("%s\n", log[i].c_str());

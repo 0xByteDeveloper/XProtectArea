@@ -350,7 +350,13 @@ struct Options {
     bool checkvm = false;     // 1.1.0-A7: cpCheckVirtualMachine -> K7 CPUID
     bool kerneldbg = false;   // 1.2.2-A15: cpCheckKernelDebugger -> K5+K6 (bit2)
     bool vm_adv = false;      // 1.2.0-B1: VirtualMachineType vtAdvanced (VM_KSA)
-    int  vmn = 1;             // 1.2.0-B1: mult-VM instance sayisi (1..8)
+    int  vmn = 1;             // 1.2.0-B1: mult-VM instance sayisi (1..10; cp286: 10)
+    int  vm_size_mode = 0;    // cp287/P3: 0=kucuk (XProtect klasik ~30-50KB blob)
+                               //   1=VMProtect-compat profil: instance basina VM
+                               //   opcode/dekod tablosu dolgu alani olceklendirilir
+                               //   (VMP 3.9.x "Instances:10 + Ultra" cikti gorunumu;
+                               //   runtime aynen dogru calisir — yalnizca tablo
+                               //   dolgusu genisler, mantik degismez)
     bool debugmode = false;   // 1.2.0-B5: cpDebugMode — dolgu INT3 (0xCC)
     bool rsrcprot = false;    // 1.2.0-B3: cpResourceProtection
     bool vfiles = false;      // 1.2.0-B4: cpVirtualFiles (faLoad bundler)

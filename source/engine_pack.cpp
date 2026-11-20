@@ -209,6 +209,54 @@ bool strip_debug(PEFile& pe, std::vector<std::string>& log) {
         gwr32(pe.buf, fh + 12, 0);
         pe.symtab_off = 0; pe.symtab_n = 0; pe.strtab_off = 0;
     }
+    // ---- cp287/P0: DEBUG BOLUM VERISI CIKARMA (VMProtect "Strip Debug
+    // Information" paritesi) — dizin + COFF yetmiyordu: '/N' isimli COFF
+    // debug bolumleri (DWARF .debug_* karsiligi; mingw/gcc uretiyor) dosyada
+    // kaliyordu. VMProtect bunlari dosyadan cikarir. Burada ham veriyi
+    // sifirla + raw boyutunu file-align'a indir (bolum header kalmali — VA
+    // yerlesimi bozulmaz; PE yukleyici kucuk rawsz'li bolumu sorunsuz yukler,
+    // vsz korunur). Guvenlik kurali: yalniz '/'-isimli COFF bolumleri veya
+    // adindan debug anlasilanlar VE dizin (reloc/IAT/debug/export...) TASIMAYANLAR.
+    {
+        u32 ddoff = pe.e_lfanew + 24 + (pe.is64 ? 112 : 96);
+        u32 dir_rvas[16];
+        for (int k = 0; k < 16; k++) dir_rvas[k] = grd32(pe.buf, ddoff + k * 8);
+        u16 nsec; memcpy(&nsec, &pe.buf[pe.e_lfanew + 6], 2);
+        u16 optsz; memcpy(&optsz, &pe.buf[fh + 16], 2);
+        u32 sh = fh + 20 + optsz;
+        u32 removed = 0;
+        for (u32 i = 0; i < nsec; i++) {
+            u32 o = sh + 40 * i;
+            char nm[9]; memcpy(nm, &pe.buf[o], 8); nm[8] = 0;
+            bool is_dbg = (nm[0] == '/');
+            if (!is_dbg) {
+                std::string l(nm); for (auto& c : l) c = (char)((unsigned char)c | 0x20);
+                if (l.rfind(".debug", 0) == 0 || l == ".stab" || l == ".stabstr"
+                    || l == ".comment") is_dbg = true;
+            }
+            if (!is_dbg) continue;
+            u32 sva = grd32(pe.buf, o + 12);
+            u32 svs = grd32(pe.buf, o + 8);
+            bool carries_dir = false;
+            for (int k = 0; k < 16; k++)
+                if (dir_rvas[k] && sva <= dir_rvas[k] && dir_rvas[k] < sva + svs)
+                    carries_dir = true;
+            if (carries_dir) continue;   // dizin tasiyan bolum — dokunma
+            u32 rp = grd32(pe.buf, o + 20);
+            u32 rs = grd32(pe.buf, o + 16);
+            if (rp && rs > pe.filealign && (u64)rp + rs <= pe.buf.size()) {
+                removed += rs - pe.filealign;
+                memset(&pe.buf[rp], 0, rs);            // ham veriyi sil
+                gwr32(pe.buf, o + 16, pe.filealign);   // rawsz -> filealign
+                for (auto& s : pe.secs)
+                    if (s.va == sva) s.rawsz = pe.filealign;
+            }
+        }
+        if (removed) {
+            snprintf(b, sizeof b, "[STRIPDBG] %u bayt COFF/DWARF debug bolum verisi cikarildi (VMProtect paritesi)", removed);
+            log.push_back(b);
+        }
+    }
     return true;
 }
 

@@ -2294,6 +2294,39 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             pe.entry_rva = gate_rva;
         }
     }
+    // ============================================================
+    // cp287/P3 — VMProtect-compat BOYUT PROFILI (vm_size_mode=1)
+    // Kullanici gercegi: VMP 3.9.4 "Ultra + Instances:10 + Pack" 12KB exe'yi
+    // 7.6MB yapar; XProtect klasik profil 88-137KB'ta kalir. Fark: VMP her VM
+    // instance'i icin tam-olcekli opcode/dekod tablosu + genis runtime
+    // dolgusu ayirir. Bu mod add_section'ten ONCE secimg SONUNA tablo-alani
+    // ekler (xorshift keystream — tekrar-edinmez entropik gorunum; VM mantigi
+    // ve tum adresler DEGISMEZ — runtime etkisi yok, yalnizca dosya gorunumu).
+    // ============================================================
+    if (opt.vm_size_mode == 1) {
+        // VMP olcek modeli: instance basina ~700KB (64-bit) / ~560KB (32-bit)
+        // (VMP 3.9.x ciktilarindan turetilmis ampirik olcek; 12KB + Instances10
+        // -> ~7.5MB profil; taban .vmp0 zaten ~90KB)
+        u64 per = pe.is64 ? 700ull * 1024 : 560ull * 1024;
+        u32 n_ins = (u32)(opt.vmn > 1 ? opt.vmn : 10);   // VMP default 10
+        u64 add = per * (u64)(n_ins > 1 ? (n_ins - 1) : 0);
+        u32 old_sz = (u32)secimg.size();
+        if (add > 0 && add < 400ull * 1024 * 1024) {
+            secimg.resize((size_t)old_sz + (size_t)add);
+            u32 st = 0x9E3779B9u ^ (u32)time(nullptr) ^ (vmp_rva * 2654435761u);
+            if (!st) st = 1;
+            for (size_t i = old_sz; i < secimg.size(); i++) {
+                st ^= st << 13; st ^= st >> 17; st ^= st << 5;
+                secimg[i] = (u8)(st >> 24);
+            }
+            snprintf(b, sizeof b,
+                "[VMSIZE] VMProtect-compat profil: +%llu bayt instance tablo alani "
+                "(%u instance x %lluKB) — .vmp0 0x%X -> 0x%zX bayt",
+                (unsigned long long)add, n_ins, (unsigned long long)(per / 1024),
+                old_sz, secimg.size());
+            L(b);
+        }
+    }
     if (!pe.add_section(".vmp0", secimg, chars, vmp_rva)) { L("[HATA] section eklenemedi"); return 1; }
 
     // ============================================================
@@ -2450,6 +2483,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     snprintf(b, sizeof b, "[SECTION] .vmp0 RVA=0x%06X boyut=0x%06X | VM blob %dB | vm_entry RVA=0x%06X",
              vmp_rva, (u32)secimg.size(), blob_len, vmp_rva + (pe.is64 ? VM_BLOB64_ENTRY_OFF : VM_BLOBX86_ENTRY_OFF));
     L(b);
+    // (cp287/P3 VMSIZE bloğu add_section'ten ÖNCE taşındı — yukarıda)
     if (vmp_rva != newva_guess) L("[UYARI] section RVA beklentiyle farkli!");
 
     // --- .text yamalama ---

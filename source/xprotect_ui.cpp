@@ -183,16 +183,46 @@ struct Project {
     bool open = false, modified = false;
     std::wstring target;                 // hedef PE (tam yol)
     std::wstring path;                   // .xproj dosya yolu
-    unsigned long long options = 0x80000000ull | 0x00000080ull | 0x00002000ull;   // cp* bitleri + cp282 kapatma (acik)
-                                        // = cpEncryptBytecode | cpEncryptRegs — enum tanimi
-                                        // asagida oldugu icin sabit degerlerle: 1.2.0-A9
-                                        // varsayilan GUC ACIK (UO kayitli-sürüm davranisi:
+    // cp286/P0 — VMProtect Ultimate 3.9.4 yeni-proje varsayilanari (kullanici local
+    // dogrulamasi): Memory Protection + Import Protection + Resource Protection +
+    // Pack the Output File + Virtualization Tools + Strip Debug Information +
+    // Strip Relocations ACIK; Debugger = User Mode + Kernel Mode; Encrypt
+    // Bytecode/Regs (UO kayitli-surum davranisi) korunur.
+    //   cpPack 0x100 | cpImportProtection 0x200 | cpCheckDebugger 0x400 |
+    //   cpCheckVirtualMachine 0x800 | cpMemoryProtection 0x1000 |
+    //   cpResourceProtection 0x10000 | cpCheckKernelDebugger 0x20000 |
+    //   cpStripDebugInfo 0x40000 | cpStripFixups 0x8000 |
+    //   cpEncryptBytecode 0x80000000 | cpEncryptRegs 0x80
+    unsigned long long options = 0x80000000ull | 0x00000080ull | 0x00000100ull | 0x00000200ull
+                               | 0x00000400ull | 0x00000800ull | 0x00001000ull | 0x00010000ull
+                               | 0x00020000ull | 0x00040000ull | 0x00008000ull;
     std::vector<ProjFunc> funcs;
     std::vector<ProjWatermark> wms;
     std::vector<ProjLicense> lics;
     std::wstring exec_params;
     std::wstring rt_msgtext;             // 1.2.5-A13 (x7): ozel tespit mesaji
                                          // (bos = varsayilan "butunluk kontrol kod = #5")
+    // ---- cp286/P1: VMProtect Ultimate 3.9.4 Options/Messages paritesi ----
+    // Debugger: 0=No 1=User Mode 2=User Mode + Kernel Mode (tek 3-durumlu secici;
+    // eski cpCheckDebugger/cpCheckKernelDebugger bitlerine geriye-uyumlu eslenir)
+    int  dbg_mode = 2;
+    // Virtual Machine grubu
+    int  vm_version = 0;                 // 0=Default (cp287: surum etiketi)
+    int  vm_instances = 10;              // VMProtect default: 10 (1..10)
+    int  vm_complexity = 100;            // % (100 = vmadv acik eslenir)
+    // Additional grubu
+    std::wstring segments;               // "" = .vmp0/.vmp1 default; dolu = ozel ad
+    bool shadow_stack = false;           // CET uyumu (VMProtect default: No)
+    int  vm_size_mode = 0;               // cp287/P3: 0=kucuk 1=VMProtect-compat (7.6MB gorunum)
+    // Messages (5 metin — VMProtect 3.9.4 metinleri varsayilan)
+    std::wstring msg_debugger   = L"A debugger has been found running in your system.\nPlease, unload it from memory and restart your program.";
+    std::wstring msg_virttools  = L"Sorry, this application cannot run under a Virtual Machine.";
+    std::wstring msg_filecorrupt= L"File corrupted! This program has been manipulated and maybe it's infected by a Virus or cracked. This file won't work anymore.";
+    std::wstring msg_serial     = L"This code requires valid serial number to run.\nProgram will be terminated.";
+    std::wstring msg_hwid       = L"This application cannot be executed on this computer.";
+    // Licensing Parameters (Licenses paneli)
+    int  lic_keypair = 1;                // 0=None 1=RSA
+    int  lic_keylen  = 2048;             // VMProtect default: 2048
     int find_func(const std::wstring& n) const {
         for (size_t i = 0; i < funcs.size(); i++) if (funcs[i].name == n) return (int)i;
         return -1;
@@ -632,10 +662,12 @@ static std::wstring basename_of(const std::wstring& p) {
     return q == std::wstring::npos ? p : p.substr(q + 1);
 }
 static std::wstring protected_path() {
+    // cp286/P0 — VMProtect cikti kalibi: <input>.vmp.exe (Test_64.exe -> Test_64.vmp.exe;
+    // kullanici local VMProtect 3.9.4 dogrulamasi: "Output File : Test_64.vmp.exe")
     std::wstring t = g_proj.target;
     size_t d = t.find_last_of(L'.');
-    if (d == std::wstring::npos) return t + L"_vmp.exe";
-    return t.substr(0, d) + L"_vmp.exe";
+    if (d == std::wstring::npos || d < 2 || t[d-1] == L'\\') return t + L".vmp.exe";
+    return t.substr(0, d) + L".vmp.exe";
 }
 static std::wstring numhex(unsigned long long v) {
     wchar_t b[32]; _snwprintf(b, 32, L"0x%08llX", v); return b;
@@ -1257,6 +1289,40 @@ static void fill_prop() {
                      g_proj.rt_msgtext.empty() ? std::wstring(L"(varsayilan: butunluk kontrol kod = #5)")
                                                : g_proj.rt_msgtext,
                      900);
+        // ================= cp286/P1: VMProtect 3.9.4 Options/Messages paritesi =================
+        // Virtual Machine grubu (id'ler 910..919 — duzenleme kind=2/3 dispatch'te)
+        prop_add_row(0, L"Virtual Machine", L"", 0);
+        static std::wstring vmv[4];
+        vmv[0] = g_proj.vm_version == 0 ? L"Default" : (L"v" + numdec(g_proj.vm_version));
+        prop_add_row(2, L"Version", vmv[0], 910);
+        vmv[1] = numdec(g_proj.vm_instances);
+        prop_add_row(3, L"Instances", vmv[1], 911);
+        vmv[2] = numdec(g_proj.vm_complexity) + L"%";
+        prop_add_row(2, L"Complexity", vmv[2], 912);
+        // cp287/P3: cikti boyut profili (kucuk <-> VMProtect-compat 7.6MB gorunumu)
+        static std::wstring vmv3;
+        vmv3 = g_proj.vm_size_mode ? L"VMProtect-compat (instance tablolari)" : L"Kucuk (XProtect klasik)";
+        prop_add_row(2, L"Output Profile", vmv3, 916);
+        // Detection grubu — tek 3-durumlu secici (VMProtect 3.9.4)
+        prop_add_row(0, L"Detection", L"", 0);
+        static std::wstring dbgv[4];
+        dbgv[0] = g_proj.dbg_mode == 0 ? L"No" : (g_proj.dbg_mode == 1 ? L"User Mode" : L"User Mode + Kernel Mode");
+        prop_add_row(2, L"Debugger", dbgv[0], 913);
+        // Additional grubu
+        prop_add_row(0, L"Additional", L"", 0);
+        static std::wstring adv[6];
+        adv[0] = g_proj.segments.empty() ? L".vmp0/.vmp1" : g_proj.segments;
+        prop_add_row(3, L"Segments", adv[0], 914);
+        adv[1] = g_proj.shadow_stack ? L"Yes" : L"No";
+        prop_add_row(2, L"Shadow Stack Compatible", adv[1], 915);
+        // Messages grubu — 5 duzenlenebilir metin (VMProtect 3.9.4 metinleri)
+        prop_add_row(0, L"Messages", L"", 0);
+        static std::wstring msgv[8];
+        msgv[0] = g_proj.msg_debugger;   prop_add_row(3, L"Debugger Found",          msgv[0], 920);
+        msgv[1] = g_proj.msg_virttools;  prop_add_row(3, L"Virtualization Tools Found", msgv[1], 921);
+        msgv[2] = g_proj.msg_filecorrupt;prop_add_row(3, L"File Corrupted",         msgv[2], 922);
+        msgv[3] = g_proj.msg_serial;     prop_add_row(3, L"Serial Number Required", msgv[3], 923);
+        msgv[4] = g_proj.msg_hwid;       prop_add_row(3, L"HWID Mismatched",        msgv[4], 924);
     } else if (g_prop_sel_kind == 2 && g_prop_sel_idx >= 0 && (size_t)g_prop_sel_idx < g_proj.funcs.size()) {
         const ProjFunc& f = g_proj.funcs[g_prop_sel_idx];
         prop_add_row(0, L(LS_FUNC_PROPS), L"", 0);
@@ -1264,7 +1330,9 @@ static void fill_prop() {
         prop_add_row(4, L(LS_ADDRESS), numhex(f.rva), 0);
         prop_add_row(4, L(LS_SIZE), numdec(f.size), 0);
         prop_add_row(4, L(LS_EXPORT), f.is_export ? L"Yes" : L"No", 0);
-        std::wstring ct = f.type == 0 ? L(LS_VIRT) : (f.type == 1 ? L(LS_MUT) : std::wstring(L(LS_ULTRA)) + L" (M+V)");
+        // cp286/P1: 3=None (VMProtect "None" — derlenmez)
+        std::wstring ct = f.type == 3 ? L"None" :
+            (f.type == 0 ? L(LS_VIRT) : (f.type == 1 ? L(LS_MUT) : std::wstring(L(LS_ULTRA)) + L" (M+V)"));
         vals[vi] = ct;
         prop_add_row(2, L(LS_COMPTYPE), vals[vi], g_prop_sel_idx); vi++;
         vals[vi] = f.lock_to_key ? L"Yes" : L"No";
@@ -1297,6 +1365,15 @@ static void fill_prop() {
         vals[vi] = lc.s_userdata ? (L"Yes / " + lc.s_userdata_v) : L"No";
         prop_add_row(1, L(LS_USERDATA), vals[vi], base + 11); vi++;
         vals[vi] = lc.blocked ? L"Yes" : L"No"; prop_add_row(1, L(LS_BLOCKED), vals[vi], base + 12); vi++;
+        // ---- cp286/P1: VMProtect "Licenses" penceresi paritesi ----
+        // Key Pair Algorithm / Key Length satirlari (kullanici tespiti: XProtect'te
+        // gorunmuyordu; motor xrt_license.c'de RSA-2048+SHA1 zaten tam)
+        prop_add_row(0, L"Licensing Parameters", L"", 0);
+        static std::wstring lkv[4];
+        lkv[0] = g_proj.lic_keypair == 0 ? L"None" : L"RSA";
+        prop_add_row(2, L"Key Pair Algorithm", lkv[0], 930);
+        lkv[1] = g_proj.lic_keypair == 0 ? std::wstring(L"-") : numdec(g_proj.lic_keylen);
+        prop_add_row(4, L"Key Length", lkv[1], 0);
     }
     // listeye bas
     int shown = 0;
@@ -1354,7 +1431,8 @@ static void dir_fill() {
             _snwprintf(ab[k], 40, L"0x%08llX", f.rva);
             ListView_SetItemText(g_dir, idx, 1, ab[k]);
             const wchar_t* prot = f.excluded ? L(LS_EXCLUDED)
-                : (f.type == 0 ? L(LS_VIRT) : (f.type == 1 ? L(LS_MUT) : L(LS_ULTRA)));
+                : (f.type == 3 ? L"None"
+                : (f.type == 0 ? L(LS_VIRT) : (f.type == 1 ? L(LS_MUT) : L(LS_ULTRA))));
             ListView_SetItemText(g_dir, idx, 2, (LPWSTR)prot);
             static wchar_t sb[8][32];
             _snwprintf(sb[k], 32, L"%llu", f.size);
@@ -2132,10 +2210,12 @@ static void dlg_addfunction(bool goto_mode, unsigned long long def_addr) {
     st.grp_prot = mk_ctl(d, L"BUTTON", L(LS_PROTECTION), BS_GROUPBOX, 0x505, 22, 106, 760, 110);
     st.lbl_type = mk_ctl(d, L"STATIC", L(LS_COMPTYPE), 0, 0, 38, 136, 120, 18);
     st.combo_type = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0x506, 162, 132, 240, 120);
-    ComboBox_AddString(st.combo_type, L(LS_VIRT));
+    // cp286/P1 — VMProtect 3.9.4: None | Mutation | Virtualization | Ultra (M+V)
+    ComboBox_AddString(st.combo_type, L"None");
     ComboBox_AddString(st.combo_type, L(LS_MUT));
+    ComboBox_AddString(st.combo_type, L(LS_VIRT));
     ComboBox_AddString(st.combo_type, (std::wstring(L(LS_ULTRA)) + L" (" + L(LS_MUT) + L" + " + L(LS_VIRT) + L")").c_str());
-    ComboBox_SetCurSel(st.combo_type, 0);
+    ComboBox_SetCurSel(st.combo_type, 2);   // default: Virtualization (VMProtect)
     mk_ctl(d, L"BUTTON", L(LS_LOCKKEY), BS_AUTOCHECKBOX | WS_TABSTOP, 0x507, 38, 168, 300, 20);
     // 0.3.0 DUZELTME (UI bug #2) + 0.4.1 (x5): sayfa-1 kontrolleri BASLANGICTA
     // gizli; sayfa gecisinde Tara dugmesi DAHIL tum sayfa kontrolleri
@@ -2296,7 +2376,10 @@ static void dlg_addfunction(bool goto_mode, unsigned long long def_addr) {
         pf.rva = a;
         pf.src = 0;
         for (auto& f : g_pe.funcs) if (f.rva == a) { pf.size = f.size; pf.is_export = f.is_export; pf.src = f.source; }
-        pf.type = type_sel;
+        // cp286/P1: yeni combo sirasi None|Mutation|Virtualization|Ultra →
+        // dahili kod: 0=Virt 1=Mut 2=Ultra 3=None (None = listede kalir,
+        // derlenmez — VMProtect "None" davranisi; engine tarafina gitmez)
+        pf.type = (type_sel == 0) ? 3 : (type_sel == 1 ? 1 : (type_sel == 2 ? 0 : 2));
         pf.lock_to_key = lock_chk;
         // 0.4.0: Manual Address End alanı — tek adres + geçerli End → brk kaydet
         if (end_val > a && addrs.size() == 1) pf.brk = end_val;
@@ -2759,7 +2842,7 @@ static void dlg_help() {
           L"   (Kaynak kolonu: Export / COFF / PDB / MAP / Stub).\n"
           L"3. Fonksiyon Ekle (Ins) ile listeden ya da elle adres gir.\n"
           L"4. Derleme Turu: Sanallastirma / Mutasyon / Ultra (M+V).\n"
-          L"5. Derle (F9) — korumali <ad>_vmp.exe ayni klasore uretilir.\n"
+          L"5. Derle (F9) — korumali <ad>.vmp.exe ayni klasore uretilir.\n"
           L"6. Calistir (F5) — orijinal/korumaliyi parametrelerle acar.\n\n"
           L"Araclar > Sokum: secili fonksiyonun talimat tablosu.\n"
           L"Ayarlar: dil (EN/TR) ve otomatik kaydetme.\n"
@@ -2771,7 +2854,7 @@ static void dlg_help() {
           L"   are listed (Source column: Export / COFF / PDB / MAP / Stub).\n"
           L"3. Add Function (Ins) from the list or type an address.\n"
           L"4. Compilation Type: Virtualization / Mutation / Ultra (M+V).\n"
-          L"5. Compile (F9) — protected <name>_vmp.exe is created next to it.\n"
+          L"5. Compile (F9) — protected <name>.vmp.exe is created next to it.\n"
           L"6. Execute (F5) — run original/protected with parameters.\n\n"
           L"Tools > Disassembly: instruction table of the selected function.\n"
           L"Settings: language (EN/TR) and auto-save.\n"
@@ -2956,8 +3039,17 @@ static void start_compile() {
         opt.funcs.push_back(key);
         // 0.3.0: derleme tipi (0=V Sanallastirma, 1=M Mutasyon, 2=U Ultra)
         // fonksiyon bazinda motora aktarilir — VMProtect davranisi
-        opt.ftypes[key] = f.type;
+        // cp286/P1: 3=None — motora HIC iletilmez (VMProtect "None": fonksiyon
+        // listede kalir ama koruma uygulanmaz)
+        if (f.type != 3) opt.ftypes[key] = f.type;
     }
+    // cp286/P1: VM Instances + Complexity (Virtual Machine grubu) motora
+    opt.vmn = g_proj.vm_instances;
+    if (opt.vmn < 1) opt.vmn = 1;
+    if (opt.vmn > 10) opt.vmn = 10;
+    opt.vm_adv = (g_proj.vm_complexity >= 100);   // Complexity 100% = vtAdvanced
+    // cp287/P3: cikti boyut profili
+    opt.vm_size_mode = g_proj.vm_size_mode;
     if (g_proj.funcs.empty() || (opt.funcs.empty() && opt.manual.empty())) opt.all = true;
     opt.antidebug = (g_proj.options & cpCheckDebugger) != 0;
     /* 1.2.5 (x2): Silent Exit kutusu — true = mesaj kutusu YOK (sessiz
@@ -3106,6 +3198,18 @@ static bool save_project_to(const std::wstring& path) {
     { wchar_t b[32]; _snwprintf(b, 32, L"%016llX", g_proj.options); ln("options=" + w2s(b)); }
     ln("execparams=" + w2s(esc_t(g_proj.exec_params)));
     ln("rtmsg=" + w2s(esc_t(g_proj.rt_msgtext)));   // 1.2.5-A13 (x7)
+    // cp286/P1: VMProtect Options/Messages/Licensing alanlari (kalici)
+    { wchar_t b[64];
+      _snwprintf(b, 64, L"%d %d %d %d %d %d %d %d", g_proj.dbg_mode, g_proj.vm_version,
+                 g_proj.vm_instances, g_proj.vm_complexity, g_proj.shadow_stack ? 1 : 0,
+                 g_proj.lic_keypair, g_proj.lic_keylen, g_proj.vm_size_mode);
+      ln("vmpopts=" + w2s(b)); }
+    ln("segments=" + w2s(esc_t(g_proj.segments)));
+    ln("msgdbg=" + w2s(esc_t(g_proj.msg_debugger)));
+    ln("msgvm=" + w2s(esc_t(g_proj.msg_virttools)));
+    ln("msgcorrupt=" + w2s(esc_t(g_proj.msg_filecorrupt)));
+    ln("msgserial=" + w2s(esc_t(g_proj.msg_serial)));
+    ln("msghwid=" + w2s(esc_t(g_proj.msg_hwid)));
     for (auto& fn : g_proj.funcs) {
         std::wstring line = L"func\t" + esc_t(fn.name) + L"\t" + numdec(fn.rva) + L"\t" +
             numdec(fn.size) + L"\t" + (fn.is_export ? L"1" : L"0") + L"\t" +
@@ -3172,6 +3276,33 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             g_proj.exec_params = unesc_t(s2w(line.substr(11)));
         } else if (line.rfind("rtmsg=", 0) == 0) {              // 1.2.5-A13 (x7)
             g_proj.rt_msgtext = unesc_t(s2w(line.substr(6)));
+        } else if (line.rfind("vmpopts=", 0) == 0) {           // cp286/P1
+            std::wstring v = s2w(line.substr(8));
+            int dm, vv, vi2, vc, ss, kp, kl, vsm;
+            if (swscanf(v.c_str(), L"%d %d %d %d %d %d %d %d",
+                        &dm, &vv, &vi2, &vc, &ss, &kp, &kl, &vsm) >= 7) {
+                g_proj.dbg_mode = dm; if (g_proj.dbg_mode < 0 || g_proj.dbg_mode > 2) g_proj.dbg_mode = 2;
+                g_proj.vm_version = vv;
+                g_proj.vm_instances = vi2; if (g_proj.vm_instances < 1) g_proj.vm_instances = 1;
+                if (g_proj.vm_instances > 10) g_proj.vm_instances = 10;
+                g_proj.vm_complexity = vc;
+                g_proj.shadow_stack = ss != 0;
+                g_proj.lic_keypair = kp;
+                g_proj.lic_keylen = kl;
+                g_proj.vm_size_mode = (vsm == 1) ? 1 : 0;   // cp287/P3
+            }
+        } else if (line.rfind("segments=", 0) == 0) {          // cp286/P1
+            g_proj.segments = unesc_t(s2w(line.substr(9)));
+        } else if (line.rfind("msgdbg=", 0) == 0) {            // cp286/P1 (5 Messages)
+            g_proj.msg_debugger = unesc_t(s2w(line.substr(7)));
+        } else if (line.rfind("msgvm=", 0) == 0) {
+            g_proj.msg_virttools = unesc_t(s2w(line.substr(6)));
+        } else if (line.rfind("msgcorrupt=", 0) == 0) {
+            g_proj.msg_filecorrupt = unesc_t(s2w(line.substr(10)));
+        } else if (line.rfind("msgserial=", 0) == 0) {
+            g_proj.msg_serial = unesc_t(s2w(line.substr(10)));
+        } else if (line.rfind("msghwid=", 0) == 0) {
+            g_proj.msg_hwid = unesc_t(s2w(line.substr(8)));
         } else if (line.rfind("func\t", 0) == 0) {
             std::wstring body = line.size() > 5 ? s2w(line.substr(5)) : L"";
             auto p = split_t(body);
@@ -3968,6 +4099,76 @@ static void prop_row_edit(int row) {
                     g_proj.modified = true; update_all();
                 }
             }
+            // ============ cp286/P1: VMProtect Options satirlari (910..924) ============
+            if (r.id == 910) {   // VM Version: Default <-> v2 (opcode permütasyon nesli)
+                push_undo();
+                g_proj.vm_version = g_proj.vm_version ? 0 : 2;
+                g_proj.modified = true; update_all();
+            }
+            if (r.id == 911) {   // Instances 1..10
+                std::wstring v;
+                if (dlg_input_text(r.name, L"VM instance sayisi (1..10)", numdec(g_proj.vm_instances), &v)) {
+                    int n = v.empty() ? 10 : _wtoi(v.c_str());
+                    if (n < 1) n = 1; if (n > 10) n = 10;
+                    push_undo(); g_proj.vm_instances = n;
+                    g_proj.modified = true; update_all();
+                }
+            }
+            if (r.id == 912) {   // Complexity: Default(0) <-> 100%(vmadv)
+                push_undo();
+                g_proj.vm_complexity = g_proj.vm_complexity >= 100 ? 0 : 100;
+                g_proj.modified = true; update_all();
+            }
+            if (r.id == 913) {   // Debugger 3-durum: No -> User -> User+Kernel -> No
+                push_undo();
+                g_proj.dbg_mode = (g_proj.dbg_mode + 1) % 3;
+                // geriye-uyumlu bit esleme
+                if (g_proj.dbg_mode >= 1) g_proj.options |= cpCheckDebugger;
+                else                      g_proj.options &= ~cpCheckDebugger;
+                if (g_proj.dbg_mode == 2) g_proj.options |= cpCheckKernelDebugger;
+                else                      g_proj.options &= ~cpCheckKernelDebugger;
+                g_proj.modified = true; update_all();
+            }
+            if (r.id == 914) {   // Segments ozel bolum adi
+                std::wstring v;
+                if (dlg_input_text(r.name, L"Bolum adi (bos = .vmp0/.vmp1)", g_proj.segments, &v)) {
+                    push_undo(); g_proj.segments = v;
+                    g_proj.modified = true; update_all();
+                }
+            }
+            if (r.id == 915) {   // Shadow Stack Compatible
+                push_undo();
+                g_proj.shadow_stack = !g_proj.shadow_stack;
+                g_proj.modified = true; update_all();
+            }
+            if (r.id == 916) {   // cp287/P3: Output Profile kucuk <-> VMP-compat
+                push_undo();
+                g_proj.vm_size_mode = g_proj.vm_size_mode ? 0 : 1;
+                g_proj.modified = true; update_all();
+            }
+            // Messages 920..924 — bes duzenlenebilir metin
+            if (r.id >= 920 && r.id <= 924) {
+                std::wstring* dst = nullptr;
+                const wchar_t* ttl = L"Mesaj metni";
+                switch (r.id) {
+                case 920: dst = &g_proj.msg_debugger;    ttl = L"Debugger Found"; break;
+                case 921: dst = &g_proj.msg_virttools;   ttl = L"Virtualization Tools Found"; break;
+                case 922: dst = &g_proj.msg_filecorrupt; ttl = L"File Corrupted"; break;
+                case 923: dst = &g_proj.msg_serial;      ttl = L"Serial Number Required"; break;
+                case 924: dst = &g_proj.msg_hwid;        ttl = L"HWID Mismatched"; break;
+                }
+                std::wstring v;
+                if (dst && dlg_input_text(r.name, ttl, *dst, &v)) {
+                    push_undo(); *dst = v;
+                    g_proj.modified = true; update_all();
+                }
+            }
+            // cp286/P1: Key Pair Algorithm None <-> RSA (lisans paneli)
+            if (r.id == 930) {
+                push_undo();
+                g_proj.lic_keypair = g_proj.lic_keypair ? 0 : 1;
+                g_proj.modified = true; update_all();
+            }
             // 1.2.5-A13 (x6): duzenleme sonrasi secim ayni satirda kalsin
             ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
                                   LVIS_FOCUSED | LVIS_SELECTED);
@@ -4604,10 +4805,11 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
                     else if (!wcscmp(argv[j], L"--checkvm")) opt.checkvm = true;
                     else if (!wcscmp(argv[j], L"--kerneldbg")) opt.kerneldbg = true;   /* 1.2.2-A15 */
                     else if (!wcscmp(argv[j], L"--vmadv")) opt.vm_adv = true;          /* 1.2.0-B1 vtAdvanced */
+                    else if (!wcscmp(argv[j], L"--vmsize")) opt.vm_size_mode = 1;     /* cp287/P3 VMProtect-compat boyut profili */
                     else if (!wcscmp(argv[j], L"--vmn") && j + 1 < argc) {             /* 1.2.0-B1 mult-VM */
                         opt.vmn = (int)wcstol(argv[j + 1], 0, 10); j++;
                         if (opt.vmn < 1) opt.vmn = 1;
-                        if (opt.vmn > 8) opt.vmn = 8;
+                        if (opt.vmn > 10) opt.vmn = 10;   // cp286/P1: VMProtect Instances 1..10
                     }
                     else if (!wcscmp(argv[j], L"--debugmode")) opt.debugmode = true;   /* 1.2.0-B5 cpDebugMode */
                     else if (!wcscmp(argv[j], L"--rsrcprot")) opt.rsrcprot = true;     /* 1.2.0-B3 */
