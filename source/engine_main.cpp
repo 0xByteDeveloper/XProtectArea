@@ -2790,6 +2790,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     }
     if (opt.strip_fixups) strip_fixups(pe, log);
     if (opt.strip_debug)  strip_debug(pe, log);
+    /* cp296/V296: Shadow Stack Compatible — UI kutusu artik GERÇEK etki:
+       DllCharacteristics CET biti (0x1000) ayarlanir (VMProtect davranisi). */
+    if (opt.shadow_stack) set_cet_compat(pe, true, log);
     text = pe.secbyname(".text");   // add_section realloc -> tazele
     rdata = pe.secbyname(".rdata");
 

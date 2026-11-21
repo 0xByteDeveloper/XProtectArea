@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
         else if (a == "--vmver" && i + 1 < argc) {          /* cp288/P2: VM Version nesil */
             int v = atoi(argv[++i]); if (v >= 0 && v <= 15) opt.vm_version = v;
         }
+        else if (a == "--cet") opt.shadow_stack = true;      /* cp296/V296: Shadow Stack Compatible */
         else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
         else if (a == "--dwarf") opt.dwarf = true;   /* cp275: DWARF kesfi acik */
         else if (a == "--nosdk") opt.sdk_scan = false;

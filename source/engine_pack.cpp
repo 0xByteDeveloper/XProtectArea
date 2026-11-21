@@ -189,6 +189,31 @@ bool strip_fixups(PEFile& pe, std::vector<std::string>& log) {
     return true;
 }
 
+// ---------------- cp296/V296: Shadow Stack Compatible (CET) ----------------
+// VMProtect "Shadow Stack Compatible: Yes" -> DllCharacteristics'e
+// IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT (0x1000) eklenir. Intel CET
+// donanim shadow-stack'i korunan exe'de sorunsuz calisir; Windows
+// yukleyicisi bu biti gorunce geri-beslemeli CET politikasini
+// gevsetir (guvenli-degil saymaz). No (VMP default): bit kaldirilir.
+bool set_cet_compat(PEFile& pe, bool on, std::vector<std::string>& log) {
+    char b[256];
+    u16 dc = grd16(pe.buf, pk_opt(pe) + 70);   // DllCharacteristics (opt+70)
+    u16 want = on ? 0x1000 : 0;
+    if ((dc & 0x1000) == want) {
+        snprintf(b, sizeof b, "[CET] DllCharacteristics 0x%04X zaten %s (degisiklik yok)",
+                 dc, on ? "CET-compat" : "CET-kapali");
+        log.push_back(b);
+        return true;
+    }
+    if (on) dc |= 0x1000; else dc &= (u16)~0x1000;
+    gwr16(pe.buf, pk_opt(pe) + 70, dc);
+    snprintf(b, sizeof b, "[CET] DllCharacteristics 0x%04X -> 0x%04X (%s)",
+             grd16(pe.buf, pk_opt(pe) + 70) ^ (on ? 0x1000 : 0x1000), dc,
+             on ? "IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT eklendi" : "CET biti temizlendi");
+    log.push_back(b);
+    return true;
+}
+
 // ---------------- cpStripDebugInfo ----------------
 bool strip_debug(PEFile& pe, std::vector<std::string>& log) {
     char b[256];

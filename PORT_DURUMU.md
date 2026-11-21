@@ -212,3 +212,11 @@ Toplam motor-parite: ~%86 → **~%86-88** (x2/x7a sonrası .NET %90; dwarf wire 
 | VM Instances 1/2/5/10 merdiveni | ✅ KANITLI + BUG FIX | vmn=1 eskiden 10'a fırlıyordu (vmn>1?vmn:10) → fix (n_ins=vmn). Merdiven: 1→376KB, 2→1.25MB, 5→3.88MB, 10→8.27MB (856KB/instance; farklar tam katsayı) |
 
 Kalan (V296): Files penceresi DLL paketleme E2E, Shadow Stack/CET etkisi, Activation Server alanının web tarafı.
+
+## GÜNCELLEME 2026-11-21 (cp296/V296 — Files DLL paketleme + Shadow Stack/CET gerçek etki)
+
+| Kalem | Durum | Kanıt |
+|---|---|---|
+| Files penceresi DLL paketleme kanıtı | ✅ KANITLI | vf_app+vf_probe.dll: XVF1 bloğu (cfg+0x70) host-tarafı doğrulama — isim "vf_probe.dll" çözüldü (WriteName rotl/xor), CFB-64 veri çözüldü, kaynak DLL ile BİREBİR eş (86670B). scripts/v296_vfile_kanit.py |
+| Shadow Stack Compatible GERÇEK etki | ✅ BİTTİ | Önceden yalnız log satırıydı. Yeni: set_cet_compat — DllCharacteristics 0x8160→0x9160 (IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x1000); No=default bit temiz ✓ |
+| host_cli --cet | ✅ EKLENDİ | CLI'den CET testi (UI kutusu zaten bağlı — opt.shadow_stack akışı) |

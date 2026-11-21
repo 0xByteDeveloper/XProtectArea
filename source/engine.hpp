@@ -325,6 +325,8 @@ int  do_pack(PEFile& pe, u32 cfg_rva, u32 unpack_rva,
              bool resprot = false);   // 1.2.0-B3: cpResourceProtection
 // cpStripFixups: .reloc dizinini kaldirir + ASLR bayraklarini temizler
 bool strip_fixups(PEFile& pe, std::vector<std::string>& log);
+// cp296/V296: Shadow Stack Compatible — DllCharacteristics CET biti (0x1000)
+bool set_cet_compat(PEFile& pe, bool on, std::vector<std::string>& log);
 // cpStripDebugInfo: debug dizini + COFF sembol tablosunu kaldirir
 bool strip_debug(PEFile& pe, std::vector<std::string>& log);
 
