@@ -1467,11 +1467,13 @@ static void vm_run(VMContext* c) {
 #if defined(VM_IS_X64)
             { u64 peb; __asm__ volatile("movq %%gs:0x60, %0" : "=r"(peb));
               u8* p = (u8*)u2p(peb);
-              if (p[2] || (p[0xBC] & 0x70)) vm_poison(c); }
+              /* cp290 E2E-fix: NtGlobalFlag&0x70 kaldirildi — launcher heap
+                 bayraklari debugger yokken set (ayni ders xrt_core K1) */
+              if (p[2]) vm_poison(c); }
 #else
             { u32 peb; __asm__ volatile("movl %%fs:0x30, %0" : "=r"(peb));
               u8* p = (u8*)u2p((u64)peb);
-              if (p[2] || (p[0x68] & 0x70)) vm_poison(c); }
+              if (p[2]) vm_poison(c); }
 #endif
             if (!c->done && (u32)c->scratch[3]) {
                 if (mrd(c->base + (u64)(u32)c->scratch[3], 1) == 0xCC) vm_poison(c);

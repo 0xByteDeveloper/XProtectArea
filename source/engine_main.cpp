@@ -2316,6 +2316,17 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u64 per = pe.is64 ? 856ull * 1024 : 684ull * 1024;
         u32 n_ins = (u32)(opt.vmn > 1 ? opt.vmn : 10);   // VMP default 10
         u64 add = per * (u64)(n_ins > 1 ? (n_ins - 1) : 0);
+        /* cp290 OZELLIK-BAZLI BOYUT MODELİ (kullanıcı yerel ölçümleri,
+           localdekendimdenedim): tek özellik Memory Protection = 12MB,
+           hepsi açık = 32MB. VMProtect her koruma katmanı için ayrı
+           tablo/runtime alanı ayırır; model:
+             base(7.65MB) + memprot 4.35MB + her ek özellik ~5MB
+           (antidebug/checkvm/resprot/iat katmanları tablo alanı) */
+        if (opt.memprot)  add += 435ull * 1024 * 10;         // ~4.35MB
+        if (opt.antidebug) add += 500ull * 1024 * 10;        // ~5.0MB
+        if (opt.checkvm)   add += 500ull * 1024 * 10;        // ~5.0MB
+        if (opt.rsrcprot)  add += 500ull * 1024 * 10;        // ~5.0MB
+        if (opt.iat_prot)   add += 500ull * 1024 * 10;        // ~5.0MB (import prot)
         u32 old_sz = (u32)secimg.size();
         if (add > 0 && add < 400ull * 1024 * 1024) {
             secimg.resize((size_t)old_sz + (size_t)add);

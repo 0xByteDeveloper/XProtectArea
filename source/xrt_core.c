@@ -2349,16 +2349,20 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
             }
         }
     }
-    /* ---- (K1) PEB.BeingDebugged + NtGlobalFlag ---- */
+    /* ---- (K1) PEB.BeingDebugged ---- */
+    /* cp290 KULLANICI-E2E DÜZELTME (hareket-edince-crash): eski koşul
+       'p[2] || (NtGlobalFlag & 0x70)' idi. NtGlobalFlag heap bayrakları
+       (0x70 = FLG_HEAP_* ) Steam/Epic/Battle.net launcher'ları ve AppCompat
+       shim'leri tarafından debugger YOKKEN de set edilir -> yanlış-pozitif
+       return 5 -> rt_fatal -> oyun kapanıyordu. VMProtect 3.5.1/3.9.4
+       loader'ı NtGlobalFlag&0x70 kontrolü YAPMAZ (yalnız BeingDebugged +
+       CheckRemoteDebuggerPresent/NtQueryInformationProcess). Parite:
+       kontrol kaldırıldı; BeingDebugged (p[2]) ve API-bazlı K5/K8/K9 kalır. */
     {
         u64 peb = peb_addr();
         if (peb) {
             u8* p = (u8*)(unsigned long)peb;
-#if defined(XRT_IS_X64)
-            if (p[2] || (ld32(p + 0xBC) & 0x70)) return 5;
-#else
-            if (p[2] || (ld32(p + 0x68) & 0x70)) return 5;
-#endif
+            if (p[2]) return 5;
         }
     }
     /* ---- (K8) ProcessDebugPort(7) + ProcessDebugObjectHandle(30) ----
@@ -2378,7 +2382,8 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
                 i64 st2 = (i64)(long)api5(cnq, 0xFFFFFFFFu, 7,
                                           (u32)(unsigned long)(void*)&dbo, 8, 0);
 #endif
-                if (st2 >= 0 && dbo != 0) return 5;
+                if (st2 >= 0 && dbo != 0 && dbo != 0xFFFFFFFFFFFFFFFFull
+                              && dbo != 0xFFFFFFFFFFFFFFFEull) return 5;
                 dbo = 0;
 #if defined(XRT_IS_X64)
                 st2 = (i64)(int)(u32)api5(cnq, 0xFFFFFFFFFFFFFFFEull, 30,
@@ -2387,7 +2392,8 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
                 st2 = (i64)(long)api5(cnq, 0xFFFFFFFFu, 30,
                                       (u32)(unsigned long)(void*)&dbo, 8, 0);
 #endif
-                if (st2 >= 0 && dbo != 0) return 5;
+                if (st2 >= 0 && dbo != 0 && dbo != 0xFFFFFFFFFFFFFFFFull
+                              && dbo != 0xFFFFFFFFFFFFFFFEull) return 5;
             }
             (void)sc;
         }
@@ -2402,7 +2408,10 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
                 i64 st = (i64)(long)api5(nqip, 0xFFFFFFFFu, 7,
                                          (u32)(unsigned long)(void*)&dbo, 8, 0);
 #endif
-                if (st >= 0 && dbo != 0) return 5;
+                /* cp290 E2E-fix: ProcessDebugPort poison — Win10/11 temiz
+                   islemde -1 dondurebilir (UO loader.cc:1810 kurali). */
+                if (st >= 0 && dbo != 0 && dbo != 0xFFFFFFFFFFFFFFFFull
+                            && dbo != 0xFFFFFFFFFFFFFFFEull) return 5;
                 dbo = 0;
 #if defined(XRT_IS_X64)
                 st = (i64)(int)(u32)api5(nqip, 0xFFFFFFFFFFFFFFFEull, 30,
@@ -2411,7 +2420,9 @@ static u32 xrt_antidebug(u64 k32, u32 flags) {
                 st = (i64)(long)api5(nqip, 0xFFFFFFFFu, 30,
                                      (u32)(unsigned long)(void*)&dbo, 8, 0);
 #endif
-                if (st >= 0) return 5;
+                /* cp290: DebugObjectHandle kosuluna dbo baglandi (st>=0
+                   tek basina bazi surumlerde 0 doner -> yanlis pozitif) */
+                if (st >= 0 && dbo != 0) return 5;
             }
             /* ---- (K5) SystemKernelDebuggerInformation (0x23) ---- */
             if (flags & XFLAG_KDBG) {
