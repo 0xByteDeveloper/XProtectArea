@@ -806,7 +806,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     bool rt_any  = opt.rt_selfcrc || opt.rt_textcrc || opt.rt_filecrc || opt.memprot   /* 1.2.2-A11: memprot runtime bagli */
                 || opt.antidebug || opt.checkvm || opt.kerneldbg;   /* 1.2.2-A20: GLOBAL debugger/VM bataryasi (UO loader-parite) */
     // 0.7.0: lisans API'leri xrt dispatch ister
-    bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty();
+    bool lic_any = !opt.lic_pubkey.empty() || !opt.lic_watermark.empty()
+                   || (opt.lic_keylen >= 1024);   /* cp291/P0-c: Key Length secili
+                      projede LSD alani acilir (VMP: RSA secince lisans altyapisi
+                      gomulur; pubkey sonradan --lic-key ile verilir) */
     // 0.6.0: paketleme xrt_unpack ister (EP stub cagirir)
     // 1.2.2-A18: strenc runtime ister (ilk kapida cozum) — strenc sinyali
     bool strenc_want = opt.strenc;
@@ -1658,6 +1661,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
            Virtual Machine Version semantigi) */
         if (opt.vm_version > 0)
             perm_seed ^= (0x811C9DC5u * (u32)opt.vm_version) | 1u;
+        /* cp291/P0-d: Version=Compact (1) — kucuk VM cekirdegi: opcode
+           permütasyonu nesil-2 tohumuyla ayir (Default=0 sifir katkisi)
+           + instance sayisini 1'e sabitle (Compact = tek kopya, VMP davranisi) */
         VFn v = lift_function(lcode, f.rva, lsize, pe.is64,
                               pe.imagebase, pe.sizeofimage,
                               lift_allow_call,
@@ -1981,6 +1987,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             lsd[0x12C] = (u8)wl;
             lsd[0x12D] = (u8)(wl >> 8);
         }
+        /* cp291/P0-c: RSA Key Length (UI Licenses -> Key Length combobox;
+           VMP 1024..7168). LSD 0x12E'ye 2B LE yazilir (CRC-disi). 2048 = tam
+           dogrulama (LIC_LIMBS 64); digerleri belge-degeri olarak tasinir ve
+           runtime modulus boyutunu caprazlar. */
+        { u16 kb = (u16)(opt.lic_keylen ? opt.lic_keylen : 2048);
+          lsd[0x12E] = (u8)kb; lsd[0x12F] = (u8)(kb >> 8); }
         /* cp273 PORT E: aktivasyon URL'i LSD 0x150 (max 31B + NUL) —
            runtime lic_http_get buradan okur (licensing_manager Send paritesi). */
         if (!opt.lic_url.empty()) {
@@ -2314,7 +2326,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         // = (7,972,864 - 88,000)/9 = 876,096 bayt/instance (x64) ; x86 = %80 ->
         // 684KB. Kontrol: 12KB giris -> 7.97MB (VMP 7.60MB bandi), 66KB -> 7.65MB.
         u64 per = pe.is64 ? 856ull * 1024 : 684ull * 1024;
+        /* cp291/P0-d: Compact surumu tek VM kopyasi (VMP Compact davranisi —
+           kucuk cikti); Default 10 instance (VMP default) */
         u32 n_ins = (u32)(opt.vmn > 1 ? opt.vmn : 10);   // VMP default 10
+        if (opt.vm_version == 1) n_ins = 1;
         u64 add = per * (u64)(n_ins > 1 ? (n_ins - 1) : 0);
         /* cp290 OZELLIK-BAZLI BOYUT MODELİ (kullanıcı yerel ölçümleri,
            localdekendimdenedim): tek özellik Memory Protection = 12MB,

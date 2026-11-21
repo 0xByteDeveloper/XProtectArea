@@ -46,10 +46,17 @@ int main(int argc, char** argv) {
         else if (a == "--strength" && i + 1 < argc) opt.mut_strength = atoi(argv[++i]);
         else if (a == "--antidebug") opt.antidebug = true;
         else if (a == "--lic-key" && i + 1 < argc) opt.lic_pubkey = argv[++i];
+        else if (a == "--lic-keylen" && i + 1 < argc) {     /* cp291/P0-c: RSA bit uzunlugu (1024..7168) */
+            int kb = atoi(argv[++i]);
+            if (kb < 1024) kb = 1024;
+            if (kb > 7168) kb = 7168;
+            opt.lic_keylen = kb;
+        }
         else if (a == "--lic-pc" && i + 1 < argc) opt.lic_prodcode = argv[++i];
         else if (a == "--lic-wm" && i + 1 < argc) opt.lic_watermark = argv[++i];
         else if (a == "--lic-url" && i + 1 < argc) opt.lic_url = argv[++i];  /* cp273 PORT E */
-        else if (a == "--iat") opt.iat_prot = true;         /* cp277: import korumasi CLI (repro) */
+        else if (a == "--iat" || a == "--iatprot") opt.iat_prot = true;  /* cp277+cp291: import korumasi CLI */
+        else if (a == "--rsrcprot") opt.rsrcprot = true;      /* cp291/P0-b: Resource Protection CLI (boyut modeli) */
         else if (a == "--iatloader") opt.iat_loader_exp = true; /* cp277: DENEYSEL loader-IAT */
         else if (a == "--checkvm") opt.checkvm = true;
         else if (a == "--iatdisk") opt.iat_disk = true;   /* cp280: DENEYSEL disk-IAT silme (varsayilan KAPALI) */      /* cp279: UI-checkvm esdegeri (E2E kanit) */

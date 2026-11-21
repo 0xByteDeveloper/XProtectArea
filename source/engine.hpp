@@ -404,6 +404,7 @@ struct Options {
     std::string lic_prodcode;  // 16 hex (8B urun kodu); pubkey varken zorunlu
     std::string lic_watermark; // watermark metni (FNV-64 gomulur)
     std::string lic_url;       // cp273 PORT E: aktivasyon URL'i (LSD 0x150, max 31B; bos = online kapali)
+    int         lic_keylen = 2048;   // cp291/P0-c: RSA Key Length (UI combobox 1024..7168; LSD 0x12E)
     bool dwarf = false;        // cp275: DWARF kesfi opt-in (CRT-varargs kisti)
     bool iat_loader_exp = false; // cp277: TAM LOADER IAT deneysel (varsayilan KAPALI)
     // --- 1.2.2-A13: cpIncludeWatermark — UO Watermark::Compile 1:1 gomulmesi ---

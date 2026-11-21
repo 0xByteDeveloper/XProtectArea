@@ -39,6 +39,9 @@
 #define LSD_OFF_URL    0x150   /* cp273 PORT E: ASCII NUL-sonlu aktivasyon URL'i (max 0x1F bayt; CRC-disi; wm-metni 0x130..0x14F) */
 #define LSD_OFF_TICK   0x124
 #define LSD_OFF_CRC    0x128
+/* cp291/P0-c: RSA anahtar uzunlugu (bit) — CRC-disi (0x12E..0x12F, kullanimsiz
+   alan; wl 0x12C-0x12D'ye dokunmaz). 0 = default 2048. Runtime dogrulamada
+   modulus boyutu ile caprazlanir; 2048 disi uzunluklar 'belirtilmis' gorunur. */
 // 0.7.0-final FIX: LSD CRC SADECE 0x000..0x11F (salt-okunur yapi) uzerinden
 // hesaplanir. Eskiden 0x128'e kadar KAPSİYORDU -> runtime'in yazdigi
 // state(0x120)/tick(0x124) ilk SetSerial'da CRC'yi bozuyor, sonraki TUM

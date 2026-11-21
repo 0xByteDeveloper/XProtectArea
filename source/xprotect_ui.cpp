@@ -1318,11 +1318,17 @@ static void fill_prop() {
         // Virtual Machine grubu (id'ler 910..919 — duzenleme kind=2/3 dispatch'te)
         prop_add_row(0, L"Virtual Machine", L"", 0);
         static std::wstring vmv[4];
-        vmv[0] = g_proj.vm_version == 0 ? L"Default" : (L"v" + numdec(g_proj.vm_version));
+        // cp291/P0-d: VMProtect 3.9.4 — Version: Default | Compact
+        // (kullanici tespiti: 'v2' gibi yanlis etiketler cikiyordu).
+        // 0=Default, 1=Compact. Compact = kucuk VM cekirdegi.
+        vmv[0] = g_proj.vm_version == 1 ? L"Compact" : L"Default";
         prop_add_row(2, L"Version", vmv[0], 910);
-        vmv[1] = numdec(g_proj.vm_instances);
+        vmv[1] = (g_proj.vm_version == 1) ? L"1" : numdec(g_proj.vm_instances);
         prop_add_row(3, L"Instances", vmv[1], 911);
-        vmv[2] = numdec(g_proj.vm_complexity) + L"%";
+        // cp291/P0-d: VMProtect bagimlilik — Version=Compact iken Complexity
+        // 'None' olur (kullanici tespiti); Default'ta % degeri girilir (100%).
+        vmv[2] = (g_proj.vm_version == 1) ? L"None"
+               : (g_proj.vm_complexity <= 0 ? L"Default" : numdec(g_proj.vm_complexity) + L"%");
         prop_add_row(2, L"Complexity", vmv[2], 912);
         // cp287/P3: cikti boyut profili (kucuk <-> VMProtect-compat 7.6MB gorunumu)
         static std::wstring vmv3;
@@ -1397,8 +1403,10 @@ static void fill_prop() {
         static std::wstring lkv[4];
         lkv[0] = g_proj.lic_keypair == 0 ? L"None" : L"RSA";
         prop_add_row(2, L"Key Pair Algorithm", lkv[0], 930);
+        // cp291/P0-c: Key Length — VMProtect combobox (1024..7168, 512 adim;
+        // kullanici 3.9.4 tespiti: duzenlenemiyordu). ID 932 -> combo diyalog.
         lkv[1] = g_proj.lic_keypair == 0 ? std::wstring(L"-") : numdec(g_proj.lic_keylen);
-        prop_add_row(4, L"Key Length", lkv[1], 0);
+        prop_add_row(2, L"Key Length", lkv[1], 932);
         // cp288/P2: File Name (VMP: Test_64.exe.vmp) + Activation Server
         lkv[2] = basename_of(g_proj.target) + L".vmp";
         prop_add_row(4, L"File Name", lkv[2], 0);
@@ -3159,6 +3167,8 @@ static void start_compile() {
     opt.vm_version   = g_proj.vm_version;
     opt.shadow_stack = g_proj.shadow_stack;
     if (!g_proj.act_server.empty()) opt.lic_url = w2s(g_proj.act_server);
+    // cp291/P0-c: Key Length -> motor (LSD 0x12E; 2048 tam dogrulama)
+    opt.lic_keylen = g_proj.lic_keylen;
     // (UO: proje watermark_name'i options.watermark olarak gecer; XProtect
     // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
     if (g_proj.options & cpIncludeWatermark)
@@ -3354,7 +3364,9 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             if (swscanf(v.c_str(), L"%d %d %d %d %d %d %d %d",
                         &dm, &vv, &vi2, &vc, &ss, &kp, &kl, &vsm) >= 7) {
                 g_proj.dbg_mode = dm; if (g_proj.dbg_mode < 0 || g_proj.dbg_mode > 2) g_proj.dbg_mode = 2;
-                g_proj.vm_version = vv;
+                /* cp291/P0-d: eski projelerde vm_version 2 ('v2' etiketi)
+                   -> Compact (1) eslenir; 0/1 oldugu gibi kalir */
+                g_proj.vm_version = (vv == 2) ? 1 : (vv == 1 ? 1 : 0);
                 g_proj.vm_instances = vi2; if (g_proj.vm_instances < 1) g_proj.vm_instances = 1;
                 if (g_proj.vm_instances > 10) g_proj.vm_instances = 10;
                 g_proj.vm_complexity = vc;
@@ -4229,10 +4241,24 @@ static void prop_row_edit(int row) {
                 }
             }
             // ============ cp286/P1: VMProtect Options satirlari (910..924) ============
-            if (r.id == 910) {   // VM Version: Default <-> v2 (opcode permütasyon nesli)
-                push_undo();
-                g_proj.vm_version = g_proj.vm_version ? 0 : 2;
-                g_proj.modified = true; update_all();
+            if (r.id == 910) {   // cp291/P0-d: VM Version combo — Default <-> Compact
+                HWND d = dlg_base(L"Virtual Machine Version", 300, 130);
+                HWND cb = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0xC01, 16, 20, 260, 100);
+                ComboBox_AddString(cb, L"Default");
+                ComboBox_AddString(cb, L"Compact");
+                ComboBox_SetCurSel(cb, g_proj.vm_version == 1 ? 1 : 0);
+                mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 100, 70, 90, 26);
+                mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 196, 70, 88, 26);
+                bool ok; modal_run(d, &ok);
+                int sel = ok ? ComboBox_GetCurSel(cb) : -1;
+                DestroyWindow(d);
+                if (ok && sel >= 0) {
+                    push_undo();
+                    g_proj.vm_version = sel;   // 0=Default 1=Compact
+                    // VMProtect 3.9.4 bagimliligi: Compact -> Complexity None
+                    if (sel == 1) g_proj.vm_complexity = 0;
+                    g_proj.modified = true; update_all();
+                }
             }
             if (r.id == 911) {   // Instances 1..10
                 std::wstring v;
@@ -4243,10 +4269,21 @@ static void prop_row_edit(int row) {
                     g_proj.modified = true; update_all();
                 }
             }
-            if (r.id == 912) {   // Complexity: Default(0) <-> 100%(vmadv)
-                push_undo();
-                g_proj.vm_complexity = g_proj.vm_complexity >= 100 ? 0 : 100;
-                g_proj.modified = true; update_all();
+            if (r.id == 912) {   // cp291/P0-d: Complexity — Compact'ta None (kilitli),
+                                  // Default'ta 1..100% girilir (VMProtect 3.9.4)
+                if (g_proj.vm_version == 1) {
+                    MessageBoxW(g_main, L"Version = Compact iken Complexity: None olur.",
+                                L"Virtual Machine", MB_OK | MB_ICONINFORMATION);
+                } else {
+                    std::wstring v;
+                    if (dlg_input_text(r.name, L"Complexity yuzdesi (1..100, bos = Default)",
+                                       numdec(g_proj.vm_complexity), &v)) {
+                        int n = v.empty() ? 0 : _wtoi(v.c_str());
+                        if (n < 0) n = 0; if (n > 100) n = 100;
+                        push_undo(); g_proj.vm_complexity = n;
+                        g_proj.modified = true; update_all();
+                    }
+                }
             }
             if (r.id == 913) {   // Debugger 3-durum: No -> User -> User+Kernel -> No
                 push_undo();
@@ -4297,6 +4334,38 @@ static void prop_row_edit(int row) {
                 push_undo();
                 g_proj.lic_keypair = g_proj.lic_keypair ? 0 : 1;
                 g_proj.modified = true; update_all();
+            }
+            // cp291/P0-c: Key Length combobox — VMProtect 3.9.4 (1024,1536,2048,
+            // 2560,3072,3584,4096,4608,5120,5632,6144,6656,7168). Motor LSD'ye
+            // yazar; 2048 = tam dogrulama, digerleri modulus-alan uyumlu.
+            if (r.id == 932) {
+                if (g_proj.lic_keypair == 0) {
+                    MessageBoxW(g_main, L"Key Pair Algorithm: None iken anahtar uzunlugu yoktur.",
+                                L"Licenses", MB_OK | MB_ICONINFORMATION);
+                } else {
+                    static const int klens[13] = { 1024, 1536, 2048, 2560, 3072, 3584, 4096,
+                                                   4608, 5120, 5632, 6144, 6656, 7168 };
+                    HWND d = dlg_base(L"Key Length", 280, 210);
+                    HWND cb = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0xC01, 16, 20, 240, 180);
+                    int cur = -1;
+                    for (int i = 0; i < 13; i++) {
+                        ComboBox_AddString(cb, numdec(klens[i]).c_str());
+                        if (klens[i] == g_proj.lic_keylen) cur = i;
+                    }
+                    if (cur < 0) cur = 1;   // bilinmeyen -> 1536? hayir: default 2048 (index 2)
+                    if (g_proj.lic_keylen == 2048) cur = 2;
+                    ComboBox_SetCurSel(cb, cur < 0 ? 2 : cur);
+                    mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 80, 160, 90, 26);
+                    mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 176, 160, 88, 26);
+                    bool ok; modal_run(d, &ok);
+                    int sel = ok ? ComboBox_GetCurSel(cb) : -1;
+                    DestroyWindow(d);
+                    if (ok && sel >= 0 && sel < 13) {
+                        push_undo();
+                        g_proj.lic_keylen = klens[sel];
+                        g_proj.modified = true; update_all();
+                    }
+                }
             }
             // cp288/P2: Activation Server duzenleme (bos = kapali)
             if (r.id == 931) {
