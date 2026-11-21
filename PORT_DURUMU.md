@@ -220,3 +220,13 @@ Kalan (V296): Files penceresi DLL paketleme E2E, Shadow Stack/CET etkisi, Activa
 | Files penceresi DLL paketleme kanıtı | ✅ KANITLI | vf_app+vf_probe.dll: XVF1 bloğu (cfg+0x70) host-tarafı doğrulama — isim "vf_probe.dll" çözüldü (WriteName rotl/xor), CFB-64 veri çözüldü, kaynak DLL ile BİREBİR eş (86670B). scripts/v296_vfile_kanit.py |
 | Shadow Stack Compatible GERÇEK etki | ✅ BİTTİ | Önceden yalnız log satırıydı. Yeni: set_cet_compat — DllCharacteristics 0x8160→0x9160 (IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT 0x1000); No=default bit temiz ✓ |
 | host_cli --cet | ✅ EKLENDİ | CLI'den CET testi (UI kutusu zaten bağlı — opt.shadow_stack akışı) |
+
+## GÜNCELLEME 2026-11-21 (cp297/V297 — Boyut REGRESYONU fix + GERÇEK WINE E2E)
+
+| Kalem | Durum | Kanıt |
+|---|---|---|
+| Boyut REGRESYONU bulundu ve düzeltildi | ✅ FIX | V295-2'nin vmn fixi motor Options.vmn default'unu 1 bırakmıştı → CLI tekli-özellik ölçümleri 12MB→4.6MB'a düşmüştü. engine.hpp vmn default = 10 (VMProtect 3.9.4 default). Ölçüler hedefe döndü |
+| XXXESKI boyut hedefleri TAM PARİTE | ✅ KANITLI | MemoryProtection tekli = 12,513,280 B (kullanıcı: 12MB ✓); ALL = 32,971,776 B (kullanıcı: 32MB ✓); Pack = 8,036,864 B (VMP 7.60MB bandı ✓); tekli özellikler 13.18MB bandı; Instances 1/2/5/10 merdiveni 25.1→26.0→28.6→33.0MB |
+| GERÇEK WINE E2E (sudo'suz deb-extract) | ✅ KANITLI | wine-10.0 kuruldu (wine64+libwine+libz-mingw-w64 deb-extract; nls çift-wine yolu aynalama + wineserver wrapper + builtin DLL fiziksel kopya). 9 korumalı build'in TAMAMI wine altında rc=0; vf_packed "app ok"+rc=42 (XVF manuel-PE zinciri gerçek kernel32/user32'da); CET 0x9160 sorunsuz |
+| Activation Server runtime | ✅ KANITLI | --lic-url "http://act.xprotect.local" → LSD 0x150'ye gömüldü (host doğrulama) + Unicorn E2E SetSerial=0 (URL'li build'de lisans geçerli) |
+| localdekendimdenedim.rar erişimi | ⚠ ENGELLİ | Yandex OAuth internal-error + public sayfa JS-only — sandbox'tan indirilemiyor. Boyut kalibrasyonu kullanıcının WORKLOG'a kayıtlı ölçümleriyle yapılıyor (12MB/32MB/7.60MB) |

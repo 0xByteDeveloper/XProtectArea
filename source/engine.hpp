@@ -357,7 +357,12 @@ struct Options {
                               //   (v2 secilince farkli opcode haritasi)
     bool shadow_stack = false; // cp288/P2: CET Shadow Stack Compatible (VMP default No;
                               //   stub'lar standart call/ret — zaten uyumlu; log belgeler)
-    int  vmn = 1;             // 1.2.0-B1: mult-VM instance sayisi (1..10; cp286: 10)
+    int  vmn = 10;            // cp297/V297: mult-VM instance sayisi (1..10) —
+                              //   VMProtect 3.9.4 DEFAULT 10 (UI zaten 10 gonderir;
+                              //   V295-2 fixi vmn=1'i birebir uygulayinca CLI
+                              //   tekli-ozellik olcumleri 12MB->4.6MB'a dustu —
+                              //   kullanici olcumu "tek ozellik 12MB" Instances:10
+                              //   varsayilanina dayanir; motor default'u da 10)
     int  vm_size_mode = 0;    // cp287/P3: 0=kucuk (XProtect klasik ~30-50KB blob)
                                //   1=VMProtect-compat profil: instance basina VM
                                //   opcode/dekod tablosu dolgu alani olceklendirilir
