@@ -39,6 +39,7 @@
 #define LSD_OFF_URL    0x150   /* cp273 PORT E: ASCII NUL-sonlu aktivasyon URL'i (max 0x1F bayt; CRC-disi; wm-metni 0x130..0x14F) */
 #define LSD_OFF_TICK   0x124
 #define LSD_OFF_CRC    0x128
+#define LSD_OFF_KEYLEN 0x12E
 /* cp291/P0-c: RSA anahtar uzunlugu (bit) — CRC-disi (0x12E..0x12F, kullanimsiz
    alan; wl 0x12C-0x12D'ye dokunmaz). 0 = default 2048. Runtime dogrulamada
    modulus boyutu ile caprazlanir; 2048 disi uzunluklar 'belirtilmis' gorunur. */
@@ -328,46 +329,54 @@ static void lic_b64enc(const u8* in, u32 n, char* out, u32* outn) {
 // (2) Montgomery REDC carry-tasmasi (129. limb) dusuluyordu. 0.7.0 FINAL:
 // 4096-bit kare + bit-bit long-division mod — yavas ama tasınsız/bulunmaz
 // (verify basina ~10ms; dogrulama seyrek cagri — kabul).
-#define LIC_LIMBS 64
+/* cp292/V292-2: LIC_LIMBS artik 224 — 7168-bit (896B) moda kadar dinamik
+   RSA. Eski 64'luk sabit 2048-bit'e sabitler; aktif limb sayisi (L) her
+   isleme parametre olarak gecer, boylece 1024..7168 arasi her uzunluk
+   ayni kodla islenir. 224 limb * 4B = 896B; lbn stack'te 3 adet ~2.7KB. */
+#define LIC_LIMBS 224
+/* aktif limb sayisi; 0 = henuez setlenmedi (ilk kullanimda 64'e cekilir).
+   baslaticsiz: .data'ya dusmesin (freestanding loader .text+.bss tasir) */
+static int g_lic_L = 0;
+static int lic_L(void) { if (g_lic_L == 0) g_lic_L = 64; return g_lic_L; }
 typedef struct { u32 l[LIC_LIMBS]; } lbn;
 static void lbn_zero(lbn* a) { int i; for (i = 0; i < LIC_LIMBS; i++) a->l[i] = 0; }
 static int  lbn_ge(const lbn* a, const lbn* b) {
     int i;
-    for (i = LIC_LIMBS - 1; i >= 0; i--)
+    for (i = lic_L() - 1; i >= 0; i--)
         if (a->l[i] != b->l[i]) return a->l[i] > b->l[i];
     return 1;
 }
 static void lbn_sub(lbn* a, const lbn* b) {
     int i; u64 borrow = 0;
-    for (i = 0; i < LIC_LIMBS; i++) {
+    for (i = 0; i < lic_L(); i++) {
         u64 cur = (u64)a->l[i] - (u64)b->l[i] - borrow;
         a->l[i] = (u32)cur;
         borrow = (cur >> 32) & 1ull;
     }
 }
-static void lbn_be_load(lbn* a, const u8 be[256]) {
+static void lbn_be_load(lbn* a, const u8 be[256]) {   /* cp292: L'ye gore */
     int i; lbn_zero(a);
-    for (i = 0; i < 256; i++)
-        a->l[63 - (i >> 2)] |= (u32)be[i] << ((3 - (i & 3)) * 8);
+    for (i = 0; i < lic_L() * 4; i++)
+        a->l[g_lic_L - 1 - (i >> 2)] |= (u32)be[i] << ((3 - (i & 3)) * 8);
 }
 static void lbn_be_store(const lbn* a, u8 be[256]) {
     int i;
-    for (i = 0; i < 256; i++)
-        be[i] = (u8)(a->l[63 - (i >> 2)] >> ((3 - (i & 3)) * 8));
+    for (i = 0; i < lic_L() * 4; i++)
+        be[i] = (u8)(a->l[g_lic_L - 1 - (i >> 2)] >> ((3 - (i & 3)) * 8));
 }
 /* a*a -> 4096-bit (128 limb, LE) */
 static void lic_sq(u32 out[2 * LIC_LIMBS], const lbn* a) {
     int i, j;
-    for (i = 0; i < 2 * LIC_LIMBS; i++) out[i] = 0;
-    for (i = 0; i < LIC_LIMBS; i++) {
+    for (i = 0; i < 2 * lic_L(); i++) out[i] = 0;
+    for (i = 0; i < lic_L(); i++) {
         u64 carry = 0;
-        for (j = 0; j < LIC_LIMBS; j++) {
+        for (j = 0; j < g_lic_L; j++) {
             u64 cur = (u64)out[i + j] + (u64)a->l[i] * a->l[j] + carry;
             out[i + j] = (u32)cur;
             carry = cur >> 32;
         }
-        { int k = i + LIC_LIMBS;
-          while (carry && k < 2 * LIC_LIMBS) {
+        { int k = i + g_lic_L;
+          while (carry && k < 2 * g_lic_L) {
               u64 cur = (u64)out[k] + carry;
               out[k] = (u32)cur; carry = cur >> 32; k++;
           } }
@@ -376,16 +385,16 @@ static void lic_sq(u32 out[2 * LIC_LIMBS], const lbn* a) {
 /* a*b -> 4096-bit (128 limb, LE) */
 static void lic_mul(u32 out[2 * LIC_LIMBS], const lbn* a, const lbn* b) {
     int i, j;
-    for (i = 0; i < 2 * LIC_LIMBS; i++) out[i] = 0;
-    for (i = 0; i < LIC_LIMBS; i++) {
+    for (i = 0; i < 2 * lic_L(); i++) out[i] = 0;
+    for (i = 0; i < lic_L(); i++) {
         u64 carry = 0;
-        for (j = 0; j < LIC_LIMBS; j++) {
+        for (j = 0; j < g_lic_L; j++) {
             u64 cur = (u64)out[i + j] + (u64)a->l[i] * b->l[j] + carry;
             out[i + j] = (u32)cur;
             carry = cur >> 32;
         }
-        { int k = i + LIC_LIMBS;
-          while (carry && k < 2 * LIC_LIMBS) {
+        { int k = i + g_lic_L;
+          while (carry && k < 2 * g_lic_L) {
               u64 cur = (u64)out[k] + carry;
               out[k] = (u32)cur; carry = cur >> 32; k++;
           } }
@@ -394,17 +403,17 @@ static void lic_mul(u32 out[2 * LIC_LIMBS], const lbn* a, const lbn* b) {
 /* r (129 limb, LE) karsilastir/subtract n (64 limb) */
 static int lic_ge129(const u32* r, const lbn* n) {
     int i;
-    for (i = LIC_LIMBS; i >= 0; i--) {
+    for (i = lic_L(); i >= 0; i--) {
         u32 rv = r[i];
-        u32 nv = (i < LIC_LIMBS) ? n->l[i] : 0;
+        u32 nv = (i < g_lic_L) ? n->l[i] : 0;
         if (rv != nv) return rv > nv;
     }
     return 1;
 }
 static void lic_sub129(u32* r, const lbn* n) {
     int i; u64 borrow = 0;
-    for (i = 0; i <= LIC_LIMBS; i++) {
-        u64 cur = (u64)r[i] - ((i < LIC_LIMBS) ? n->l[i] : 0u) - borrow;
+    for (i = 0; i <= lic_L(); i++) {
+        u64 cur = (u64)r[i] - ((i < g_lic_L) ? n->l[i] : 0u) - borrow;
         r[i] = (u32)cur;
         borrow = (cur >> 32) & 1ull;
     }
@@ -413,13 +422,13 @@ static void lic_sub129(u32* r, const lbn* n) {
 static void lic_mod128(u32* x, const lbn* n) {
     u32 r[LIC_LIMBS + 1];
     int i, b, j;
-    for (i = 0; i <= LIC_LIMBS; i++) r[i] = 0;
-    for (i = 2 * LIC_LIMBS - 1; i >= 0; i--) {
+    for (i = 0; i <= lic_L(); i++) r[i] = 0;
+    for (i = 2 * lic_L() - 1; i >= 0; i--) {
         for (b = 31; b >= 0; b--) {
             u32 bit = (x[i] >> b) & 1u;
             /* r = r*2 + bit */
             { u32 c = bit;
-              for (j = 0; j <= LIC_LIMBS; j++) {
+              for (j = 0; j <= lic_L(); j++) {
                   u32 nc = r[j] >> 31;
                   r[j] = (r[j] << 1) | c;
                   c = nc;
@@ -427,7 +436,20 @@ static void lic_mod128(u32* x, const lbn* n) {
             if (lic_ge129(r, n)) lic_sub129(r, n);
         }
     }
-    for (i = 0; i < LIC_LIMBS; i++) x[i] = r[i];
+    for (i = 0; i < lic_L(); i++) x[i] = r[i];
+}
+/* cp292/V292-2: g_lic_L'yi LSD'deki Key Length (0x12E) belirler. 2048-bit
+   (L=64) eski davranisla ayni; 1024..7168 desteklenir. LSD yoksa/bozulussa
+   default 2048. Uzunluk L'yi asarsa kisaltilir (güvenli: modulus yuksek
+   baytlari 0 olur, imza gecersiz kabul edilir). */
+static int lic_setlen_from_lsd(const u8* lsd) {
+    u16 kb = (u16)(lsd[LSD_OFF_KEYLEN] | (lsd[LSD_OFF_KEYLEN + 1] << 8));
+    if (kb < 1024) kb = 2048;            /* alan yok/bos -> default */
+    if (kb > 7168) kb = 7168;
+    g_lic_L = kb / 32;                   /* bit -> limb (32b/limb) */
+    if (g_lic_L < 4) g_lic_L = 4;
+    if (g_lic_L > LIC_LIMBS) g_lic_L = LIC_LIMBS;
+    return g_lic_L;
 }
 static void lic_modexp65537(const u8 s_be[256], const u8 n_be[256], u8 out[256]) {
     lbn base, nn, acc; int i;
@@ -445,13 +467,13 @@ static void lic_modexp65537(const u8 s_be[256], const u8 n_be[256], u8 out[256])
           u32 prod[2 * LIC_LIMBS];
           lic_sq(prod, &acc);
           lic_mod128(prod, &nn);
-          for (i = 0; i < LIC_LIMBS; i++) acc.l[i] = prod[i];
+          for (i = 0; i < lic_L(); i++) acc.l[i] = prod[i];
       } }
     /* acc = base^65536; son adim: × base (mod n) */
     { u32 prod[2 * LIC_LIMBS];
       lic_mul(prod, &acc, &base);
       lic_mod128(prod, &nn);
-      for (i = 0; i < LIC_LIMBS; i++) acc.l[i] = prod[i]; }
+      for (i = 0; i < lic_L(); i++) acc.l[i] = prod[i]; }
     lbn_be_store(&acc, out);
 }
 
@@ -1196,6 +1218,7 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
             return XS_INVALID;
         lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_STATE), XS_INVALID);
         u8 em[256];
+        lic_setlen_from_lsd(lsd);   /* cp292: 1024..7168-bit dinamik RSA */
         lic_modexp65537(bin, lsd + LSD_OFF_MOD, em);
 
         if (em[0] != 0 || em[1] != 2) return XS_INVALID;
