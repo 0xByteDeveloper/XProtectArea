@@ -174,8 +174,19 @@ bool PEFile::add_section(const char* name, const std::vector<u8>& data, u32 char
     wr16(buf, sh + 34, 0);
     wr32(buf, sh + 36, chars);
 
-    wr32(buf, e_lfanew + 4 + 20 + 56, sizeofimage + vsize);  // SizeOfImage artimi
-    sizeofimage += vsize;
+    /* cp294/V294-3 FIX: SizeOfImage KUMULATIF degil GERCEK son-section-sonu.
+       Eski kod (sizeofimage + vsize) section bosluklarinda (onceki add'
+       ler arasinda baska section'lar buyudugunde) gercek sonun ALTINDA
+       kaliyordu — kanit: lic2048.vmp.exe imgsz=0x1F000 iken son .vmp0
+       0x5B768'de; lic_lsd() taramasi LSD'ye ulasamadi -> XS_CORRUPTED. */
+    u32 newsz = newva + vsize;
+    if (newsz > sizeofimage + vsize) {
+        wr32(buf, e_lfanew + 4 + 20 + 56, newsz);
+        sizeofimage = newsz;
+    } else {
+        wr32(buf, e_lfanew + 4 + 20 + 56, sizeofimage + vsize);
+        sizeofimage += vsize;
+    }
 
     Section ns; memset(ns.name, 0, 9); strncpy(ns.name, name, 8);
     ns.vsz = (u32)data.size(); ns.va = newva; ns.rawsz = rawsz; ns.rawoff = rawoff; ns.chars = chars;

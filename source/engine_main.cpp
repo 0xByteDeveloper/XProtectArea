@@ -872,8 +872,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     u32 LSD_TOT_E = LSD_SIZE_E + lsd_modb + LSD_CACHE_E;
     std::vector<u8> lsd;
     if (!opt.lic_pubkey.empty()) {
-        if (opt.lic_pubkey.size() != 512) {
-            L("[HATA] --pubkey 512 hex (256 bayt modulus BE) olmali — cikti YAZILMADI");
+        /* cp294 FIX: eski sabit-512 kontrolu kaldirildi — hex uzunlugu
+           Key Length ile dogrulanir (lsd_modb*2; 1024=256 .. 7168=1792). */
+        if (opt.lic_pubkey.size() != (size_t)lsd_modb * 2) {
+            char em[128];
+            snprintf(em, sizeof em, "[HATA] --lic-key uzunlugu Key Length ile uyusmuyor: %zu hex geldi, %u gerekli", opt.lic_pubkey.size(), lsd_modb * 2);
+            L(em);
             return 2;
         }
         if (opt.lic_prodcode.size() != 16) {
@@ -2035,6 +2039,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         lsd[0x128] = (u8)lcrc; lsd[0x129] = (u8)(lcrc >> 8);
         lsd[0x12A] = (u8)(lcrc >> 16); lsd[0x12B] = (u8)(lcrc >> 24);
         memcpy(&secimg[lsd_off], lsd.data(), LSD_TOT_E);   /* cp293: tum alan (modulus+cache dahil) */
+        /* cp294 DEBUG: lsd vektorunu diskete yaz — E2E teshisi */
+        { FILE* df = fopen("/tmp/dbg/lsd_dump.bin", "wb");
+          if (df) { fwrite(lsd.data(), 1, LSD_TOT_E, df); fclose(df); } }
         snprintf(b, sizeof b, "[LSD] lisans blok: modulus=%s urun=%s watermark=%s build_date=0x%X lsd_rva=0x%X",
                  opt.lic_pubkey.empty() ? "yok" : "256B",
                  opt.lic_prodcode.empty() ? "yok" : opt.lic_prodcode.c_str(),
@@ -2850,7 +2857,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         L(b);
     }
 
-    if (rt_any || opt.pack || vf_area) {   /* 1.2.2-A16: VF da cfg yazar */
+    if (rt_any || opt.pack || vf_area || lic_any) {   /* cp294/V294-3 FIX: lic_any
+        eklendi — lisans-only build'de (hic debugger/memprot/pack yok) cfg HIc
+        yazilmiyordu: xrt blob + LSD yerlesiyor ama XRT1 magic'siz kaliyor;
+        E2E Unicorn kanitinda SetSerial XS_CORRUPTED dondu. rt_blob zaten
+        lic_any iceriyor; cfg yazimi ayni kosula baglanmaliydi. */
         // 0.6.0: pack-only derlemede bile cfg YAZILMALI (xrt_unpack cfg
         // okur; magic yoksa unpack hic calismaz -> .text sikisik kalir).
         // --- file CRC: FINAL dosya (CheckSum alani + .vmp0 ham araligi atla) ---
