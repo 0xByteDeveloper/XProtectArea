@@ -855,8 +855,21 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // Duzen: [cfg 0x48][LSD 0x12C][bytecode...]
     /* 1.1.0-A7: 0x130..0x16F = watermark metni (64B), 0x12C..0x12D = uzunluk.
        CRC alani (0x000..0x11F) degismedi — runtime uyumlu. */
+    /* cp293/V293-1b: LSD duzeni v2 — modulus 0x170'te DEGISKEN uzunluk.
+       Eski duzen: modulus LSD icinde 0x08'de sabit 256B (2048'e sabit) +
+       cache 0x12C'de keylen alaniyla cakisiyordu. Yeni:
+         [cfg 0x48][LSD 0x000..0x12F sabit][modulus 0x170: kb/8 bayt]
+         [cache: 4 + kb/8 bayt em]
+       CRC alani (0x000..0x11F) degismedi — 2048'lik eski build'lerin LSD'si
+       yeni runtime ile de bulunur (modulus 0x08 sabit alandan okunur, keylen
+       0x12E=2048'de eski yolu kullandirmaz — asagida uyum kurali). */
     #define LSD_SIZE_E 0x170
-    #define LSD_CACHE_E 0x104   /* 0.7.0-final: serial em önbelleği (flag+256B) */
+    #define LSD_MOD_OFF_E 0x170
+    /* dinamik: kb = keylen; alan = 0x170 + kb/8 + 4 + kb/8 */
+    u32 lsd_kb = opt.lic_keylen ? opt.lic_keylen : 2048;
+    u32 lsd_modb = lsd_kb / 8;                       /* 128..896B */
+    u32 LSD_CACHE_E = 4 + lsd_modb;                  /* flag + em */
+    u32 LSD_TOT_E = LSD_SIZE_E + lsd_modb + LSD_CACHE_E;
     std::vector<u8> lsd;
     if (!opt.lic_pubkey.empty()) {
         if (opt.lic_pubkey.size() != 512) {
@@ -878,7 +891,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // rezerv 0x40'ta kaldı -> cfg'nin son 8B (pack_rva+reserved=0)
     // İLK bytecode'un ilk 8 baytını EZİYORDU -> VM çöp opcode okuyor,
     // fonksiyon sessizce no-op'a düşüyor (crash YOK, yanlış sonuç VAR).
-    u32 lsd_area = (lic_any && rt_blob) ? (LSD_SIZE_E + LSD_CACHE_E) : 0;
+    u32 lsd_area = (lic_any && rt_blob) ? LSD_TOT_E : 0;
 
     // ============================================================
     // 1.2.2-A16: VIRTUAL FILES — cfg'den sonra XVF1 blogu (xr_cipher.h sozlesmesi)
@@ -1956,13 +1969,25 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // 0.7.0: LSD (lisans sedeti) — cfg'nin hemen sonrasi
     if (lsd_area) {
         size_t lsd_off = (size_t)(lsd_rva - newva_guess);
-        if (secimg.size() < lsd_off + LSD_SIZE_E + LSD_CACHE_E)
-            secimg.resize(lsd_off + LSD_SIZE_E + LSD_CACHE_E, 0);
-        lsd.assign(LSD_SIZE_E, 0);
+        if (secimg.size() < lsd_off + LSD_TOT_E)
+            secimg.resize(lsd_off + LSD_TOT_E, 0);
+        lsd.assign(LSD_TOT_E, 0);
         lsd[0] = 'X'; lsd[1] = 'L'; lsd[2] = 'S'; lsd[3] = 'D'; lsd[4] = 1;
         if (!opt.lic_pubkey.empty()) {
-            for (u32 i = 0; i < 256; i++)
-                lsd[0x08 + i] = (u8)std::stoul(opt.lic_pubkey.substr(i * 2, 2), nullptr, 16);
+            /* cp293/V293-1b: modulus artik 0x170'te tam uzunlukla yazilir.
+               0x08'deki eski 256B alan: 2048'de ayni deger (uyumluluk — eski
+               runtime'lar ve offline-activation hash'i SHA1(modulus@0x08,256)
+               okur); >2048'de ILK 256B (eski build'ler de gecersiz-imza
+               uretir, zarar yok). hex uzunlugu = lsd_modb*2. */
+            if (opt.lic_pubkey.size() != lsd_modb * 2) {
+                L("[HATA] --lic-key uzunlugu Key Length ile uyusmuyor: hex=256*2"
+                  " beklenen=lsd_modb*2 — cikti YAZILMADI");
+                return 2;
+            }
+            for (u32 i = 0; i < lsd_modb; i++)
+                lsd[LSD_MOD_OFF_E + i] = (u8)std::stoul(opt.lic_pubkey.substr(i * 2, 2), nullptr, 16);
+            for (u32 i = 0; i < 256 && i < lsd_modb; i++)
+                lsd[0x08 + i] = lsd[LSD_MOD_OFF_E + i];   /* uyumluluk kopyasi */
             for (u32 i = 0; i < 8; i++)
                 lsd[0x110 + i] = (u8)std::stoul(opt.lic_prodcode.substr(i * 2, 2), nullptr, 16);
             lsd[0x108] = 0x01; lsd[0x109] = 0x00; lsd[0x10A] = 0x01; lsd[0x10B] = 0x00;  // e=65537
@@ -1987,10 +2012,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
             lsd[0x12C] = (u8)wl;
             lsd[0x12D] = (u8)(wl >> 8);
         }
-        /* cp291/P0-c: RSA Key Length (UI Licenses -> Key Length combobox;
-           VMP 1024..7168). LSD 0x12E'ye 2B LE yazilir (CRC-disi). 2048 = tam
-           dogrulama (LIC_LIMBS 64); digerleri belge-degeri olarak tasinir ve
-           runtime modulus boyutunu caprazlar. */
+        /* cp291/P0-c + cp293/V293-1b: RSA Key Length. LSD 0x12E'ye 2B LE
+           yazilir (CRC-disi). cp293'ten itibaren TUM uzunluklar (1024..7168)
+           tam dogrulamada: runtime modexp modulus'u 0x170'ten okur (eski
+           0x08 sabit alani yalniz 2048-uyumluluk icin durur). */
         { u16 kb = (u16)(opt.lic_keylen ? opt.lic_keylen : 2048);
           lsd[0x12E] = (u8)kb; lsd[0x12F] = (u8)(kb >> 8); }
         /* cp273 PORT E: aktivasyon URL'i LSD 0x150 (max 31B + NUL) —
@@ -2009,7 +2034,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         lcrc = ~lcrc;
         lsd[0x128] = (u8)lcrc; lsd[0x129] = (u8)(lcrc >> 8);
         lsd[0x12A] = (u8)(lcrc >> 16); lsd[0x12B] = (u8)(lcrc >> 24);
-        memcpy(&secimg[lsd_off], lsd.data(), LSD_SIZE_E);
+        memcpy(&secimg[lsd_off], lsd.data(), LSD_TOT_E);   /* cp293: tum alan (modulus+cache dahil) */
         snprintf(b, sizeof b, "[LSD] lisans blok: modulus=%s urun=%s watermark=%s build_date=0x%X lsd_rva=0x%X",
                  opt.lic_pubkey.empty() ? "yok" : "256B",
                  opt.lic_prodcode.empty() ? "yok" : opt.lic_prodcode.c_str(),

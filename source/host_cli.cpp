@@ -4,14 +4,35 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <functional>
 #include <vector>
 
 int protect(const std::string& in, const std::string& out, const Options& opt,
             std::vector<std::string>& log);
 
+int xprotect_genkey(int bits, const std::string& out_pem,
+                    std::string& out_modhex, std::function<void(const char*)> logf);
 int main(int argc, char** argv) {
     if (argc < 3) { fprintf(stderr, "kullanim: host_cli <in> <out> [secenekler]\n"); return 2; }
     std::string in = argv[1], out = argv[2];
+    /* cp293/V293-1a: --genkey modu — in/out arguman kullanilmaz:
+         host_cli genkey --genkey <bit> --out <pem>
+       VMProtect Licenses "Add License" keypair uretimi (C++, openssl'siz). */
+    if (in == "genkey") {
+        int kb = 2048; std::string pem = "key.pem";
+        for (int i = 2; i < argc; i++) {
+            std::string a = argv[i];
+            if (a == "--genkey" && i + 1 < argc) kb = atoi(argv[++i]);
+            else if (a == "--out" && i + 1 < argc) pem = argv[++i];
+        }
+        std::string modhex;
+        auto logf = [](const char* m) { fprintf(stderr, "%s\n", m); };
+        int rc = xprotect_genkey(kb, pem, modhex, logf);
+        if (rc == 0) {
+            printf("%s\n", modhex.c_str());   /* stdout: modulus BE hex */
+        }
+        return rc;
+    }
     Options opt;
     opt.default_type = 0;
     for (int i = 3; i < argc; i++) {

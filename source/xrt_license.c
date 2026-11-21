@@ -40,6 +40,10 @@
 #define LSD_OFF_TICK   0x124
 #define LSD_OFF_CRC    0x128
 #define LSD_OFF_KEYLEN 0x12E
+/* cp293/V293-1b: modulus LSD sabit kisminin sonrasinda, DEGISKEN uzunlukta.
+   Ofset sabit 0x170; bayt sayisi keylen/8 (128..896). 2048'de eski 0x08
+   alaniyla ayni icerik (uyumluluk kopyasi — eski runtime'lar 0x08 okur). */
+#define LSD_OFF_MOD2   0x170
 /* cp291/P0-c: RSA anahtar uzunlugu (bit) — CRC-disi (0x12E..0x12F, kullanimsiz
    alan; wl 0x12C-0x12D'ye dokunmaz). 0 = default 2048. Runtime dogrulamada
    modulus boyutu ile caprazlanir; 2048 disi uzunluklar 'belirtilmis' gorunur. */
@@ -1212,28 +1216,31 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         if (!serial) return XS_INVALID;
         u32 n = 0;
         while (serial[n]) n++;
-        if (!n || n > 680) return XS_INVALID;
-        u8 bin[512]; u32 bl = 0;
+        if (!n || n > 1216) return XS_INVALID;   /* cp293: 7168-bit = 896B -> b64 ~1216 */
+        u8 bin[896]; u32 bl = 0;   /* cp293: 7168-bit'e kadar */
         if (!lic_b64dec((const u8*)(unsigned long)serial, n, bin, &bl) || bl < 16)
             return XS_INVALID;
         lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_STATE), XS_INVALID);
-        u8 em[256];
-        lic_setlen_from_lsd(lsd);   /* cp292: 1024..7168-bit dinamik RSA */
-        lic_modexp65537(bin, lsd + LSD_OFF_MOD, em);
+        u8 em[896];                                  /* cp293: 7168-bit'e kadar */
+        int L2 = lic_setlen_from_lsd(lsd);           /* cp292: dinamik RSA */
+        u32 emb = (u32)L2 * 4;                       /* aktif modulus bayti */
+        lic_modexp65537(bin, lsd + LSD_OFF_MOD2, em);
 
         if (em[0] != 0 || em[1] != 2) return XS_INVALID;
         u32 pos;
-        for (pos = 2; pos < 256; pos++)
+        for (pos = 2; pos < emb; pos++)
             if (!em[pos]) { pos++; break; }
-        if (pos == 256) return XS_INVALID;
+        if (pos == emb) return XS_INVALID;
         lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_TICK), lic_tick_ms());
         u32 st = lic_parse_serial(em, pos, lsd, k32);
         lic_wr32((u8*)(unsigned long)(lsd + LSD_OFF_STATE), st);
         /* 0.7.0-final: em'yi onbellege yaz (GetSerialNumberData bunu okur) */
         if (st != XS_INVALID) {
-            u8* cache = (u8*)(unsigned long)(lsd + LSD_CACHE_OFF);
+            /* cp293/V293-1b: cache modulus'tan SONRA (eski 0x12C ofseti
+               keylen alaniyla cakisiyordu — ikinci SetSerial keylen'i eziyordu) */
+            u8* cache = (u8*)(unsigned long)(lsd + LSD_OFF_MOD2 + emb);
             cache[0] = (u8)LSD_CACHE_FLAG; cache[1] = 0; cache[2] = 0; cache[3] = 0;
-            lcopy(cache + 4, em, 256);   /* FIX: lcopy(d,s,n) — hedef once */
+            lcopy(cache + 4, em, emb);   /* FIX: lcopy(d,s,n) — hedef once */
         }
         return st;
     }
@@ -1246,13 +1253,16 @@ static u64 lic_sdk_core(u64 fnid, u64 a1, u64 a2, u64 a3, u64 a4) {
         lic_snd_t* d = (lic_snd_t*)(unsigned long)a1;
         if (!d || (int)a2 != (int)sizeof(lic_snd_t)) return 0;
         {
-            const u8* cache = (const u8*)(unsigned long)(lsd + LSD_CACHE_OFF);
+            /* cp293/V293-1b: cache ofseti dinamik (modulus uzunluguna gore) */
+            int L3 = lic_setlen_from_lsd(lsd);
+            const u8* cache = (const u8*)(unsigned long)(lsd + LSD_OFF_MOD2 + (u32)L3 * 4);
             u32 state = ld32(lsd + LSD_OFF_STATE);
             if (cache[0] == (u8)LSD_CACHE_FLAG) {
                 /* em yeniden-pozisyonla: blok baslangicina git */
                 const u8* em = cache + 4;
+                u32 emb3 = (u32)L3 * 4;
                 u32 pos = 2;
-                while (pos < 256 && em[pos]) pos++;
+                while (pos < emb3 && em[pos]) pos++;
                 pos++;
                 lic_fill_data(d, em, pos, state);
             } else {
