@@ -57,6 +57,13 @@ int main(int argc, char** argv) {
         else if (a == "--rt") { opt.rt_selfcrc = opt.rt_textcrc = opt.rt_filecrc = opt.rt_exit = true; } /* cp278: UI-runtime esdegeri (repro) */
         else if (a == "--rtnoexit") opt.rt_exit = false;   /* cp282 (x2): tetik -> kapatma yok (devam) */
         else if (a == "--strenc") opt.strenc = true;        /* cp273: kapsam testi */
+        else if (a == "--vfile" && i + 1 < argc) {          /* cp288/P2: gomme dosyasi */
+            opt.vfile_paths.push_back(argv[++i]);
+            opt.vfiles = true;
+        }
+        else if (a == "--vmver" && i + 1 < argc) {          /* cp288/P2: VM Version nesil */
+            int v = atoi(argv[++i]); if (v >= 0 && v <= 15) opt.vm_version = v;
+        }
         else if (a == "--memprot") opt.memprot = true;      /* cp273: Port D testi */
         else if (a == "--dwarf") opt.dwarf = true;   /* cp275: DWARF kesfi acik */
         else if (a == "--nosdk") opt.sdk_scan = false;

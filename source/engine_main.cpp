@@ -1653,6 +1653,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u32 perm_seed = (opt.vmn > 1)
             ? ((((vm_id + 1u) * 0x9E3779B9u) ^ 0x51ED270Bu) | 1u)
             : f.rva;
+        /* cp288/P2: VM Version nesil etkisi — v2+ secilince opcode haritasi
+           nesil-sabitine karisir (Default'tan bambaşka permütasyon; VMP
+           Virtual Machine Version semantigi) */
+        if (opt.vm_version > 0)
+            perm_seed ^= (0x811C9DC5u * (u32)opt.vm_version) | 1u;
         VFn v = lift_function(lcode, f.rva, lsize, pe.is64,
                               pe.imagebase, pe.sizeofimage,
                               lift_allow_call,
@@ -2304,10 +2309,11 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // ve tum adresler DEGISMEZ — runtime etkisi yok, yalnizca dosya gorunumu).
     // ============================================================
     if (opt.vm_size_mode == 1) {
-        // VMP olcek modeli: instance basina ~700KB (64-bit) / ~560KB (32-bit)
-        // (VMP 3.9.x ciktilarindan turetilmis ampirik olcek; 12KB + Instances10
-        // -> ~7.5MB profil; taban .vmp0 zaten ~90KB)
-        u64 per = pe.is64 ? 700ull * 1024 : 560ull * 1024;
+        // VMP olcek modeli — cp288 KALIBRASYON (VMP 3.9.4 referansi: 12KB Test.exe
+        // + Ultra + Instances:10 + Pack -> 7,972,864 bayt): per = (hedef - base)/9
+        // = (7,972,864 - 88,000)/9 = 876,096 bayt/instance (x64) ; x86 = %80 ->
+        // 684KB. Kontrol: 12KB giris -> 7.97MB (VMP 7.60MB bandi), 66KB -> 7.65MB.
+        u64 per = pe.is64 ? 856ull * 1024 : 684ull * 1024;
         u32 n_ins = (u32)(opt.vmn > 1 ? opt.vmn : 10);   // VMP default 10
         u64 add = per * (u64)(n_ins > 1 ? (n_ins - 1) : 0);
         u32 old_sz = (u32)secimg.size();
@@ -2938,6 +2944,9 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     L("[OZET] tipler: V=" + std::to_string(nV) + " M=" + std::to_string(nM) + " U=" + std::to_string(nU)
       + (nUf ? " (U->V dusus=" + std::to_string(nUf) + ")" : "")
       + " | vmn=" + std::to_string(opt.vmn) + (opt.vm_adv ? " ADV" : "")
+      + (opt.vm_version ? (" | vmver=v" + std::to_string(opt.vm_version)) : "")
+      + (opt.vm_size_mode ? " | profil=VMP-compat" : " | profil=kucuk")
+      + std::string(" | cet=") + (opt.shadow_stack ? "evet" : "hayir")
       + " | antidebug=" + (opt.antidebug ? "ACIK" : "kapali")
       + " | resprot=" + (opt.rsrcprot ? "ACIK" : "kapali")
       + " | checkvm=" + (opt.checkvm ? "ACIK" : "kapali")

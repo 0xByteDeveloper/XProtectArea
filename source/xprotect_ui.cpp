@@ -21,6 +21,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
+#include <shlobj.h>     // cp288/P2: Add Folder (SHBrowseForFolder)
 #include <string>
 #include <vector>
 #include <map>
@@ -213,7 +214,9 @@ struct Project {
     // Additional grubu
     std::wstring segments;               // "" = .vmp0/.vmp1 default; dolu = ozel ad
     bool shadow_stack = false;           // CET uyumu (VMProtect default: No)
-    int  vm_size_mode = 0;               // cp287/P3: 0=kucuk 1=VMProtect-compat (7.6MB gorunum)
+    int  vm_size_mode = 1;               // cp288: BIREBIR default = VMProtect-compat
+                                         //   (VMP 3.9.4 her derlemde ~7.6MB profil uretir);
+                                         //   0=Kucuk (XProtect klasik; Properties'ten secilir)
     // Messages (5 metin — VMProtect 3.9.4 metinleri varsayilan)
     std::wstring msg_debugger   = L"A debugger has been found running in your system.\nPlease, unload it from memory and restart your program.";
     std::wstring msg_virttools  = L"Sorry, this application cannot run under a Virtual Machine.";
@@ -223,6 +226,10 @@ struct Project {
     // Licensing Parameters (Licenses paneli)
     int  lic_keypair = 1;                // 0=None 1=RSA
     int  lic_keylen  = 2048;             // VMProtect default: 2048
+    // ---- cp288/P2: Files penceresi + Activation Server ----
+    std::vector<std::wstring> vfiles;        // gomme dosyalari (cpVirtualFiles devri)
+    std::vector<std::wstring> vfiles_excl;   // Excluded From Protection listesi
+    std::wstring act_server;                 // Activation Server (opt.lic_url'a gider)
     int find_func(const std::wstring& n) const {
         for (size_t i = 0; i < funcs.size(); i++) if (funcs[i].name == n) return (int)i;
         return -1;
@@ -1192,6 +1199,24 @@ static void tree_fill() {
             TreeView_InsertItem(g_tree, &tv);
         }
     }
+    // cp288/P2: Files klasoru (kind=3) — VMP "Files" penceresi; cocuklar 300+i
+    {
+        std::wstring lbl = std::wstring(L"Files") + L" (" + numdec(g_proj.vfiles.size()) + L")";
+        tv.hParent = hFile;
+        tv.item.iImage = tv.item.iSelectedImage = ICO_FOLDER;
+        tv.item.pszText = (LPWSTR)lbl.c_str();
+        tv.item.lParam = 3;
+        HTREEITEM hFiles = TreeView_InsertItem(g_tree, &tv);
+        for (size_t i = 0; i < g_proj.vfiles.size(); i++) {
+            memset(&tv, 0, sizeof(tv));
+            tv.hInsertAfter = TVI_LAST; tv.hParent = hFiles;
+            tv.item.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
+            tv.item.iImage = tv.item.iSelectedImage = ICO_FILE;
+            tv.item.pszText = (LPWSTR)g_proj.vfiles[i].c_str();
+            tv.item.lParam = (LPARAM)(300 + i);
+            TreeView_InsertItem(g_tree, &tv);
+        }
+    }
     TreeView_Expand(g_tree, hFile, TVE_EXPAND);
     if (hFuncs) TreeView_Expand(g_tree, hFuncs, TVE_EXPAND);
     if (hLics) TreeView_Expand(g_tree, hLics, TVE_EXPAND);
@@ -1374,6 +1399,11 @@ static void fill_prop() {
         prop_add_row(2, L"Key Pair Algorithm", lkv[0], 930);
         lkv[1] = g_proj.lic_keypair == 0 ? std::wstring(L"-") : numdec(g_proj.lic_keylen);
         prop_add_row(4, L"Key Length", lkv[1], 0);
+        // cp288/P2: File Name (VMP: Test_64.exe.vmp) + Activation Server
+        lkv[2] = basename_of(g_proj.target) + L".vmp";
+        prop_add_row(4, L"File Name", lkv[2], 0);
+        lkv[3] = g_proj.act_server.empty() ? std::wstring(L"-") : g_proj.act_server;
+        prop_add_row(3, L"Activation Server", lkv[3], 931);
     }
     // listeye bas
     int shown = 0;
@@ -1407,6 +1437,11 @@ static void dir_cols_setup(int kind) {
                              (wchar_t*)L(LS_PROTECTION), (wchar_t*)L(LS_SIZE), (wchar_t*)L(LS_SOURCE) };
         int wds[5] = { 230, 100, 90, 70, 70 };
         for (int i = 0; i < 5; i++) { c.pszText = cols[i]; c.cx = wds[i]; ListView_InsertColumn(g_dir, i, &c); }
+    } else if (kind == 3) {
+        // cp288/P2: Files — VMP "Files" penceresi kolonlari
+        wchar_t* cols[3] = { (wchar_t*)L(LS_NAME), (wchar_t*)L"Size", (wchar_t*)L"Action" };
+        int wds[3] = { 260, 90, 100 };
+        for (int i = 0; i < 3; i++) { c.pszText = cols[i]; c.cx = wds[i]; ListView_InsertColumn(g_dir, i, &c); }
     } else {
         wchar_t* cols[4] = { (wchar_t*)L(LS_CUSTNAME), (wchar_t*)L(LS_EMAIL),
                              (wchar_t*)L(LS_DATE), (wchar_t*)L(LS_BLOCKED) };
@@ -1438,6 +1473,31 @@ static void dir_fill() {
             _snwprintf(sb[k], 32, L"%llu", f.size);
             ListView_SetItemText(g_dir, idx, 3, sb[k]);
             ListView_SetItemText(g_dir, idx, 4, (LPWSTR)src_name(f.src));
+            shown++;
+        }
+    } else if (g_dir_kind == 3) {
+        // cp288/P2: Files dizini — gomme dosyalari (Action=Embed) + Excluded liste
+        for (size_t i = 0; i < g_proj.vfiles.size(); i++) {
+            LVITEMW it; memset(&it, 0, sizeof(it));
+            it.mask = LVIF_TEXT | LVIF_PARAM; it.iItem = shown; it.lParam = (LPARAM)(300 + i);
+            it.pszText = (LPWSTR)g_proj.vfiles[i].c_str();
+            int idx = ListView_InsertItem(g_dir, &it);
+            HANDLE hF = CreateFileW(g_proj.vfiles[i].c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+            wchar_t szb[32];
+            if (hF != INVALID_HANDLE_VALUE) {
+                LARGE_INTEGER li; GetFileSizeEx(hF, &li); CloseHandle(hF);
+                _snwprintf(szb, 32, L"%llu", (unsigned long long)li.QuadPart);
+            } else { _snwprintf(szb, 32, L"?"); }
+            ListView_SetItemText(g_dir, idx, 1, szb);
+            ListView_SetItemText(g_dir, idx, 2, (LPWSTR)L"Embed");
+            shown++;
+        }
+        for (size_t i = 0; i < g_proj.vfiles_excl.size(); i++) {
+            LVITEMW it; memset(&it, 0, sizeof(it));
+            it.mask = LVIF_TEXT | LVIF_PARAM; it.iItem = shown; it.lParam = (LPARAM)(350 + i);
+            it.pszText = (LPWSTR)g_proj.vfiles_excl[i].c_str();
+            int idx = ListView_InsertItem(g_dir, &it);
+            ListView_SetItemText(g_dir, idx, 2, (LPWSTR)L(LS_EXCLUDED));
             shown++;
         }
     } else if (g_dir_kind == 2) {
@@ -3091,6 +3151,14 @@ static void start_compile() {
     // 1.2.2-A16: cpVirtualFiles — motor gomme (dosyalar CLI --vfile ile ya da
     // UI'dan eklenir; kutu isaretsizse --vfile bile olsa gomme yapilmaz)
     opt.vfiles = (g_proj.options & cpVirtualFiles) != 0;
+    // cp288/P2: Files penceresi — listedeki dosyalar motora devredilir (liste
+    // doluysa bit otomatik acilir; VMProtect Files penceresi davranisi)
+    for (auto& vf : g_proj.vfiles) opt.vfile_paths.push_back(w2s(vf));
+    if (!opt.vfile_paths.empty()) opt.vfiles = true;
+    // cp288/P2: VM Version nesil etkisi + Shadow Stack (CET) + Activation Server
+    opt.vm_version   = g_proj.vm_version;
+    opt.shadow_stack = g_proj.shadow_stack;
+    if (!g_proj.act_server.empty()) opt.lic_url = w2s(g_proj.act_server);
     // (UO: proje watermark_name'i options.watermark olarak gecer; XProtect
     // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
     if (g_proj.options & cpIncludeWatermark)
@@ -3210,6 +3278,10 @@ static bool save_project_to(const std::wstring& path) {
     ln("msgcorrupt=" + w2s(esc_t(g_proj.msg_filecorrupt)));
     ln("msgserial=" + w2s(esc_t(g_proj.msg_serial)));
     ln("msghwid=" + w2s(esc_t(g_proj.msg_hwid)));
+    // cp288/P2: Files penceresi + Activation Server (kalici)
+    for (auto& vf : g_proj.vfiles)      ln("vfile=" + w2s(esc_t(vf)));
+    for (auto& vf : g_proj.vfiles_excl) ln("vfilex=" + w2s(esc_t(vf)));
+    ln("actserver=" + w2s(esc_t(g_proj.act_server)));
     for (auto& fn : g_proj.funcs) {
         std::wstring line = L"func\t" + esc_t(fn.name) + L"\t" + numdec(fn.rva) + L"\t" +
             numdec(fn.size) + L"\t" + (fn.is_export ? L"1" : L"0") + L"\t" +
@@ -3303,6 +3375,12 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             g_proj.msg_serial = unesc_t(s2w(line.substr(10)));
         } else if (line.rfind("msghwid=", 0) == 0) {
             g_proj.msg_hwid = unesc_t(s2w(line.substr(8)));
+        } else if (line.rfind("vfile=", 0) == 0) {              // cp288/P2
+            g_proj.vfiles.push_back(unesc_t(s2w(line.substr(6))));
+        } else if (line.rfind("vfilex=", 0) == 0) {             // cp288/P2
+            g_proj.vfiles_excl.push_back(unesc_t(s2w(line.substr(7))));
+        } else if (line.rfind("actserver=", 0) == 0) {          // cp288/P2
+            g_proj.act_server = unesc_t(s2w(line.substr(10)));
         } else if (line.rfind("func\t", 0) == 0) {
             std::wstring body = line.size() > 5 ? s2w(line.substr(5)) : L"";
             auto p = split_t(body);
@@ -3937,6 +4015,57 @@ static void tree_context(HTREEITEM hi) {
         if (cmd == IDM_ADDLIC) dlg_addlicense();
         return;
     }
+    // cp288/P2: Files penceresi — VMP 3.9.4 davranisi: bos alanda sol-tik/sag-tik
+    // Add File(s) / Add Folder / Excluded From Protection secenekleri
+    if (id == 3 || (id >= 300 && id < 400)) {
+        AppendMenuW(m, MF_STRING, 0x7101, L"Add File(s)...");
+        AppendMenuW(m, MF_STRING, 0x7102, L"Add Folder...");
+        AppendMenuW(m, MF_STRING, 0x7103, L"Excluded From Protection...");
+        AppendMenuW(m, MF_SEPARATOR, 0, NULL);
+        if (id >= 300 && id < 400)
+            AppendMenuW(m, MF_STRING, 0x7104, L(LS_DELETE));
+        cmd = track_menu(m);
+        if (cmd == 0x7101) {
+            std::wstring f;
+            if (pick_file(g_main, false, L"exe", &f)) {
+                push_undo();
+                g_proj.vfiles.push_back(f);
+                g_proj.options |= cpVirtualFiles;   // gomme devri icin bit otomatik
+                g_proj.modified = true; update_all();
+            }
+        } else if (cmd == 0x7102) {
+            BROWSEINFOW bi; memset(&bi, 0, sizeof(bi));
+            bi.hwndOwner = g_main;
+            bi.lpszTitle = L"Klasor sec (icindeki dosyalar gomulur)";
+            bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+            LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+            if (pidl) {
+                wchar_t path[MAX_PATH];
+                if (SHGetPathFromIDListW(pidl, path)) {
+                    push_undo();
+                    g_proj.vfiles.push_back(path);
+                    g_proj.options |= cpVirtualFiles;
+                    g_proj.modified = true; update_all();
+                }
+                CoTaskMemFree(pidl);
+            }
+        } else if (cmd == 0x7103) {
+            std::wstring f;
+            if (pick_file(g_main, false, L"exe", &f)) {
+                push_undo();
+                g_proj.vfiles_excl.push_back(f);
+                g_proj.modified = true; update_all();
+            }
+        } else if (cmd == 0x7104 && id >= 300 && id < 400) {
+            size_t idx = (size_t)(id - 300);
+            if (idx < g_proj.vfiles.size()) {
+                push_undo();
+                g_proj.vfiles.erase(g_proj.vfiles.begin() + (long)idx);
+                g_proj.modified = true; update_all();
+            }
+        }
+        return;
+    }
     if (id >= 100 && id < 200) {
         int idx = id - 100;
         AppendMenuW(m, MF_STRING, IDM_RENAME, L"Rename\tF2");
@@ -4168,6 +4297,15 @@ static void prop_row_edit(int row) {
                 push_undo();
                 g_proj.lic_keypair = g_proj.lic_keypair ? 0 : 1;
                 g_proj.modified = true; update_all();
+            }
+            // cp288/P2: Activation Server duzenleme (bos = kapali)
+            if (r.id == 931) {
+                std::wstring v;
+                if (dlg_input_text(r.name, L"URL (bos = kapali)", g_proj.act_server, &v)) {
+                    push_undo();
+                    g_proj.act_server = v;
+                    g_proj.modified = true; update_all();
+                }
             }
             // 1.2.5-A13 (x6): duzenleme sonrasi secim ayni satirda kalsin
             ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
@@ -4461,6 +4599,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
                     // 0.4.0: Licenses klasoru → lisans dizin gorunumu
                     g_prop_sel_kind = -1; g_prop_sel_idx = -1;
                     g_dir_kind = 2; dir_cols_setup(2); dir_fill(); right_show(1);
+                } else if (idl == 3) {
+                    // cp288/P2: Files klasoru → dosya dizin gorunumu
+                    g_prop_sel_kind = -1; g_prop_sel_idx = -1;
+                    g_dir_kind = 3; dir_cols_setup(3); dir_fill(); right_show(1);
                 } else if (idl >= 100 && idl < 200) {
                     g_prop_sel_kind = 2; g_prop_sel_idx = idl - 100;
                     right_show(0); fill_prop();

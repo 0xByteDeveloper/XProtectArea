@@ -350,6 +350,11 @@ struct Options {
     bool checkvm = false;     // 1.1.0-A7: cpCheckVirtualMachine -> K7 CPUID
     bool kerneldbg = false;   // 1.2.2-A15: cpCheckKernelDebugger -> K5+K6 (bit2)
     bool vm_adv = false;      // 1.2.0-B1: VirtualMachineType vtAdvanced (VM_KSA)
+    int  vm_version = 0;      // cp288/P2: VM Version (0=Default) — opcode nesil
+                              //   etiketi: perm_seed nesil-offset ile karisir
+                              //   (v2 secilince farkli opcode haritasi)
+    bool shadow_stack = false; // cp288/P2: CET Shadow Stack Compatible (VMP default No;
+                              //   stub'lar standart call/ret — zaten uyumlu; log belgeler)
     int  vmn = 1;             // 1.2.0-B1: mult-VM instance sayisi (1..10; cp286: 10)
     int  vm_size_mode = 0;    // cp287/P3: 0=kucuk (XProtect klasik ~30-50KB blob)
                                //   1=VMProtect-compat profil: instance basina VM

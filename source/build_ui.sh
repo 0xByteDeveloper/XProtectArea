@@ -27,13 +27,13 @@ echo "== [1/2] XProtectUI.exe (x64) =="
 $ZIG c++ -O2 -std=c++17 -target x86_64-windows-gnu -DUNICODE -D_UNICODE -I. \
     $SRCS lzma_enc_x64.o lzma_find_x64.o \
     -o XProtectUI.exe \
-    -lcomctl32 -lcomdlg32 -lshell32 -lgdi32 -luser32 -fno-sanitize=undefined
+    -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lgdi32 -luser32 -fno-sanitize=undefined
 
 echo "== [2/2] XProtectUI32.exe (x86) =="
 $ZIG c++ -O2 -std=c++17 -target x86-windows-gnu -DUNICODE -D_UNICODE -I. \
     $SRCS lzma_enc_x86.o lzma_find_x86.o \
     -o XProtectUI32.exe \
-    -lcomctl32 -lcomdlg32 -lshell32 -lgdi32 -luser32 -fno-sanitize=undefined
+    -lcomctl32 -lcomdlg32 -lshell32 -lole32 -lgdi32 -luser32 -fno-sanitize=undefined
 
 echo "== TAMAM =="
 ls -la XProtectUI.exe XProtectUI32.exe
