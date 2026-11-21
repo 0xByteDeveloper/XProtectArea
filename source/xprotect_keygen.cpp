@@ -514,6 +514,30 @@ static std::vector<u8> sign_blocks(const std::vector<u8>& blocks, const Big& n, 
 
 } // namespace xkg
 
+// ---- kütüphane API (cp295/V295-1: UI "Add License" serial üretimi) ----
+// UI, lisans alanlarından serial üretir; imzalama xkg::sign_blocks ile
+// (keygen PEM'i yüklenir — private key). Çıktı: base64(serial).
+int xprotect_make_serial(const char* pem_path, const char* prodcode_hex,
+                         const char* name, const char* email,
+                         const char* expire, const char* maxbuild,
+                         int runtime_min, std::string& out_b64) {
+    using namespace xkg;
+    if (!pem_path || !prodcode_hex || strlen(prodcode_hex) != 16) return 2;
+    Big n, e, d;
+    if (!load_pem(pem_path, n, e, d)) return 3;
+    SerialArgs a;
+    if (name) a.name = name;
+    if (email) a.email = email;
+    if (expire) a.expire = expire;
+    if (maxbuild) a.maxbuild = maxbuild;
+    a.runtime = runtime_min;
+    a.prodcode_hex = prodcode_hex;
+    std::vector<u8> blocks = build_blocks(a);
+    std::vector<u8> sig = sign_blocks(blocks, n, d);
+    out_b64 = b64enc(sig.data(), sig.size());
+    return 0;
+}
+
 // ---- CLI ----
 // cikis: stdout = base64(serial). Hata: stderr + rc!=0.
 int xprotect_keygen_main(int argc, char** argv) {

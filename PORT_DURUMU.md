@@ -198,3 +198,17 @@ GC/nesne ops, ImplMap, x64 IL, EH semantiği). TOPLAM MOTOR-PARİTE: ~%87 → **
 | XGOD tam port | SÜRÜYOR | motor-parite ~%86 (HTML v6: 26 özellik); kalan zayıf halkalar: Import %60, VR dword/W, strenc kapsam, GC/nesne ops |
 
 Toplam motor-parite: ~%86 → **~%86-88** (x2/x7a sonrası .NET %90; dwarf wire %55).
+
+## GÜNCELLEME 2026-11-21 (cp295/V295 — Licenses UI zinciri + VM Instances merdiveni)
+
+| Kalem | Durum | Kanıt |
+|---|---|---|
+| Export Key Pair "Generate" gerçek RSA keypair | ✅ BİTTİ | UI diyalogu engine_keygen'e bağlandı (Miller-Rabin+Montgomery, openssl'siz); PEM kaydet + modulus proje alanı (lic_modulus). Eski "Not ported" mesajı kalktı |
+| Add License serial üretimi | ✅ BİTTİ | dlg_addlicense OK → xprotect_make_serial (xprotect_keygen.cpp kütüphane API'si): lisans alanlarından RSA-imzalı serial; Serial Number satırı Properties'te (tıkla → panoya kopyala) |
+| Derleme → motor --lic-key/--lic-pc | ✅ BİTTİ | g_proj.lic_modulus doluysa opt.lic_pubkey/lic_prodcode atanır; LSD gömülür (lisans-only build'de cfg yazılır — V294 fix) |
+| .xproj kalıcılığı | ✅ BİTTİ | licpem=/licmod=/licpc= + lic satırına serial alanı (12. kolon; geriye-uyumlu) |
+| Product Code düzenleme | ✅ BİTTİ | Properties "Product Code" (ID 935) — 16 hex doğrulamalı |
+| E2E UI-akışı kanıtı | ✅ KANITLI | e2e_ui_akisi.log: 2048 VE 4096 — genkey→serial→motor→Unicorn SetSerial=0, GetState=0, negatif=XS_INVALID(2); openssl "RSA key ok" |
+| VM Instances 1/2/5/10 merdiveni | ✅ KANITLI + BUG FIX | vmn=1 eskiden 10'a fırlıyordu (vmn>1?vmn:10) → fix (n_ins=vmn). Merdiven: 1→376KB, 2→1.25MB, 5→3.88MB, 10→8.27MB (856KB/instance; farklar tam katsayı) |
+
+Kalan (V296): Files penceresi DLL paketleme E2E, Shadow Stack/CET etkisi, Activation Server alanının web tarafı.

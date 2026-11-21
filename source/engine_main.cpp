@@ -2360,7 +2360,12 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         u64 per = pe.is64 ? 856ull * 1024 : 684ull * 1024;
         /* cp291/P0-d: Compact surumu tek VM kopyasi (VMP Compact davranisi —
            kucuk cikti); Default 10 instance (VMP default) */
-        u32 n_ins = (u32)(opt.vmn > 1 ? opt.vmn : 10);   // VMP default 10
+        /* cp295/V295-2 DÜZELTME: vmn=1 eskiden 10'a firlatiyordu
+           (vmn>1 ? vmn : 10) — Instances=1 secilince 10 instance alani
+           ekleniyordu (1 ile 10 ayni boyut cikiyordu; merdiven bozuktu).
+           Artik vmn NE ise o kadar instance (varsayilan 10 yalnizca
+           vmn ayarlanmamissa — host_cli zaten 1..10 kelepceler). */
+        u32 n_ins = (u32)(opt.vmn >= 1 ? opt.vmn : 10);   // VMP default 10
         if (opt.vm_version == 1) n_ins = 1;
         u64 add = per * (u64)(n_ins > 1 ? (n_ins - 1) : 0);
         /* cp290 OZELLIK-BAZLI BOYUT MODELİ (kullanıcı yerel ölçümleri,

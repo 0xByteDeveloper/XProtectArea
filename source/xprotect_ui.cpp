@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <functional>   // cp295/V295-1: xprotect_genkey logf parametresi
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -179,6 +180,7 @@ struct ProjLicense {
          s_time = false, s_maxbuild = false, s_userdata = false;
     std::wstring s_expire_d, s_maxbuild_d, s_time_v, s_userdata_v;
     bool blocked = false;   // 0.4.0 — VMP license->blocked()
+    std::wstring serial;    // cp295/V295-1: üretilen serial (base64) — projede kalır
 };
 struct Project {
     bool open = false, modified = false;
@@ -226,6 +228,13 @@ struct Project {
     // Licensing Parameters (Licenses paneli)
     int  lic_keypair = 1;                // 0=None 1=RSA
     int  lic_keylen  = 2048;             // VMProtect default: 2048
+    // cp295/V295-1: Export Key Pair çıktısı — proje anahtar çifti kalıcısı.
+    // lic_pem: private key PEM yolu (keygen imzalama + derleme sıfırlama);
+    // lic_modulus: public modulus BE hex (motora --lic-key olarak gider);
+    // lic_prodcode: 16 hex 8B ürün kodu (motora --lic-pc; serial'de 0x07 bloğu).
+    std::wstring lic_pem;
+    std::wstring lic_modulus;
+    std::wstring lic_prodcode;
     // ---- cp288/P2: Files penceresi + Activation Server ----
     std::vector<std::wstring> vfiles;        // gomme dosyalari (cpVirtualFiles devri)
     std::vector<std::wstring> vfiles_excl;   // Excluded From Protection listesi
@@ -1396,6 +1405,10 @@ static void fill_prop() {
         vals[vi] = lc.s_userdata ? (L"Yes / " + lc.s_userdata_v) : L"No";
         prop_add_row(1, L(LS_USERDATA), vals[vi], base + 11); vi++;
         vals[vi] = lc.blocked ? L"Yes" : L"No"; prop_add_row(1, L(LS_BLOCKED), vals[vi], base + 12); vi++;
+        // cp295/V295-1: üretilmiş serial (varsa) — tıklayınca panoya kopyalanır
+        vals[vi] = lc.serial.empty() ? std::wstring(L"- (Generate: Export Key Pair + Add License)")
+                                     : (lc.serial.substr(0, 24) + L"...");
+        prop_add_row(3, L"Serial Number", vals[vi], base + 13); vi++;
         // ---- cp286/P1: VMProtect "Licenses" penceresi paritesi ----
         // Key Pair Algorithm / Key Length satirlari (kullanici tespiti: XProtect'te
         // gorunmuyordu; motor xrt_license.c'de RSA-2048+SHA1 zaten tam)
@@ -1412,6 +1425,15 @@ static void fill_prop() {
         prop_add_row(4, L"File Name", lkv[2], 0);
         lkv[3] = g_proj.act_server.empty() ? std::wstring(L"-") : g_proj.act_server;
         prop_add_row(3, L"Activation Server", lkv[3], 931);
+        // cp295/V295-1: proje anahtar çifti durumu (Export Key Pair çıktısı) —
+        // modulus bağlıysa derleme --lic-key/--lic-pc üretir (LSD gömülür)
+        static std::wstring lkx[2];
+        lkx[0] = g_proj.lic_modulus.empty() ? std::wstring(L"-") :
+                 (basename_of(g_proj.lic_pem.empty() ? L"(pem kayıtlı değil)" : g_proj.lic_pem) +
+                  L" / " + numdec(g_proj.lic_modulus.size() / 2) + L"B");
+        prop_add_row(4, L"Key Pair (Project)", lkx[0], 934);
+        lkx[1] = g_proj.lic_prodcode.empty() ? std::wstring(L"-") : g_proj.lic_prodcode;
+        prop_add_row(3, L"Product Code", lkx[1], 935);
     }
     // listeye bas
     int shown = 0;
@@ -2663,6 +2685,12 @@ static void dlg_watermarks() {
 // ============================================================
 
 // ---------------- diyalog: Lisans Ekle (license_dialog.cc birebir alan seti) ----------------
+// cp295/V295-1: serial üretimi — keygen kütüphane API'si (aşağıda tanımlı
+// dlg_exportkeypair ile aynı kaynak: xprotect_keygen.cpp)
+extern int xprotect_make_serial(const char* pem_path, const char* prodcode_hex,
+                                const char* name, const char* email,
+                                const char* expire, const char* maxbuild,
+                                int runtime_min, std::string& out_b64);
 static bool dlg_addlicense(ProjLicense* edit_lic = NULL) {
     HWND d = dlg_base(L(LS_ADDLIC), 470, 620);
     mk_ctl(d, L"STATIC", L(LS_DETAILS), 0, 0, 16, 14, 200, 18);
@@ -2756,6 +2784,33 @@ static bool dlg_addlicense(ProjLicense* edit_lic = NULL) {
     }
     DestroyWindow(d);
     if (!okout) return false;
+    // cp295/V295-1: serial üretimi — VMP "Add License" akışının XProtect
+    // karşılığı. Proje anahtar çifti varsa (Export Key Pair ile üretilmiş
+    // PEM), lisans alanlarından RSA-imzalı serial üretilir. PEM yoksa
+    // lisans kaydedilir ama serial boş kalır (uyarı verilir).
+    if (g_proj.lic_keypair == 1 && !g_proj.lic_pem.empty() &&
+        !g_proj.lic_prodcode.empty()) {
+        std::string b64;
+        std::wstring ser_w;
+        int rc = xprotect_make_serial(
+            w2s(g_proj.lic_pem).c_str(), w2s(g_proj.lic_prodcode).c_str(),
+            lc.s_name ? w2s(lc.name).c_str() : NULL,
+            lc.s_email ? w2s(lc.email).c_str() : NULL,
+            lc.s_expire ? w2s(lc.s_expire_d).c_str() : NULL,
+            lc.s_maxbuild ? w2s(lc.s_maxbuild_d).c_str() : NULL,
+            lc.s_time ? _wtoi(lc.s_time_v.c_str()) : 0, b64);
+        if (rc == 0) {
+            lc.serial = s2w(b64);
+            add_log(L"Serial uretildi (RSA-" + numdec(g_proj.lic_keylen) + L", " +
+                    numdec(b64.size()) + L" kr): " + lc.serial.substr(0, 32) + L"...");
+        } else {
+            add_log(L"[UYARI] Serial uretilemedi (rc=" + numdec(rc) +
+                    L") — PEM okunamiyor olabilir: " + g_proj.lic_pem);
+            MessageBoxW(g_main, L"Serial uretilemedi — proje anahtar cifti (PEM) okunamiyor.\n"
+                        L"Project > Export Key Pair ile yeniden uretin.",
+                        XPROTECT_EDITION, MB_ICONWARNING);
+        }
+    }
     if (edit_lic) {
         push_undo();
         *edit_lic = lc;              // 0.4.0: mevcut lisans guncellenir
@@ -2770,8 +2825,18 @@ static bool dlg_addlicense(ProjLicense* edit_lic = NULL) {
 }
 
 // ---------------- diyalog: Anahtar Cifti (export_key_pair_dialog.cc) ----------------
+// cp295/V295-1: Generate artik GERÇEK RSA keypair üretir (engine_keygen.cpp —
+// Miller-Rabin + Montgomery, openssl'siz; V293'ten kanıtlı çekirdek) ve PEM'i
+// kaydeder. Üretilen modulus proje alanına bağlanır (derleme --lic-key'e gider).
+// VMProtect akışı: Generate -> Save .pem -> projeye bağlanır.
+extern int xprotect_genkey(int bits, const std::string& out_pem,
+                           std::string& out_modhex, std::function<void(const char*)> logf);
+extern int xprotect_make_serial(const char* pem_path, const char* prodcode_hex,
+                                const char* name, const char* email,
+                                const char* expire, const char* maxbuild,
+                                int runtime_min, std::string& out_b64);
 static void dlg_exportkeypair() {
-    HWND d = dlg_base(L(LS_EXPORTKEY), 380, 190);
+    HWND d = dlg_base(L(LS_EXPORTKEY), 420, 240);
     mk_ctl(d, L"STATIC", L"Algorithm", 0, 0, 16, 22, 120, 18);
     HWND cbA = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0x801, 140, 18, 210, 120);
     ComboBox_AddString(cbA, L"RSA");
@@ -2780,15 +2845,41 @@ static void dlg_exportkeypair() {
     HWND cbL = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0x802, 140, 48, 210, 260);
     const wchar_t* lens[] = { L"1024", L"1536", L"2048", L"2560", L"3072", L"3584", L"4096" };
     for (int i = 0; i < 7; i++) ComboBox_AddString(cbL, lens[i]);
-    ComboBox_SetCurSel(cbL, 2);   // VMProtect default 2048
+    int curkl = 2;   // VMProtect default 2048
+    for (int i = 0; i < 7; i++) if (wcstol(lens[i], NULL, 10) == g_proj.lic_keylen) curkl = i;
+    ComboBox_SetCurSel(cbL, curkl);
     mk_ctl(d, L"BUTTON", L(LS_GENERATE), WS_TABSTOP, 0x803, 16, 92, 110, 26);
-    mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 170, 128, 90, 26);
-    mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 266, 128, 88, 26);
+    HWND st = mk_ctl(d, L"STATIC", L"", 0, 0, 136, 96, 270, 34);   // durum satırı
+    mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 210, 178, 90, 26);
+    mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 306, 178, 88, 26);
+    bool generated = false;
+    std::string modhex;
+    std::wstring pem_saved;
     EnableWindow(g_main, FALSE); ShowWindow(d, SW_SHOW); UpdateWindow(d);
     MSG m;
     while (GetMessageW(&m, NULL, 0, 0)) {
         if (m.message == WM_COMMAND && m.hwnd == d && LOWORD(m.wParam) == 0x803) {
-            MessageBoxW(g_main, L(LS_NOTPORTED), XPROTECT_EDITION, MB_ICONINFORMATION);
+            // Generate: keypair üret + PEM kaydet (VMProtect: Export Key Pair)
+            int bits = (int)wcstol(lens[ComboBox_GetCurSel(cbL)], NULL, 10);
+            std::wstring pem;
+            std::wstring pflt = L"Key Files (*.pem)\0*.pem\0All Files (*.*)\0*.*\0";
+            if (!pick_file(d, true, L"pem", &pem, pflt.c_str())) continue;
+            set_txt(st, L"Generating RSA key...");
+            SetCursor(LoadCursor(NULL, IDC_WAIT));
+            std::string pem8 = w2s(pem);
+            modhex.clear();
+            auto logf = [](const char*) {};
+            int rc = xprotect_genkey(bits, pem8, modhex, logf);
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+            if (rc != 0) {
+                set_txt(st, L"Key generation failed.");
+                MessageBoxW(d, L"RSA keypair uretilemedi.", XPROTECT_EDITION, MB_ICONERROR);
+                continue;
+            }
+            generated = true;
+            pem_saved = pem;
+            set_txt(st, (L"RSA-" + numdec(bits) + L" generated -> " + basename_of(pem)).c_str());
+            add_log(L"Export Key Pair: RSA-" + numdec(bits) + L" uretildi -> " + pem);
             continue;
         }
         if (m.message == WM_APP_MODAL_OK || m.message == WM_APP_MODAL_CANCEL) break;
@@ -2797,6 +2888,20 @@ static void dlg_exportkeypair() {
     }
     EnableWindow(g_main, TRUE); SetActiveWindow(g_main);
     DestroyWindow(d);
+    // cp295/V295-1b: OK ile kapaniş — üretilen anahtar projeye bağlanır
+    if (generated && !modhex.empty()) {
+        push_undo();
+        g_proj.lic_keypair = 1;                     // RSA
+        g_proj.lic_keylen = (int)wcstol(lens[ComboBox_GetCurSel(cbL)], NULL, 10);
+        g_proj.lic_pem = pem_saved;                 // keygen imzalama PEM'i
+        g_proj.lic_modulus = s2w(modhex);            // BE hex — motor --lic-key formatı
+        // prodcode: üretilmediyse 8B sabit öneri (motor --lic-pc; serial 0x07 bloğu)
+        if (g_proj.lic_prodcode.empty()) g_proj.lic_prodcode = L"0102030405060708";
+        g_proj.modified = true;
+        update_all();
+        add_log(L"Key Pair projeye baglandi: RSA-" + numdec(g_proj.lic_keylen) +
+                L", modulus " + numdec(modhex.size() / 2) + L" bayt, PEM: " + pem_saved);
+    }
 }
 
 // ---------------- diyalog: Parametreler (execute_parameters_act_) ----------------
@@ -3169,6 +3274,15 @@ static void start_compile() {
     if (!g_proj.act_server.empty()) opt.lic_url = w2s(g_proj.act_server);
     // cp291/P0-c: Key Length -> motor (LSD 0x12E; 2048 tam dogrulama)
     opt.lic_keylen = g_proj.lic_keylen;
+    // cp295/V295-1b: Export Key Pair çıktısı -> motor. Modulus bağlıysa
+    // derleme LSD'yi gömer (lisans-only build'de bile cfg yazılır — V294 fix)
+    // ve runtime SetSerial/GetState kapısı açılır. VMProtect akışı: keypair
+    // üretilmeden lisanslı derleme olmaz — aynı kural.
+    if (g_proj.lic_keypair == 1 && !g_proj.lic_modulus.empty()) {
+        opt.lic_pubkey  = w2s(g_proj.lic_modulus);   // --lic-key (BE hex)
+        opt.lic_prodcode = g_proj.lic_prodcode.empty() ?
+                           std::string("0102030405060708") : w2s(g_proj.lic_prodcode);
+    }
     // (UO: proje watermark_name'i options.watermark olarak gecer; XProtect
     // listedeki TUM watermarklari gomuler — tespit hepsi icin calisir)
     if (g_proj.options & cpIncludeWatermark)
@@ -3288,6 +3402,10 @@ static bool save_project_to(const std::wstring& path) {
     ln("msgcorrupt=" + w2s(esc_t(g_proj.msg_filecorrupt)));
     ln("msgserial=" + w2s(esc_t(g_proj.msg_serial)));
     ln("msghwid=" + w2s(esc_t(g_proj.msg_hwid)));
+    // cp295/V295-1: proje anahtar çifti (Export Key Pair çıktısı) kalıcısı
+    ln("licpem=" + w2s(esc_t(g_proj.lic_pem)));
+    ln("licmod=" + w2s(esc_t(g_proj.lic_modulus)));
+    ln("licpc=" + w2s(esc_t(g_proj.lic_prodcode)));
     // cp288/P2: Files penceresi + Activation Server (kalici)
     for (auto& vf : g_proj.vfiles)      ln("vfile=" + w2s(esc_t(vf)));
     for (auto& vf : g_proj.vfiles_excl) ln("vfilex=" + w2s(esc_t(vf)));
@@ -3307,7 +3425,7 @@ static bool save_project_to(const std::wstring& path) {
         std::wstring line = L"lic\t" + esc_t(lc.name) + L"\t" + esc_t(lc.email) + L"\t" + esc_t(lc.date) +
             L"\t" + esc_t(lc.order) + L"\t" + esc_t(lc.comments) + L"\t" + fl + L"\t" +
             esc_t(lc.s_expire_d) + L"\t" + esc_t(lc.s_maxbuild_d) + L"\t" + esc_t(lc.s_time_v) + L"\t" + esc_t(lc.s_userdata_v) +
-            L"\t" + (lc.blocked ? L"1" : L"0");
+            L"\t" + (lc.blocked ? L"1" : L"0") + L"\t" + esc_t(lc.serial);
         ln(w2s(line));
     }
     fwrite(o.data(), 1, o.size(), f);
@@ -3387,6 +3505,12 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
             g_proj.msg_serial = unesc_t(s2w(line.substr(10)));
         } else if (line.rfind("msghwid=", 0) == 0) {
             g_proj.msg_hwid = unesc_t(s2w(line.substr(8)));
+        } else if (line.rfind("licpem=", 0) == 0) {            // cp295/V295-1
+            g_proj.lic_pem = unesc_t(s2w(line.substr(7)));
+        } else if (line.rfind("licmod=", 0) == 0) {
+            g_proj.lic_modulus = unesc_t(s2w(line.substr(7)));
+        } else if (line.rfind("licpc=", 0) == 0) {
+            g_proj.lic_prodcode = unesc_t(s2w(line.substr(6)));
         } else if (line.rfind("vfile=", 0) == 0) {              // cp288/P2
             g_proj.vfiles.push_back(unesc_t(s2w(line.substr(6))));
         } else if (line.rfind("vfilex=", 0) == 0) {             // cp288/P2
@@ -3431,6 +3555,7 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
                 lc.s_expire_d = unesc_t(p[6]); lc.s_maxbuild_d = unesc_t(p[7]);
                 lc.s_time_v = unesc_t(p[8]); lc.s_userdata_v = unesc_t(p[9]);
                 if (p.size() >= 11) lc.blocked = p[10] == L"1";   // 0.4.0
+                if (p.size() >= 12) lc.serial = unesc_t(p[11]);   // cp295/V295-1
                 g_proj.lics.push_back(lc);
             }
         }
@@ -4187,6 +4312,30 @@ static void prop_row_edit(int row) {
             int base = 100 + idx * 10;
             (void)base;
             unsigned long long off = fld - (unsigned long long)(100 + idx * 10);
+            // cp295/V295-1: Serial Number satırı — tıklanınca panoya kopyalanır
+            // (VMP: serial müşteriye verilir; XProtect: clipboard + log)
+            if (off == 13) {
+                if (!lc.serial.empty()) {
+                    if (OpenClipboard(g_main)) {
+                        EmptyClipboard();
+                        size_t nb = (lc.serial.size() + 1) * sizeof(wchar_t);
+                        HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, nb);
+                        if (hg) {
+                            memcpy(GlobalLock(hg), lc.serial.c_str(), nb);
+                            GlobalUnlock(hg);
+                            SetClipboardData(CF_UNICODETEXT, hg);
+                        }
+                        CloseClipboard();
+                        add_log(L"Serial panoya kopyalandi (" + numdec(lc.serial.size()) + L" kr): " +
+                                lc.serial.substr(0, 40) + L"...");
+                    }
+                } else {
+                    MessageBoxW(g_main, L"Bu lisansin serial'i yok.\n"
+                                L"Once Project > Export Key Pair ile anahtar cifti uretin, "
+                                L"sonra lisansi tekrar kaydedin.", XPROTECT_EDITION, MB_ICONINFORMATION);
+                }
+                return;
+            }
             switch (off) {
             case 5: lc.s_name = !lc.s_name; break;
             case 6: lc.s_email = !lc.s_email; break;
@@ -4374,6 +4523,28 @@ static void prop_row_edit(int row) {
                     push_undo();
                     g_proj.act_server = v;
                     g_proj.modified = true; update_all();
+                }
+            }
+            // cp295/V295-1: Product Code — 16 hex (8 bayt). Serial'in 0x07
+            // bloğu ve LSD 0x110 aynı kodu taşır; derlemede --lic-pc olur.
+            if (r.id == 935) {
+                std::wstring v;
+                if (dlg_input_text(r.name, L"16 hex (8 bayt, or. 0102030405060708)",
+                                   g_proj.lic_prodcode, &v)) {
+                    // sadece hex karakter; 16 uzunluk
+                    std::wstring h;
+                    for (wchar_t c : v) {
+                        wchar_t lc2 = (c >= L'A' && c <= L'F') ? (wchar_t)(c - L'A' + L'a') : c;
+                        if ((lc2 >= L'0' && lc2 <= L'9') || (lc2 >= L'a' && lc2 <= L'f')) h += lc2;
+                    }
+                    if (h.size() == 16) {
+                        push_undo();
+                        g_proj.lic_prodcode = h;
+                        g_proj.modified = true; update_all();
+                    } else {
+                        MessageBoxW(g_main, L"Product Code 16 hex haneli olmali (8 bayt).",
+                                    XPROTECT_EDITION, MB_ICONWARNING);
+                    }
                 }
             }
             // 1.2.5-A13 (x6): duzenleme sonrasi secim ayni satirda kalsin
