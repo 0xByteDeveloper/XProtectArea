@@ -1434,6 +1434,40 @@ static void fill_prop() {
         prop_add_row(4, L"Key Pair (Project)", lkx[0], 934);
         lkx[1] = g_proj.lic_prodcode.empty() ? std::wstring(L"-") : g_proj.lic_prodcode;
         prop_add_row(3, L"Product Code", lkx[1], 935);
+    } else if (g_prop_sel_kind == 5) {
+        // cp299/V300: Licenses KLASORU secili — VMProtect 3.9.4 Licenses penceresi.
+        // Lisans olsun olmasin Licensing Parameters gorunur (kullanici tespiti:
+        // "Licenses penceresinde bi bok yok" — root cause: satirlar yalnizca tek
+        // lisans seciliyken kind==4 dalindaydi; klasor node'u dizin listesi
+        // gosteriyordu). VMP 3.9.4: RSA + 2048 default, tıklayinca duzenlenir.
+        prop_add_row(0, L"Licensing Parameters", L"", 0);
+        static std::wstring lkv2[4];
+        lkv2[0] = g_proj.lic_keypair == 0 ? L"None" : L"RSA";
+        prop_add_row(2, L"Key Pair Algorithm", lkv2[0], 930);
+        lkv2[1] = g_proj.lic_keypair == 0 ? std::wstring(L"-") : numdec(g_proj.lic_keylen);
+        prop_add_row(2, L"Key Length", lkv2[1], 932);
+        lkv2[2] = basename_of(g_proj.target) + L".vmp";
+        prop_add_row(4, L"File Name", lkv2[2], 0);
+        lkv2[3] = g_proj.act_server.empty() ? std::wstring(L"-") : g_proj.act_server;
+        prop_add_row(3, L"Activation Server", lkv2[3], 931);
+        static std::wstring lkx2[2];
+        lkx2[0] = g_proj.lic_modulus.empty() ? std::wstring(L"-") :
+                 (basename_of(g_proj.lic_pem.empty() ? L"(pem kayıtlı değil)" : g_proj.lic_pem) +
+                  L" / " + numdec(g_proj.lic_modulus.size() / 2) + L"B");
+        prop_add_row(4, L"Key Pair (Project)", lkx2[0], 934);
+        lkx2[1] = g_proj.lic_prodcode.empty() ? std::wstring(L"-") : g_proj.lic_prodcode;
+        prop_add_row(3, L"Product Code", lkx2[1], 935);
+        // klasorun cocuklari = lisanslar (VMP sol agacin aynisi; burada da listele)
+        prop_add_row(0, L"Licenses", L"", 0);
+        if (g_proj.lics.empty()) {
+            prop_add_row(4, L"(no licenses — Project > Add License)", L"", 0);
+        }
+        for (size_t i = 0; i < g_proj.lics.size(); i++) {
+            const ProjLicense& lc = g_proj.lics[i];
+            std::wstring nm = lc.name.empty() ? (L"License " + numdec(i + 1)) : lc.name;
+            if (lc.blocked) nm += L" [" + std::wstring(L(LS_BLOCKED)) + L"]";
+            prop_add_row(4, nm.c_str(), lc.email, (int)(200 + i));
+        }
     }
     // listeye bas
     int shown = 0;
@@ -4357,6 +4391,58 @@ static void prop_row_edit(int row) {
                               LVIS_FOCUSED | LVIS_SELECTED);
         return;
     }
+    // cp299/V300 FIX: VMProtect secenek satirlari (Debugger 913, Version 910,
+    // Key Length 932, ...) kind=2 ile eklenir ama handler'lari kind==3 blogunda.
+    // Eski kod kind==2'yi fonksiyon compilation-type saniyordu -> funcs[932]
+    // vector tasmasi = page-fault (Licenses + Options satirlari duzenlenemezdi).
+    // Fonksiyon baglami disindaki kind==2 satirlar kind==3 akisina dusmelidir.
+    if (r.kind == 2 && g_prop_sel_kind != 2) {
+        int idx = (int)r.id; (void)idx;
+        // cp299/V300: 9xx satirlari (kind==3 handler'lari) — core/Licenses
+        // baglaminda kind==2 satirlar buraya duser; eskiden funcs[9xx] tasmasi
+        // oluyordu. 932 = Key Length combo; 913 Debugger; 930 RSA toggle.
+        if (r.id == 913) {
+            push_undo();
+            g_proj.dbg_mode = (g_proj.dbg_mode + 1) % 3;
+            if (g_proj.dbg_mode >= 1) g_proj.options |= cpCheckDebugger;
+            else                      g_proj.options &= ~cpCheckDebugger;
+            g_proj.modified = true; update_all();
+        } else if (r.id == 930) {
+            push_undo();
+            g_proj.lic_keypair = g_proj.lic_keypair ? 0 : 1;
+            g_proj.modified = true; update_all();
+        } else if (r.id == 932) {
+            if (g_proj.lic_keypair == 0) {
+                MessageBoxW(g_main, L"Key Pair Algorithm: None iken anahtar uzunlugu yoktur.",
+                            L"Licenses", MB_OK | MB_ICONINFORMATION);
+            } else {
+                static const int klens[13] = { 1024, 1536, 2048, 2560, 3072, 3584, 4096,
+                                               4608, 5120, 5632, 6144, 6656, 7168 };
+                HWND d = dlg_base(L"Key Length", 280, 210);
+                HWND cb = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0xC01, 16, 20, 240, 180);
+                int cur = -1;
+                for (int i = 0; i < 13; i++) {
+                    ComboBox_AddString(cb, numdec(klens[i]).c_str());
+                    if (klens[i] == g_proj.lic_keylen) cur = i;
+                }
+                if (cur < 0) cur = 2;
+                ComboBox_SetCurSel(cb, cur);
+                mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 80, 160, 90, 26);
+                mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 176, 160, 88, 26);
+                bool ok; modal_run(d, &ok);
+                int sel = ok ? ComboBox_GetCurSel(cb) : -1;
+                DestroyWindow(d);
+                if (ok && sel >= 0 && sel < 13) {
+                    push_undo();
+                    g_proj.lic_keylen = klens[sel];
+                    g_proj.modified = true; update_all();
+                }
+            }
+        }
+        ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
+                              LVIS_FOCUSED | LVIS_SELECTED);
+        return;
+    }
     if (r.kind == 2) {
         int idx = (int)r.id;
         // derleme turu combo diyalogu
@@ -4379,7 +4465,7 @@ static void prop_row_edit(int row) {
         return;
     }
     if (r.kind == 3) {
-        if (g_prop_sel_kind == 0) {
+        if (g_prop_sel_kind == 0 || g_prop_sel_kind == 5) {   // cp299/V300: 5 = Licenses klasoru
             // 1.2.5-A13 (x7): Detection Message duzenleme (proje-duzeyi)
             if (r.id == 900) {
                 std::wstring v;
@@ -4586,6 +4672,7 @@ static void prop_row_edit(int row) {
 static bool g_drag = false;
 static bool g_drag_h = false;   // 1.2.5-A13 (x): log ayiraci surukleme durumu
 static std::wstring g_cmd_open;
+static bool g_sellicense = false;   // cp299/V300: --sellicense test kancasi
 
 // 0.4.0: dil degisince boot sayfasi etiketleri tazelenir
 static void update_welcome_texts() {
@@ -4836,9 +4923,13 @@ static LRESULT CALLBACK main_proc(HWND h, UINT msg, WPARAM wp, LPARAM lp) {
                     g_prop_sel_kind = -1; g_prop_sel_idx = -1;
                     g_dir_kind = 1; dir_cols_setup(1); dir_fill(); right_show(1);
                 } else if (idl == 2) {
-                    // 0.4.0: Licenses klasoru → lisans dizin gorunumu
-                    g_prop_sel_kind = -1; g_prop_sel_idx = -1;
-                    g_dir_kind = 2; dir_cols_setup(2); dir_fill(); right_show(1);
+                    // cp299/V300: Licenses klasoru -> VMP 3.9.4 "Licenses" penceresi:
+                    // lisans yoksa bile LICENSING PARAMETERS hemen gorunur (kullanici
+                    // tespiti: yeni projede panel bos kaliyordu — VMProtect'te RSA +
+                    // 2048 aninda gorunur). Ozellik izgarasi gosterilir; liste
+                    // (Customer Name|Email|Date) klasorun altindan cift-tiklanir.
+                    g_prop_sel_kind = 5; g_prop_sel_idx = -1;
+                    right_show(0); fill_prop();
                 } else if (idl == 3) {
                     // cp288/P2: Files klasoru → dosya dizin gorunumu
                     g_prop_sel_kind = -1; g_prop_sel_idx = -1;
@@ -5114,6 +5205,7 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
             if (!wcscmp(argv[i], L"--selftest")) g_selftest = true;
             else if (!wcscmp(argv[i], L"--uistate")) g_uistate = true;   // 0.4.2 tani
             else if (!wcscmp(argv[i], L"--open") && i + 1 < argc) g_cmd_open = argv[++i];
+            else if (!wcscmp(argv[i], L"--sellicense")) g_sellicense = true;   // cp299/V300 test
             else if (!wcscmp(argv[i], L"--cli") && i + 2 < argc) {
                 // ---- 0.3.0 CLI modu (otomatik test / betik kullanimi) ----
                 // XProtectUI.exe --cli <girdi> <cikti> [--type V|M|U] [--strength 1..3]
@@ -5394,6 +5486,13 @@ int WINAPI WinMain(HINSTANCE hI, HINSTANCE, LPSTR, int nCmd) {
     update_all();
     welcome_fill();
     if (!g_cmd_open.empty()) route_open_path(g_cmd_open);   // 0.4.0: .xproj/.vmp/exe yonlendirme
+    // cp299/V300 test kancasi: --sellicense = Licenses klasorunu sec (ekran kaniti)
+    if (g_sellicense && g_tree) {
+        HTREEITEM root = TreeView_GetRoot(g_tree);
+        HTREEITEM ch = root ? TreeView_GetChild(g_tree, root) : NULL;   // Test_64.exe
+        HTREEITEM lic = ch ? TreeView_GetNextSibling(g_tree, ch) : NULL; // Functions -> Licenses
+        if (lic) { TreeView_SelectItem(g_tree, lic); }
+    }
     if (g_selftest || g_uistate) SetTimer(g_main, 1, 1200, NULL);
     // 0.3.0 DUZELTME (UI bug #6): wine/launcher nCmd=0 (SW_HIDE) iletiyorsa
     // pencere HIC haritalanmiyor (X'te Map State: IsUnMapped — gorunumsuz
