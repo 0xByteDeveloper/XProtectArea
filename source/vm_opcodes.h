@@ -122,6 +122,11 @@
 //     kapsam genisletmesi. Tam EFLAGS (CF/PF/AF/ZF/SF/OF + DF) + 0F uzanti
 //     + string ops + donguler. Akis formati encoder (engine_lift) ile
 //     BIREBIR ayna — degisiklikler iki tarafta ayni commit'te.
+#define OP_PUSHVA    0x45   // u32 rva: push (base+rva) — position-independent
+                              //   "call $+5 / pop reg" deseni icin (cp300):
+                              //   gercek call'in yigina biraktigi VA'yi taklit eder.
+#define OP_PUSHVA    0x45   // u32 rva: push (base+rva) — "call $+5" emulasyonu (cp300)
+#define OP_PUSHVA    0x45   // u32 rva: push (base+rva) — "call $+5" emulasyonu (cp300)
 #define OP_PUSHF     0x2C   // push EFLAGS imaji (CF PF AF ZF SF TF IF DF OF; bit1=1)
 #define OP_POPF      0x2D   // pop -> VM flags (yalniz modelenen bitler)
 #define OP_SAHF      0x2E   // flags <- AH (CF/PF/AF/ZF/SF)

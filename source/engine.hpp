@@ -364,11 +364,8 @@ struct Options {
                               //   kullanici olcumu "tek ozellik 12MB" Instances:10
                               //   varsayilanina dayanir; motor default'u da 10)
     int  vm_size_mode = 0;    // cp287/P3: 0=kucuk (XProtect klasik ~30-50KB blob)
-                               //   1=VMProtect-compat profil: instance basina VM
-                               //   opcode/dekod tablosu dolgu alani olceklendirilir
-                               //   (VMP 3.9.x "Instances:10 + Ultra" cikti gorunumu;
-                               //   runtime aynen dogru calisir — yalnizca tablo
-                               //   dolgusu genisler, mantik degismez)
+    bool vm_size_fake = false; // cp300: sahte instance-dolgu — HIC ACILMAZ (gercek VMP
+                               //  .vmp0 +14..20KB; no-fn+inst10+cx100 = 14,336B toplam)
     bool debugmode = false;   // 1.2.0-B5: cpDebugMode — dolgu INT3 (0xCC)
     bool rsrcprot = false;    // 1.2.0-B3: cpResourceProtection
     bool vfiles = false;      // 1.2.0-B4: cpVirtualFiles (faLoad bundler)
@@ -380,7 +377,9 @@ struct Options {
     bool mpveh = false;    // 1.2.2-A11: memprot VEH tamper-kill gate (cfg[0x09])
     bool vmenc = true;
     bool vmregs = true;   // 1.2.0-A9: Encrypt Registers (cpEncryptRegs) — VM register dosyasi bellekte sifreli
-    std::vector<std::string> funcs;   // isim ya da rva(hex) listesi; bos -> hepsi uygun olanlar
+    std::map<std::string, int> fcx;   // cp301: fonksiyon-basina complexity % (0=global)
+   // cp301: fonksiyon-basina complexity % (0=global)
+    std::vector<std::string> funcs;   // isim ya da rva(hex) listesi uygun olanlar
     bool all = false;
     bool dotnet = true;      // 1.2.3: .NET (il.cc/dotnetfile portu) keşfi — CLR PE'de yöntemler aday olur
     std::vector<ManFn> manual;        // 0.4.1: kesin {rva,boyut,tip} listesi — tarayici adayina bakilmaksizin derlenir

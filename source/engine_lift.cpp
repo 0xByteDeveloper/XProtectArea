@@ -210,7 +210,9 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
             //    cikis/yaln sonrasi blogudur (zig bunu uretir) -> taramaya devam.
             if (I.op == XP_NOP) { if (pad_terminates) body_ended = true; pc += I.len; continue; }
             if (I.op == XP_INT3) break;
-            if (body_ended && pad_terminates) break;
+            /* cp300 FIX: ret+dolgu SONRASI gercek kod = coklu-cikis blogu
+               (MinGW "js ileri-dal" duzeni) — eskiden kiriliyordu → jcc fixup
+               hedefi taranmiyor → "fixup hedefi yok" RED. */
         }
 
         if (!F.plain.empty() && I.op != XP_RET) emit_junk();
@@ -402,6 +404,14 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
                 // kalir -> hedef kendi ret-imm'ini kendisi temizler).
                 // (0.9.0'daki ncall+ret yerine: yigin temiz, x86 yaprak
                 //  kipinde de calisir — eski RED "disari jmp (call yok)" kapandi.)
+                /* cp300 GUVENLIK: kuyruk-jmp fonksiyonlari cok-fonksiyonlu
+                   derlemede VM cikis kuyrugunda bozuluyor (wine SEH kaniti).
+                   Duru RED: koruma uygulanmaz, crash de olmaz. */
+                F.why = "jmp-disari (kuyruk) fonksiyonu — coklu-VM crash riski (cp300)"; return F;
+                /* cp300 GUVENLIK: kuyruk-jmp fonksiyonlari cok-fonksiyonlu
+                   derlemede VM cikis kuyrugunda bozuluyor (wine SEH kaniti).
+                   Duru RED: koruma uygulanmaz, crash de olmaz. */
+                F.why = "jmp-disari (kuyruk) fonksiyonu — coklu-VM crash riski (cp300)"; return F;
                 L.eop(OP_JMPEXT); L.e32(I.target);
                 saw_ret = true;
                 snprintf(buf, sizeof buf, "jmp disari -> jmpext 0x%x (kuyruk)", I.target); break;
@@ -426,6 +436,20 @@ VFn lift_function(const u8* code, u32 rva, u32 size, bool is64,
         }
         case XP_CALL: {
             if (!allow_call) { F.why = "call desteklenmiyor (x86 yaprak modu)"; return F; }
+            /* cp300: hedef govde icindeyse VE "call $+5" ise position-independent
+               RIP-yakalama deseni — OP_NCALL gercek call yaptigindan "pop reg"
+               donus-adresini yutar → her cagrıda yigin sizmasi (V299 overflow
+               kok-nedeni). call-$+5 → OP_PUSHVA; diger govde-ici → OP_JMP+fix. */
+            if (I.target >= rva && I.target < end) {
+                if (I.target == I.pc + (u32)I.len) {
+                    L.eop(OP_PUSHVA); L.e32(I.target);
+                    snprintf(buf, sizeof buf, "call $+%u -> pushva 0x%x (RIP-taklit)", I.sz, I.target);
+                    break;
+                }
+                L.eop(OP_JMP); u32 site2 = (u32)L.bc.size(); L.e32(0);
+                F.fix.push_back({ site2, I.target });
+                snprintf(buf, sizeof buf, "call 0x%x (ic-jmp)", I.target); break;
+            }
             L.eop(OP_NCALL); L.e32(I.target);
             snprintf(buf, sizeof buf, "call 0x%x (ncall)", I.target); break;
         }

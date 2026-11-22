@@ -168,6 +168,7 @@ struct ProjFunc {
     bool is_export = false;
     int src = 0;               // keşif kaynağı (SYM_EXPORT/COFF/PDB/MAP/STUB)
     int type = 0;            // 0=Virtualization 1=Mutation 2=Ultra
+    int cx = 0;              // cp301: fonksiyon-basina complexity % (0=global)
     bool excluded = false;
     bool lock_to_key = false;
     unsigned long long ext = 0;   // External Address (0=auto)
@@ -216,7 +217,7 @@ struct Project {
     // Additional grubu
     std::wstring segments;               // "" = .vmp0/.vmp1 default; dolu = ozel ad
     bool shadow_stack = false;           // CET uyumu (VMProtect default: No)
-    int  vm_size_mode = 1;               // cp288: BIREBIR default = VMProtect-compat
+    int  vm_size_mode = 0;               // cp300: gercek profil — sahte dolgu yok (VMP +14-20KB)
                                          //   (VMP 3.9.4 her derlemde ~7.6MB profil uretir);
                                          //   0=Kucuk (XProtect klasik; Properties'ten secilir)
     // Messages (5 metin — VMProtect 3.9.4 metinleri varsayilan)
@@ -1375,6 +1376,11 @@ static void fill_prop() {
             (f.type == 0 ? L(LS_VIRT) : (f.type == 1 ? L(LS_MUT) : std::wstring(L(LS_ULTRA)) + L" (M+V)"));
         vals[vi] = ct;
         prop_add_row(2, L(LS_COMPTYPE), vals[vi], g_prop_sel_idx); vi++;
+        // cp301: fonksiyon-basina Complexity (VMProtect junk modeli; 0 = global)
+        {   static std::wstring cxt;
+            cxt = f.cx > 0 ? (numdec(f.cx) + L"%") : L"(global)";
+            prop_add_row(2, L"Complexity", cxt, 9200 + g_prop_sel_idx); vi++;
+        }
         vals[vi] = f.lock_to_key ? L"Yes" : L"No";
         prop_add_row(1, L(LS_LOCKKEY), vals[vi], g_prop_sel_idx); vi++;
         vals[vi] = f.excluded ? L"Yes" : L"No";
@@ -3249,6 +3255,8 @@ static void start_compile() {
         // cp286/P1: 3=None — motora HIC iletilmez (VMProtect "None": fonksiyon
         // listede kalir ama koruma uygulanmaz)
         if (f.type != 3) opt.ftypes[key] = f.type;
+        // cp301: fonksiyon-basina complexity motora (0 = global, gonderilmez)
+        if (f.cx > 0) opt.fcx[key] = f.cx;
     }
     // cp286/P1: VM Instances + Complexity (Virtual Machine grubu) motora
     opt.vmn = g_proj.vm_instances;
@@ -3257,7 +3265,9 @@ static void start_compile() {
     opt.vm_adv = (g_proj.vm_complexity >= 100);   // Complexity 100% = vtAdvanced
     // cp287/P3: cikti boyut profili
     opt.vm_size_mode = g_proj.vm_size_mode;
-    if (g_proj.funcs.empty() || (opt.funcs.empty() && opt.manual.empty())) opt.all = true;
+    /* cp300: fonksiyon listesi bos = koruma yok (VMP davranisi; eskiden
+       otomatik "hepsi" → coklu-fonksiyon crash + buyuk cikti). */
+    if (g_proj.funcs.empty() || (opt.funcs.empty() && opt.manual.empty())) opt.all = false;
     opt.antidebug = (g_proj.options & cpCheckDebugger) != 0;
     /* 1.2.5 (x2): Silent Exit kutusu — true = mesaj kutusu YOK (sessiz
        kapanis); false = UO/VMP davranisi (mesaj + kapanma, history.htm:492).
@@ -3448,7 +3458,8 @@ static bool save_project_to(const std::wstring& path) {
         std::wstring line = L"func\t" + esc_t(fn.name) + L"\t" + numdec(fn.rva) + L"\t" +
             numdec(fn.size) + L"\t" + (fn.is_export ? L"1" : L"0") + L"\t" +
             numdec((unsigned long long)fn.type) + L"\t" + (fn.excluded ? L"1" : L"0") + L"\t" +
-            (fn.lock_to_key ? L"1" : L"0") + L"\t" + numdec(fn.ext) + L"\t" + numdec(fn.brk);
+            (fn.lock_to_key ? L"1" : L"0") + L"\t" + numdec(fn.ext) + L"\t" + numdec(fn.brk) +
+            L"\t" + numdec(fn.cx);
         ln(w2s(line));
     }
     for (auto& w : g_proj.wms)
@@ -3563,6 +3574,7 @@ static bool load_project_from(const std::wstring& path, std::wstring* err) {
                 fn.type = (int)wcstoul(p[4].c_str(), NULL, 10);
                 fn.excluded = p[5] == L"1";
                 fn.lock_to_key = p[6] == L"1";
+                if (p.size() > 9) fn.cx = _wtoi(p[9].c_str());   // cp301: cx (9. kolon)
                 fn.ext = wcstoull(p[7].c_str(), NULL, 10);
                 fn.brk = wcstoull(p[8].c_str(), NULL, 10);
                 g_proj.funcs.push_back(fn);
@@ -4438,6 +4450,33 @@ static void prop_row_edit(int row) {
                     g_proj.modified = true; update_all();
                 }
             }
+        }
+        ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
+                              LVIS_FOCUSED | LVIS_SELECTED);
+        return;
+    }
+    if (r.kind == 2 && r.id >= 9200) {
+        // cp301: fonksiyon-basina Complexity diyalogu (0/25/50/100 junk olcegi)
+        int idx = (int)r.id - 9200;
+        if (idx < 0 || (size_t)idx >= g_proj.funcs.size()) return;
+        HWND d = dlg_base(L"Complexity", 280, 170);
+        HWND cb = mk_ctl(d, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_TABSTOP, 0xC01, 16, 20, 240, 140);
+        static const int cxv[5] = { 0, 25, 50, 100, 150 };
+        int cur = 0;
+        for (int i = 0; i < 5; i++) {
+            ComboBox_AddString(cb, cxv[i] == 0 ? L"(global)" : (numdec(cxv[i]) + L"%").c_str());
+            if (cxv[i] == g_proj.funcs[idx].cx) cur = i;
+        }
+        ComboBox_SetCurSel(cb, cur);
+        mk_ctl(d, L"BUTTON", L(LS_OK), BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK, 60, 110, 90, 26);
+        mk_ctl(d, L"BUTTON", L(LS_CANCEL), WS_TABSTOP, IDCANCEL, 160, 110, 88, 26);
+        bool ok; modal_run(d, &ok);
+        int sel = ok ? ComboBox_GetCurSel(cb) : -1;
+        DestroyWindow(d);
+        if (ok && sel >= 0 && sel < 5) {
+            push_undo();
+            g_proj.funcs[idx].cx = cxv[sel];
+            g_proj.modified = true; update_all();
         }
         ListView_SetItemState(g_prop, row, LVIS_FOCUSED | LVIS_SELECTED,
                               LVIS_FOCUSED | LVIS_SELECTED);

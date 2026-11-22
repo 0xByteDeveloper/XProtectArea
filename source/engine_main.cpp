@@ -748,10 +748,21 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
            IL govderi 6-8 bayt olabilir (24-8192 filtresi native thunk
            ayiklamak icindi; .NET metotlarini yiyip 0/0 secili uretiyordu). */
         bool dn_fn = (f.note == "DOTNET" || f.note == "DOTNET-EH");
-        if (opt.manual.empty() && (opt.all || opt.funcs.empty())) {
-            f.selected = dn_fn ? true : (f.size >= 24 && f.size <= 8192);
+        /* cp300: funcs BOS = HIC secme (VMProtect: fonksiyon eklenmeden
+           Compile → orijinale yakin kabuk). Eskiden otomatik "hepsi"
+           seciliyordu → coklu-fonksiyon crash + buyuk cikti.
+           cp301: --all GECICI olarak ilk-3 fonksiyonla sinirli (4+ birlikte
+           V derleme deterministik AV — .vmp0 coklu-fn dizilim hatasi,
+           kok-cozum V302). */
+        if (opt.manual.empty() && opt.all) {
+            static int all_cnt = 0;
+            bool take = dn_fn ? true : (f.size >= 24 && f.size <= 8192);
+            if (take && all_cnt >= 3) { f.selected = false; continue; }
+            if (take) all_cnt++;
+            f.selected = take;
             continue;
         }
+        if (opt.manual.empty() && opt.funcs.empty()) continue;   /* bos liste */
         for (auto& want : opt.funcs) {
             if (want == f.name) { f.selected = true; break; }
             u32 rv = (u32)strtoul(want.c_str(), nullptr, 16);
@@ -1613,7 +1624,7 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
                                       f.rva, is_dotnet ? (u32)dn_x86.size() : f.size, pe.is64,
                                       pe.imagebase, pe.sizeofimage,
                                       true /* 0.4.1: x86 dis-cagri rel32 fixup zaten destekli */,
-                                      opt.mut_strength,
+                                      opt.mut_strength,   /* cp301: per-fn guc fcx ile asagida zarflanir */
                                       f.rva ^ 0x9E3779B9u, 0 /*olcum gecisi*/, is_region,
                                       prolog_of.count(f.rva) ? prolog_of[f.rva] : 0);
             if (!m.ok) { f.note = "RED: mutasyon " + m.why; continue; }
@@ -1657,7 +1668,17 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         } else {
             // V: acik tip 0 => saf sanallastirma (junk yok).
             // ftypes yoksa 0.2.0 CLI uyumu: level>=2 -> VM junk
-            jl = opt.ftypes.empty() ? (opt.level >= 2 ? 2 : 0) : 0;
+            /* cp301: fonksiyon-basina complexity (VMP junk modeli — intel.cc
+               16425: site-basina rand()%4 junk komutu; yuzde → junk duzeyi).
+               Global ayar kullanilmaz; fcx girisi varsa o gecerli. */
+            {
+                std::string fk = !f.name.empty() ? f.name
+                    : ([](u32 rva){ char kb[16]; snprintf(kb, sizeof kb, "%X", rva); return std::string(kb); })(f.rva);
+                int cxv = 0;
+                auto itc = opt.fcx.find(fk);
+                if (itc != opt.fcx.end()) cxv = itc->second;
+                jl = (cxv >= 100) ? 3 : (cxv >= 50) ? 2 : (cxv >= 25) ? 1 : 0;
+            }
             nV++;
         }
         // 0.5.0: x86 VM'de dogal cagri (OP_NCALL) hala kirik (vm_natcall86
@@ -1700,6 +1721,15 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
         for (auto& f2 : fns) if (f2.selected) n_sel++;
         snprintf(b, sizeof b, "[LIFT] %zu/%u secili fonksiyon | V=%d M=%d U=%d (U-mutdus=%d)",
                  comps.size(), n_sel, nV, nM, nU, nUf);
+        {   // cp300 teshis: secili fonksiyon adlari
+            char* p = b + strlen(b); size_t rem = sizeof b - strlen(b);
+            snprintf(p, rem, " | F:"); p += 3; rem -= 3;
+            for (auto& f2 : fns) if (f2.selected) {
+                snprintf(p, rem, " %s@%X", f2.name.c_str(), f2.rva);
+                size_t l2 = strlen(p); p += l2; rem -= l2;
+                if (rem < 64) break;
+            }
+        }
         if (n_sel > (u32)comps.size())
             snprintf(b + strlen(b), sizeof b - strlen(b),
                      " | UYARI: %u fonksiyon RED edildi (asagida)", n_sel - (u32)comps.size());
@@ -1945,8 +1975,14 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     }
 
     // --- section goruntusunu kur ---
+    // cp301 (VMProtect 3.5.1 parite): sanallastirilan fonksiyon YOK ise VM
+    // interpreter'i dosyaya YAZILMAZ (intel.cc: VM komutlari yalnizca
+    // virtualize edilen fonksiyon komutlarindan uretilir). Blob alani
+    // sifir kalir; yerlesim ofsetleri degismez (stub/cfg planlari ayni).
     std::vector<u8> secimg;
-    secimg.insert(secimg.end(), blob, blob + blob_len);
+    bool vm_blob_used = !comps.empty();
+    if (vm_blob_used) secimg.insert(secimg.end(), blob, blob + blob_len);
+    else secimg.resize(blob_len, 0);
     // 0.5.0: xrt blob (kod) — self-CRC bu bolgeyi kapsar (cfg haric)
     if (rt_blob) {
         secimg.resize(xrt_code_off, 0);
@@ -2352,7 +2388,10 @@ int protect(const std::string& in, const std::string& out, const Options& opt,
     // ekler (xorshift keystream — tekrar-edinmez entropik gorunum; VM mantigi
     // ve tum adresler DEGISMEZ — runtime etkisi yok, yalnizca dosya gorunumu).
     // ============================================================
-    if (opt.vm_size_mode == 1) {
+    /* cp300: sahte dolgu KAPALI — gercek VMP ciktisi (kullanici dosyalari):
+       Test_vmp .vmp0=14.5KB, metin2 +18KB, no-fn+inst10+cx100=14,336B toplam.
+       vm_size_fake hicbir yerden acilmaz; --vmsize geriye-uyumlu kabul edilir. */
+    if (opt.vm_size_mode == 1 && opt.vm_size_fake) {
         // VMP olcek modeli — cp288 KALIBRASYON (VMP 3.9.4 referansi: 12KB Test.exe
         // + Ultra + Instances:10 + Pack -> 7,972,864 bayt): per = (hedef - base)/9
         // = (7,972,864 - 88,000)/9 = 876,096 bayt/instance (x64) ; x86 = %80 ->

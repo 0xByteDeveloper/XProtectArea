@@ -1187,6 +1187,18 @@ static void vm_run(VMContext* c) {
             renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
             mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, rget(c, r1, PUSHSZ));
 
+        } else if (op == OP_PUSHVA) {   /* cp300: push base+rva — call $+5 emulasyonu */
+            u32 vr = (u32)sf32(&s);
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, c->base + (u64)vr);
+        } else if (op == OP_PUSHVA) {   /* cp300: push base+rva — call $+5 emulasyonu */
+            u32 vr = (u32)sf32(&s);
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, c->base + (u64)vr);
+        } else if (op == OP_PUSHVA) {   /* cp300: push base+rva — call $+5 emulasyonu */
+            u32 vr = (u32)sf32(&s);
+            renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));
+            mwr(rdec(c, REG_RSP) - (u64)VM_DELTA, PUSHSZ, c->base + (u64)vr);
         } else if (op == OP_PUSH_I) {
             sext32(&sv, sf32(&s));
             renc(c, REG_RSP, rdec(c, REG_RSP) - (PUSHSZ));

@@ -60,6 +60,9 @@ int main(int argc, char** argv) {
             m.ty = -1;   /* tip parse sonunda --type ile baglanir (cp287) */
             opt.manual.push_back(m);
         }
+        else if (a == "--fcx" && i + 2 < argc) {           /* cp301: fonksiyon-basina complexity */
+            opt.fcx[argv[i+1]] = atoi(argv[i+2]); i += 2;
+        }
         else if (a == "--vmadv") opt.vm_adv = true;
         else if (a == "--vmsize") opt.vm_size_mode = 1;   /* cp287/P3 VMP-compat boyut */
         else if (a == "--vmn" && i + 1 < argc) { opt.vmn = atoi(argv[++i]); if (opt.vmn < 1) opt.vmn = 1; if (opt.vmn > 10) opt.vmn = 10; } /* cp286: Instances 1..10 */
@@ -99,7 +102,9 @@ int main(int argc, char** argv) {
         else if (a == "--dotnet") opt.dotnet = true;
         else if (a == "--nodotnet") opt.dotnet = false;
     }
-    if (!opt.all && opt.funcs.empty() && opt.manual.empty()) opt.all = true;
+    /* cp300: funcs bos = HIC fonksiyon (VMP davranisi). --all ACIKCA
+       soylenirse secilir (ilk-3 motor siniri). */
+    if (!opt.all && opt.funcs.empty() && opt.manual.empty()) opt.all = false;
     /* cp287: --manual satirlari --type ONCESI de gelmis olabilir — parse
        sonrasi tipleri guncelle (UI'daki Add Function combo esdegeri) */
     for (auto& m : opt.manual)
